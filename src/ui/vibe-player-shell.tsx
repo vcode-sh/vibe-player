@@ -3,7 +3,7 @@ import type { PropsWithChildren, ReactNode } from "react";
 export interface VibePlayerShellProps extends PropsWithChildren {
   footer?: ReactNode;
   header?: ReactNode;
-  title?: string;
+  title?: string | undefined;
 }
 
 export function VibePlayerShell({

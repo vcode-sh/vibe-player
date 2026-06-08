@@ -6,6 +6,7 @@
 - Package name is scoped for internal work: `@vibe-code/vibe-player`
 - License is `UNLICENSED`
 - Changesets is the intended versioning and npm release mechanism
+- Package output is intentionally ESM-only
 
 ## Before the first public release
 

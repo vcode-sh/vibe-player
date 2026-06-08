@@ -16,6 +16,7 @@
 ## Package publishing rules
 
 - Keep `exports` explicit.
+- Treat the package as ESM-only unless there is a concrete public need for dual-package output.
 - Keep `dist` buildable at all times once implementation starts.
 - Keep the repo private until the API surface is intentional and stable.
 - Treat publint and ATTW as release gates, not optional extras.

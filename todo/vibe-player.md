@@ -1,14 +1,17 @@
 # Vibe Player Plan
 
-Status: proposed, not implemented
+Status: in progress; standalone repo scaffold exists, Phase 0 is partly done, Phase 1 is partly implemented
 Created: 2026-06-08 19:52 CEST
+Last verified: 2026-06-08 21:01 CEST
 Target: standalone reusable video-player package with Discovery-grade UI, motion, and multi-provider playback
-Primary location: `packages/vibe-player`
-Later integration target: `apps/web/src/features/discover`
+Primary implementation location: `/Users/tomrobak/_projects_/vibe-player`
+Reference source location: `/Users/tomrobak/_projects_/spreadoo/apps/web/src/features/discover`
+Later integration target: `/Users/tomrobak/_projects_/spreadoo/apps/web/src/features/discover`
+Current package name: `@vibe-code/vibe-player`
 
 ## Executive Verdict
 
-This should be built as a **standalone monorepo package first**, not as a direct refactor of `discover`.
+This should be built as a **standalone package first**, not as a direct refactor of `discover`.
 
 That is the right move because:
 
@@ -41,6 +44,104 @@ The package must preserve the **cinematic feel, motion quality, chrome behavior,
    - branded skins/themes
 
 ## Repo-Grounded Current-State Assessment
+
+### Current implementation snapshot
+
+Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-08 21:01 CEST:
+
+- package scaffold exists in `package.json` for ESM build, typecheck, lint, Vitest, publint, and ATTW
+- source union, capability model, normalized event names, adapter contract, resume seam, and analytics seam exist in `src/core/vibe-player-types.ts`
+- controller skeleton exists in `src/core/vibe-player-controller.ts`
+- progress milestone helper exists in `src/core/vibe-player-events.ts`
+- time formatting, duration, clamp, idle snapshot, and idle capabilities helpers exist in `src/core/vibe-player-time.ts`
+- React binding exists in `src/react/use-vibe-player-controller.ts`
+- minimal inline, modal, and shell components exist in `src/ui`
+- WebVTT parsing and active-caption lookup exist in `src/captions/parse-webvtt.ts`
+- current tests cover progress milestones, time helpers, and WebVTT parsing
+- no real file, HLS, or YouTube adapter exists yet
+- no package-owned controls, timeline, caption overlay, idle chrome hook, shortcut hook, background preview, or Discovery-parity skin exists yet
+
+### Reference source root
+
+The original behavior reference is not inside this repo. It lives in:
+
+`/Users/tomrobak/_projects_/spreadoo/apps/web/src/features/discover`
+
+Use those files as read-only reference input. Do not copy app coupling into the package.
+
+### Reference map: what comes from where
+
+Shell, modal feel, and chrome:
+
+- `discover-video-player.tsx`: primary reference for player shell composition, native video behavior, modal surface, close affordance, chrome layout, and how playback state reaches the UI
+- `discover-player-overlay.tsx`: cinematic overlay composition, top/bottom chrome placement, decorative layers, and player-level visual density
+- `discover-persistent-chrome.tsx`: persistent page/player chrome behavior that may inform package chrome rules but must not become a hard package dependency
+- `discover-chrome-visibility.tsx`: chrome visibility rules that should be checked before implementing package-owned idle and focus behavior
+
+Motion and transition behavior:
+
+- `discover-ui-motion.ts`: source of timing, easing, and reduced-motion constants to freeze before implementing package motion tokens
+- `use-discover-overlay-presence.ts`: modal/overlay presence and exit timing reference
+- `discover-view-transition-styles.tsx`: route/page transition styling reference; useful for integration later, not package core
+- `discover-route-transition.ts`: route choreography reference; keep in Discover during integration
+- `discover-rail-motion.ts` and `use-discover-thumbnail-rail-motion.ts`: rail-specific motion reference; do not move into the package except as visual QA context
+
+Playback state and controller behavior:
+
+- `use-discover-video-player-state.ts`: native-video state orchestration reference for play, pause, seek, mute, volume, rate, duration, and ended behavior
+- `discover-player-events.ts`: playback event and progress milestone reference
+- `discover-player-time.ts`: time formatting and duration truth reference
+- `discover-playback-rate.ts`: allowed playback-rate behavior reference
+- `use-discover-video-resume.ts`: resume behavior reference; package equivalent should stay behind `VibePlayerResumeStore`
+- `discover-progress-store.ts`, `use-discover-progress.ts`: host persistence/progress references only; do not move these implementation details into package core
+
+Controls, timeline, keyboard, and accessibility:
+
+- `discover-video-controls.tsx`: controls layout, button density, labels, disabled states, and capability-sensitive UI reference
+- `discover-seek-control.tsx`: timeline, hover, seek, buffered/progress treatment, and pointer interaction reference
+- `discover-player-shortcuts.ts`: pure keyboard shortcut mapping reference
+- `use-discover-player-shortcuts.ts`: React shortcut binding reference
+- `discover-player-keyboard.ts`: lower-level keyboard behavior reference
+- `use-discover-player-chrome.ts`: idle chrome timeout, pointer activity, focus interaction, and reveal/hide rules
+
+Captions:
+
+- `use-discover-video-captions.ts`: current custom-caption loading, parsing, active cue, and native text-track disabling reference
+- `discover-caption-overlay.tsx`: visual caption chip/overlay reference
+- `discover-caption-overlay.test.tsx` and `use-discover-video-captions.test.ts`: behavior checks to translate into package tests
+
+Ambient/background preview:
+
+- `discover-background-video.tsx`: ambient muted loop, poster fallback, crossfade, and reduced-motion reference
+- `discover-media.ts`: media asset helper/reference; use only to understand Discover inputs, not as a package model
+- `discover-background-video.test.tsx` and `discover-media.test.ts`: behavior checks to translate when Phase 7 starts
+
+Discover-only integration references:
+
+- `discover-types.ts`: source of current app data shape; must be adapted to `VibePlayerSource`, not imported
+- `discover-page-client.tsx`: page routing, rail, selected item, and modal orchestration; stays in Discover
+- `discover-page-hero.tsx`, `discover-page-rail-section.tsx`, `discover-thumbnail-rail.tsx`, `discover-thumbnail-card.tsx`, `discover-rail-arrows.tsx`: page and rail composition; use only for later integration QA
+- `use-discover-playback-telemetry.ts`: telemetry reference; package should emit normalized events and let Discover own telemetry
+- `discover-watched-toggle.tsx`: Discover watched-state UI; not a package concern
+
+### Reference tests to mine
+
+These tests are useful as behavior contracts or parity smoke tests:
+
+- `discover-video-player.test.tsx`
+- `discover-video-controls.mocked.test.tsx`
+- `discover-seek-control.test.tsx`
+- `discover-player-keyboard.test.ts`
+- `discover-player-shortcuts.test.ts`
+- `discover-player-events.test.ts`
+- `discover-player-time.test.ts`
+- `discover-playback-rate.test.ts`
+- `use-discover-player-chrome.mocked.test.tsx`
+- `use-discover-overlay-presence.mocked.test.tsx`
+- `discover-caption-overlay.test.tsx`
+- `use-discover-video-captions.test.ts`
+- `discover-background-video.test.tsx`
+- `discover-media.test.ts`
 
 ### What is already strong in Discover
 
@@ -102,7 +203,7 @@ The package should provide:
 
 ### Recommended package name
 
-`packages/vibe-player`
+`@vibe-code/vibe-player`
 
 This name is good if the intention is:
 
@@ -112,16 +213,17 @@ This name is good if the intention is:
 
 If later the package becomes more general-purpose and less “brand surface” oriented, a rename to `media-player` can still happen. For now `vibe-player` matches the intention.
 
-### Why this should stay in the monorepo first
+### Why standalone repo is acceptable now
 
-- faster iteration against existing Discovery behavior
-- easier direct reuse of tests and motion ideas
-- easier immediate adoption in multiple Spreadu surfaces
-- avoids early repo split overhead before the API contract stabilizes
+- the repo already exists at `/Users/tomrobak/_projects_/vibe-player`
+- the package can stay provider-agnostic without accidental app imports
+- Discovery remains a reference and future consumer, not the architectural owner
+- reference code can still be read directly from `/Users/tomrobak/_projects_/spreadoo/apps/web/src/features/discover`
+- integration can happen later through an adapter layer in Spreadoo
 
 ### When a separate repo becomes justified
 
-Only after all of these are true:
+The separate repo already exists. A later public/open-source release is justified only after all of these are true:
 
 - at least 2 real consumers beyond Discovery
 - provider contract is stable
@@ -129,7 +231,7 @@ Only after all of these are true:
 - no internal app import aliases leak into the package
 - release/versioning policy is clear
 
-Until then, separate repo work would create friction without real upside.
+Until then, keep the repo private and package-quality, but avoid public API churn promises.
 
 ## Core Architectural Decision
 
@@ -533,57 +635,58 @@ Reason:
 
 ## Package File Structure
 
-Recommended initial structure:
+The current repo is standalone, so this structure lives at the repository root.
+If the package is ever moved back into a monorepo, the same structure maps to
+`packages/vibe-player`.
 
 ```text
-packages/vibe-player/
-  package.json
-  tsconfig.json
-  src/
-    index.ts
-    core/
-      vibe-player-types.ts
-      vibe-player-controller.ts
-      vibe-player-events.ts
-      vibe-player-capabilities.ts
-      vibe-player-resume.ts
-      vibe-player-shortcuts.ts
-      vibe-player-time.ts
-    adapters/
-      create-file-adapter.ts
-      create-hls-adapter.ts
-      create-youtube-adapter.ts
-      adapter-types.ts
-    react/
-      use-vibe-player-controller.ts
-      use-vibe-player-chrome.ts
-      use-vibe-player-shortcuts.ts
-      use-vibe-player-captions.ts
-      use-vibe-player-resume.ts
-    ui/
-      vibe-player-inline.tsx
-      vibe-player-modal.tsx
-      vibe-player-shell.tsx
-      vibe-player-controls.tsx
-      vibe-player-timeline.tsx
-      vibe-player-caption-overlay.tsx
-      vibe-player-backdrop.tsx
-      vibe-player-empty-state.tsx
-    preview/
-      vibe-background-preview.tsx
-      use-vibe-background-layers.ts
-    skins/
-      discovery/
-        discovery-vibe-player-skin.ts
-        discovery-vibe-player-tokens.ts
-      cinematic-default/
-        cinematic-default-skin.ts
-    captions/
-      parse-webvtt.ts
-      caption-types.ts
-    styles/
-      vibe-player.css
-      vibe-player-motion.ts
+package.json
+tsconfig.json
+src/
+  index.ts
+  core/
+    vibe-player-types.ts
+    vibe-player-controller.ts
+    vibe-player-events.ts
+    vibe-player-capabilities.ts
+    vibe-player-resume.ts
+    vibe-player-shortcuts.ts
+    vibe-player-time.ts
+  adapters/
+    create-file-adapter.ts
+    create-hls-adapter.ts
+    create-youtube-adapter.ts
+    adapter-types.ts
+  react/
+    use-vibe-player-controller.ts
+    use-vibe-player-chrome.ts
+    use-vibe-player-shortcuts.ts
+    use-vibe-player-captions.ts
+    use-vibe-player-resume.ts
+  ui/
+    vibe-player-inline.tsx
+    vibe-player-modal.tsx
+    vibe-player-shell.tsx
+    vibe-player-controls.tsx
+    vibe-player-timeline.tsx
+    vibe-player-caption-overlay.tsx
+    vibe-player-backdrop.tsx
+    vibe-player-empty-state.tsx
+  preview/
+    vibe-background-preview.tsx
+    use-vibe-background-layers.ts
+  skins/
+    discovery/
+      discovery-vibe-player-skin.ts
+      discovery-vibe-player-tokens.ts
+    cinematic-default/
+      cinematic-default-skin.ts
+  captions/
+    parse-webvtt.ts
+    caption-types.ts
+  styles/
+    vibe-player.css
+    vibe-player-motion.ts
 ```
 
 ## Delivery Phases
@@ -591,6 +694,8 @@ packages/vibe-player/
 This plan is meant to be execution-ready. The phases below are intentionally strict.
 
 ### Phase 0 — Truth reset and reference freeze
+
+Status: in progress.
 
 Goal: lock the exact reference behavior before implementation starts.
 
@@ -608,7 +713,22 @@ Acceptance criteria:
 - adapter contract is ratified
 - Discovery-parity motion requirements are written down
 
+Current progress:
+
+- reference root is identified: `/Users/tomrobak/_projects_/spreadoo/apps/web/src/features/discover`
+- behavior-to-file reference map is now recorded in this plan
+- reusable behavior is separated from obvious Discover-only composition at the planning level
+- package target name is chosen: `@vibe-code/vibe-player`
+- source union and adapter contract are implemented in `src/core/vibe-player-types.ts`
+
+Remaining:
+
+- inspect the referenced Discover files and freeze exact motion constants, idle timings, shell geometry, and caption/timeline behavior
+- write the v1 scope cut explicitly before implementing file playback or full UI
+
 ### Phase 1 — Headless core contract
+
+Status: partly implemented.
 
 Goal: create the generic controller contract before any visual extraction.
 
@@ -627,7 +747,26 @@ Acceptance criteria:
 - core compiles without React UI
 - controller tests cover play/pause/seek/rate/mute/progress truth
 
+Current progress:
+
+- `VibePlayerSource` exists in `src/core/vibe-player-types.ts`
+- `VibePlayerAdapter` exists in `src/core/vibe-player-types.ts`
+- capabilities model exists in `src/core/vibe-player-types.ts`
+- normalized event names and adapter events exist in `src/core/vibe-player-types.ts`
+- resume and analytics seams exist in `src/core/vibe-player-types.ts`
+- controller skeleton exists in `src/core/vibe-player-controller.ts`
+- progress milestone helper exists in `src/core/vibe-player-events.ts`
+- time helpers exist in `src/core/vibe-player-time.ts`
+
+Remaining:
+
+- add focused controller tests for mount, load, adapter swap, play, pause, seek, mute, rate, resume, analytics, and teardown
+- decide whether progress milestone emission belongs in the controller or in a host/helper layer
+- split core files if they approach the repo LOC limits
+
 ### Phase 2 — File adapter
+
+Status: not started.
 
 Goal: make direct-file playback the first real adapter.
 
@@ -644,7 +783,23 @@ Acceptance criteria:
 - captions work with custom overlay
 - controller + adapter tests are green
 
+Current progress:
+
+- no real file adapter exists yet
+- WebVTT parsing exists in `src/captions/parse-webvtt.ts`
+
+Reference inputs:
+
+- `use-discover-video-player-state.ts`
+- `discover-video-player.tsx`
+- `use-discover-video-captions.ts`
+- `discover-player-events.ts`
+- `discover-player-time.ts`
+- `discover-playback-rate.ts`
+
 ### Phase 3 — First cinematic UI skin
+
+Status: scaffold only.
 
 Goal: ship a generic polished UI without Discovery coupling.
 
@@ -664,7 +819,24 @@ Acceptance criteria:
 - no telemetry/router/watched/rail assumptions exist
 - pointer-through and focus semantics match current quality bar
 
+Current progress:
+
+- minimal `VibePlayerInline`, `VibePlayerModal`, and `VibePlayerShell` components exist in `src/ui`
+- no package-owned controls, timeline, caption overlay, backdrop, idle chrome, or shortcut binding exists yet
+
+Reference inputs:
+
+- `discover-video-controls.tsx`
+- `discover-seek-control.tsx`
+- `use-discover-player-chrome.ts`
+- `discover-player-shortcuts.ts`
+- `use-discover-player-shortcuts.ts`
+- `discover-player-keyboard.ts`
+- `discover-caption-overlay.tsx`
+
 ### Phase 4 — Discovery-parity skin/preset
+
+Status: not started.
 
 Goal: preserve the exact feel of the current Discover player.
 
@@ -681,7 +853,23 @@ Acceptance criteria:
 - side-by-side visual QA against current Discover player is acceptable
 - any intentional deviations are documented
 
+Current progress:
+
+- `src/skins/cinematic-default/index.ts` exists as an initial skin export point
+- no Discovery-parity skin or token file exists yet
+
+Reference inputs:
+
+- `discover-ui-motion.ts`
+- `discover-video-player.tsx`
+- `discover-player-overlay.tsx`
+- `use-discover-overlay-presence.ts`
+- `discover-caption-overlay.tsx`
+- `discover-seek-control.tsx`
+
 ### Phase 5 — HLS adapter
+
+Status: not started.
 
 Goal: support `.m3u8` playback cleanly.
 
@@ -699,7 +887,15 @@ Acceptance criteria:
 - live HLS does not expose broken seek/duration UI
 - controller capability branching remains clean
 
+Current progress:
+
+- source model already includes `VibePlayerHlsSource`
+- no HLS runtime dependency is installed yet
+- no HLS adapter exists yet
+
 ### Phase 6 — YouTube adapter
+
+Status: not started.
 
 Goal: support YouTube without corrupting the architecture.
 
@@ -717,7 +913,14 @@ Acceptance criteria:
 - unsupported features are hidden, not faked
 - no DOM-provider special cases leak into shared controls
 
+Current progress:
+
+- source model already includes `VibePlayerYouTubeSource`
+- no YouTube iframe adapter exists yet
+
 ### Phase 7 — Ambient preview layer
+
+Status: not started.
 
 Goal: package the reusable background media system inspired by Discovery.
 
@@ -733,7 +936,20 @@ Acceptance criteria:
 - can be used independently of the modal player
 - preserves cinematic crossfade feel
 
+Current progress:
+
+- no `src/preview` module exists yet
+
+Reference inputs:
+
+- `discover-background-video.tsx`
+- `discover-media.ts`
+- `discover-background-video.test.tsx`
+- `discover-media.test.ts`
+
 ### Phase 8 — Discovery integration
+
+Status: not started.
 
 Goal: replace the current Discover player implementation with the package.
 
@@ -742,7 +958,7 @@ Required work:
 - adapt Discover data to `VibePlayerSource`
 - keep Discover telemetry outside the package
 - keep rail/navigation outside the package
-- swap current player shell to `packages/vibe-player`
+- swap current player shell to `@vibe-code/vibe-player`
 - preserve route-level choreography
 
 Acceptance criteria:
@@ -751,9 +967,16 @@ Acceptance criteria:
 - package owns player internals
 - Discover owns page-level composition and telemetry
 
+Current progress:
+
+- no integration has started
+- this must wait until file playback and the first package UI are usable
+
 ### Phase 9 — Externalization decision
 
-Goal: decide whether the package should remain internal or move to a separate repo.
+Status: not started.
+
+Goal: decide whether the package should remain private/internal or become a public/released package.
 
 Required work:
 
@@ -764,7 +987,12 @@ Required work:
 
 Acceptance criteria:
 
-- repo split happens only if there is a real maintenance case
+- public release happens only if there is a real maintenance case
+
+Current progress:
+
+- repo is already standalone and private
+- package should remain private until provider contract, skin contract, and integration story stabilize
 
 ## Test Strategy
 
@@ -882,7 +1110,7 @@ These need explicit answers during implementation, not hand-waving.
 
 ## Final Recommendation
 
-Build `packages/vibe-player` now, inside this repo, with this order:
+Build `@vibe-code/vibe-player` in `/Users/tomrobak/_projects_/vibe-player` with this order:
 
 1. freeze the contract
 2. build the headless controller

@@ -16,6 +16,8 @@ clean adapter model for:
 - HLS playback
 - YouTube playback
 
+The package is intentionally **ESM-only**.
+
 ## Tooling baseline
 
 The scaffold uses the latest verified versions available during setup on

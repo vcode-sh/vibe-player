@@ -25,8 +25,12 @@ export class VibePlayerController {
   private adapterUnsubscribe: (() => void) | null = null;
   private readonly adapterFactory: VibePlayerControllerOptions["adapterFactory"];
   private readonly listeners = new Set<VibePlayerStateListener>();
-  private readonly onAnalyticsEvent?: (event: VibePlayerAnalyticsEvent) => void;
-  private readonly resumeStore?: VibePlayerControllerOptions["resumeStore"];
+  private readonly onAnalyticsEvent:
+    | ((event: VibePlayerAnalyticsEvent) => void)
+    | undefined;
+  private readonly resumeStore:
+    | VibePlayerControllerOptions["resumeStore"]
+    | undefined;
   private state = createInitialState();
   private target: HTMLElement | null = null;
 
