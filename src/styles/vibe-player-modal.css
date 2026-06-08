@@ -1,0 +1,146 @@
+.vibe-player-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  color: #fff;
+  background: #050506;
+  animation: vibe-player-overlay-in 180ms var(--vibe-player-ease-emphasized)
+    both;
+}
+
+.vibe-player-modal[data-state="closing"] {
+  pointer-events: none;
+  animation: vibe-player-overlay-out 180ms var(--vibe-player-ease-standard) both;
+}
+
+.vibe-player-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(5, 5, 6, 0.86);
+  background-position: center;
+  background-size: cover;
+  opacity: 0.7;
+  filter: blur(18px);
+  transform: scale(1.06);
+  animation: vibe-player-backdrop-in 220ms var(--vibe-player-ease-emphasized)
+    both;
+}
+
+.vibe-player-modal[data-state="closing"] .vibe-player-modal__backdrop {
+  animation: vibe-player-backdrop-out 180ms var(--vibe-player-ease-standard)
+    both;
+}
+
+.vibe-player-modal__wash {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.vibe-player-modal__gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.58),
+    rgba(0, 0, 0, 0.1),
+    rgba(0, 0, 0, 0.42)
+  );
+}
+
+.vibe-player-modal__panel {
+  position: relative;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: clamp(4.5rem, 8svh, 6.5rem) clamp(1rem, 4vw, 4rem);
+}
+
+.vibe-player-modal__frame {
+  width: min(92vw, calc((100svh - 9rem) * 1.777), 1760px);
+  animation: vibe-player-shell-in 220ms var(--vibe-player-ease-emphasized) both;
+  will-change: opacity, transform;
+}
+
+.vibe-player-modal[data-state="closing"] .vibe-player-modal__frame {
+  animation: vibe-player-shell-out 180ms var(--vibe-player-ease-standard) both;
+}
+
+@keyframes vibe-player-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vibe-player-overlay-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vibe-player-backdrop-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+
+  to {
+    opacity: 0.7;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes vibe-player-backdrop-out {
+  from {
+    opacity: 0.7;
+    transform: scale(1.06);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes vibe-player-shell-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes vibe-player-shell-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.99);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-modal,
+  .vibe-player-modal__backdrop,
+  .vibe-player-modal__frame {
+    transform: none;
+    animation: none;
+  }
+}

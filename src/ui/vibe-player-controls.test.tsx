@@ -1,0 +1,79 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { createIdleCapabilities, createIdleSnapshot } from "../core";
+import { VibePlayerControls } from "./vibe-player-controls";
+
+const capabilities = {
+  ...createIdleCapabilities(),
+  canFullscreen: true,
+  canSeek: true,
+  canSetPlaybackRate: true,
+  canShowCaptions: true,
+  supportsDuration: true,
+  supportsMute: true,
+};
+
+const snapshot = {
+  ...createIdleSnapshot(),
+  currentTime: 25,
+  duration: 100,
+  muted: false,
+  paused: true,
+  playbackRate: 1,
+};
+
+describe("VibePlayerControls", () => {
+  it("renders capability-aware controls and forwards actions", () => {
+    const onTogglePlay = vi.fn();
+    const onToggleMute = vi.fn();
+    const onSetPlaybackRate = vi.fn();
+    const onToggleCaptions = vi.fn();
+    const onToggleFullscreen = vi.fn();
+    const onSeek = vi.fn();
+
+    render(
+      <VibePlayerControls
+        capabilities={capabilities}
+        captionsEnabled={false}
+        onSeek={onSeek}
+        onSetPlaybackRate={onSetPlaybackRate}
+        onToggleCaptions={onToggleCaptions}
+        onToggleFullscreen={onToggleFullscreen}
+        onToggleMute={onToggleMute}
+        onTogglePlay={onTogglePlay}
+        snapshot={snapshot}
+        title="Product demo"
+      />
+    );
+
+    expect(screen.getByText("Product demo")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+    fireEvent.click(screen.getByRole("button", { name: "Playback speed 1x" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show captions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Full screen" }));
+
+    expect(onTogglePlay).toHaveBeenCalledTimes(1);
+    expect(onToggleMute).toHaveBeenCalledTimes(1);
+    expect(onSetPlaybackRate).toHaveBeenCalledWith(1.25);
+    expect(onToggleCaptions).toHaveBeenCalledTimes(1);
+    expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides unsupported optional controls", () => {
+    render(
+      <VibePlayerControls
+        capabilities={createIdleCapabilities()}
+        onSeek={vi.fn()}
+        onSetPlaybackRate={vi.fn()}
+        onToggleMute={vi.fn()}
+        onTogglePlay={vi.fn()}
+        snapshot={snapshot}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Mute" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Full screen" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show captions" })).toBeNull();
+  });
+});

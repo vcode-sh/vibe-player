@@ -1,0 +1,12 @@
+import { createIdleSnapshot } from "./vibe-player-time";
+import type { VibePlayerControllerState } from "./vibe-player-types";
+
+export function createInitialControllerState(): VibePlayerControllerState {
+  return {
+    capabilities: null,
+    currentSource: null,
+    isMounted: false,
+    lastEvent: null,
+    snapshot: createIdleSnapshot(),
+  };
+}

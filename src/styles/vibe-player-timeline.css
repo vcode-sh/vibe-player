@@ -1,0 +1,125 @@
+.vibe-player-timeline {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 2rem;
+  pointer-events: auto;
+}
+
+.vibe-player-timeline__input {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  height: 2rem;
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  opacity: 0;
+  transform: translateY(-50%);
+}
+
+.vibe-player-timeline__input:disabled {
+  cursor: default;
+}
+
+.vibe-player-timeline__input:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+}
+
+.vibe-player-timeline__focus {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  height: 0.75rem;
+  background: rgba(255, 255, 255, 0);
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 150ms var(--vibe-player-ease-emphasized);
+}
+
+.vibe-player-timeline__input:focus-visible + .vibe-player-timeline__focus {
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 1;
+}
+
+.vibe-player-timeline__track {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  height: 1rem;
+  transform: translateY(-50%);
+}
+
+.vibe-player-timeline__base,
+.vibe-player-timeline__progress {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.vibe-player-timeline__base {
+  right: 0;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.vibe-player-timeline__progress {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.vibe-player-timeline__point,
+.vibe-player-timeline__ghost {
+  position: absolute;
+  top: 50%;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.vibe-player-timeline__point {
+  width: 0.375rem;
+  height: 0.375rem;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18);
+}
+
+.vibe-player-timeline__ghost {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+}
+
+.vibe-player-timeline__tooltip {
+  position: absolute;
+  top: -1.25rem;
+  z-index: 30;
+  padding: 0.125rem 0.375rem;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 0.125rem;
+  backdrop-filter: blur(4px);
+  transform: translate(-50%, -0.25rem);
+  transition-timing-function: var(--vibe-player-ease-emphasized);
+  transition-duration: 150ms;
+  transition-property: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-timeline__focus,
+  .vibe-player-timeline__tooltip {
+    transition: none;
+  }
+}

@@ -1,10 +1,14 @@
+import { cinematicDefaultSkinTokens } from "./tokens";
+
+export * from "./tokens";
+
 export const cinematicDefaultMotion = {
-  chromeHideDelayMs: 2400,
-  durationFastMs: 180,
-  durationMediumMs: 220,
+  chromeHideDelayMs: cinematicDefaultSkinTokens.chrome.idleDelayMs,
+  durationFastMs: cinematicDefaultSkinTokens.motion.overlayOutMs,
+  durationMediumMs: cinematicDefaultSkinTokens.chrome.scrimDurationMs,
   durationSlowMs: 260,
-  easeEmphasized: "cubic-bezier(.23,1,.32,1)",
-  easeExit: "cubic-bezier(.215,.61,.355,1)",
+  easeEmphasized: cinematicDefaultSkinTokens.motion.easeEmphasized,
+  easeExit: cinematicDefaultSkinTokens.motion.easeExit,
 } as const;
 
 export const cinematicDefaultSkinClassNames = {

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vibe Player Phase 3 Runtime QA</title>
+    <link rel="stylesheet" href="/src/styles/vibe-player.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@19.2.7",
+        "react/jsx-runtime": "https://esm.sh/react@19.2.7/jsx-runtime",
+        "react-dom/client": "https://esm.sh/react-dom@19.2.7/client"
+      }
+    }
+    </script>
+    <style>
+    :root {
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      color-scheme: dark;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: #f8fafc;
+      background: #111111;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .qa-page {
+      box-sizing: border-box;
+      display: grid;
+      gap: 18px;
+      max-width: 1120px;
+      min-height: 100vh;
+      padding: 28px 18px;
+      margin: 0 auto;
+    }
+
+    .qa-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .qa-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+    }
+
+    .qa-action {
+      min-height: 40px;
+      padding: 0 16px;
+      color: #111111;
+      cursor: pointer;
+      background: #f8fafc;
+      border: 0;
+      border-radius: 8px;
+    }
+
+    .qa-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 18px;
+    }
+
+    .qa-events {
+      min-height: 120px;
+      padding: 14px;
+      background: rgb(255 255 255 / 8%);
+      border: 1px solid rgb(255 255 255 / 12%);
+      border-radius: 8px;
+    }
+
+    .qa-events h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+    }
+
+    .qa-events ol {
+      display: grid;
+      gap: 8px;
+      padding-left: 18px;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .qa-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .qa-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+    </style>
+  </head>
+  <body>
+    <main id="root"></main>
+    <script type="module">
+    import React from "react";
+    import { createRoot } from "react-dom/client";
+    import { VibePlayerInline, VibePlayerModal } from "/dist/index.js";
+
+    const createElement = React.createElement;
+    const mediaUrl =
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+    const posterUrl =
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'%3E%3Crect width='1280' height='720' fill='%23111111'/%3E%3Ccircle cx='410' cy='355' r='210' fill='%238fbddf'/%3E%3Ccircle cx='670' cy='320' r='170' fill='%23f4c16f'/%3E%3Ccircle cx='820' cy='395' r='215' fill='%23f47b6d'/%3E%3Crect y='510' width='1280' height='210' fill='%23222522'/%3E%3C/svg%3E";
+    const captionText = `WEBVTT
+
+      00:00:00.300 --> 00:00:02.400
+      Native file adapter with custom captions
+
+      00:00:02.500 --> 00:00:05.000
+      Chrome, timeline, rate, mute, and modal controls`;
+
+    function App() {
+      const [open, setOpen] = React.useState(false);
+      const [events, setEvents] = React.useState([]);
+      const captionUrl = React.useMemo(
+        () =>
+          URL.createObjectURL(new Blob([captionText], { type: "text/vtt" })),
+        []
+      );
+      React.useEffect(
+        () => () => URL.revokeObjectURL(captionUrl),
+        [captionUrl]
+      );
+      const source = React.useMemo(
+        () => ({
+          captions: [
+            {
+              default: true,
+              id: "runtime-captions",
+              kind: "captions",
+              label: "English",
+              language: "en",
+              url: captionUrl,
+            },
+          ],
+          id: "phase3-runtime-file",
+          posterUrl,
+          sources: [{ mimeType: "video/mp4", url: mediaUrl }],
+          title: "Flower study",
+          type: "file",
+        }),
+        [captionUrl]
+      );
+      const onAnalyticsEvent = React.useCallback((event) => {
+        setEvents((currentEvents) => [event, ...currentEvents].slice(0, 6));
+      }, []);
+
+      return createElement(
+        "section",
+        { className: "qa-page" },
+        createElement(
+          "div",
+          { className: "qa-bar" },
+          createElement(
+            "h1",
+            { className: "qa-title" },
+            "Vibe Player Runtime QA"
+          ),
+          createElement(
+            "button",
+            {
+              className: "qa-action",
+              onClick: () => setOpen(true),
+              type: "button",
+            },
+            "Open modal"
+          )
+        ),
+        createElement(
+          "div",
+          { className: "qa-grid" },
+          createElement(VibePlayerInline, {
+            onAnalyticsEvent,
+            source,
+            title: "Inline file player",
+          }),
+          createElement(
+            "aside",
+            { className: "qa-events" },
+            createElement("h2", null, "Analytics events"),
+            createElement(
+              "ol",
+              null,
+              ...events.map((event) =>
+                createElement(
+                  "li",
+                  { key: `${event.type}-${event.currentTime ?? 0}` },
+                  `${event.type} / ${Math.round(event.currentTime ?? 0)}s`
+                )
+              )
+            )
+          )
+        ),
+        createElement(VibePlayerModal, {
+          onAnalyticsEvent,
+          onClose: () => setOpen(false),
+          open,
+          source,
+          title: "Modal file player",
+        })
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(createElement(App));
+    </script>
+  </body>
+</html>
