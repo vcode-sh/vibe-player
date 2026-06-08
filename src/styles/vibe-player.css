@@ -1,0 +1,66 @@
+:root {
+  --vibe-player-backdrop: rgba(5, 5, 6, 0.86);
+  --vibe-player-border: rgba(133, 140, 255, 0.45);
+  --vibe-player-ease-emphasized: cubic-bezier(0.23, 1, 0.32, 1);
+  --vibe-player-shadow:
+    0 28px 120px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --vibe-player-surface: rgba(0, 0, 0, 0.78);
+  --vibe-player-text: rgba(255, 255, 255, 0.92);
+}
+
+.vibe-player-inline,
+.vibe-player-modal__panel {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.vibe-player-shell {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  color: var(--vibe-player-text);
+  background: var(--vibe-player-surface);
+  border: 1px solid var(--vibe-player-border);
+  border-radius: 18px;
+  box-shadow: var(--vibe-player-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.vibe-player-shell__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.vibe-player-shell__body {
+  min-height: 240px;
+}
+
+.vibe-player-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.vibe-player-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--vibe-player-backdrop);
+}
+
+.vibe-player-modal__panel {
+  position: relative;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 4rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-shell,
+  .vibe-player-modal__panel {
+    transition: none;
+  }
+}

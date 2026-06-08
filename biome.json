@@ -1,0 +1,56 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
+  "formatter": {
+    "includes": ["**", "!dist/**", "!coverage/**", "!todo/**"]
+  },
+  "assist": {
+    "includes": ["**", "!dist/**", "!coverage/**", "!todo/**"]
+  },
+  "linter": {
+    "includes": ["**", "!dist/**", "!coverage/**", "!todo/**"],
+    "rules": {
+      "correctness": {
+        "noUnresolvedImports": "off",
+        "noUndeclaredDependencies": "off",
+        "useImportExtensions": "off"
+      },
+      "performance": {
+        "noBarrelFile": "off"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "warn",
+        "noImportCycles": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/__tests__/**",
+        "test/**"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off",
+            "useLiteralKeys": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedFunctionParameters": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off",
+            "useAwait": "off"
+          }
+        }
+      }
+    }
+  ]
+}
