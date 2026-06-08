@@ -4,6 +4,7 @@ import type {
   VibePlayerFileSource,
   VibePlayerSnapshot,
 } from "../core/vibe-player-types";
+import { canUseNativePictureInPicture } from "./native-picture-in-picture";
 import {
   appendNativeCaptionTracks,
   clearElement as clearNativeElement,
@@ -22,6 +23,7 @@ export function getFileVideoCapabilities(
   return {
     ...createIdleCapabilities(),
     canFullscreen: Boolean(video?.requestFullscreen),
+    canPictureInPicture: canUseNativePictureInPicture(video),
     canSeek: true,
     canSetPlaybackRate: true,
     canShowCaptions: Boolean(source?.captions?.length),
@@ -43,7 +45,18 @@ export function setFileVideoSource(
   source: VibePlayerFileSource
 ): void {
   clearNativeElement(video);
+  video.removeAttribute("src");
+  video.autoplay = false;
   setNativeVideoMetadata(video, source);
+
+  if (source.sources.length === 1) {
+    const sourceOption = source.sources[0];
+    if (sourceOption) {
+      video.src = sourceOption.url;
+    }
+    appendNativeCaptionTracks(video, source.captions);
+    return;
+  }
 
   for (const sourceOption of source.sources) {
     const sourceElement = document.createElement("source");

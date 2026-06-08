@@ -17,6 +17,7 @@ interface NativeEventBinding {
 
 export interface NativeVideoSourceMetadata {
   captions?: VibePlayerCaptionTrack[];
+  crossOrigin?: "anonymous" | "use-credentials" | null;
   posterUrl?: string | null;
 }
 
@@ -25,12 +26,18 @@ const nativeEventBindings: NativeEventBinding[] = [
   { nativeEvent: "durationchange", playerEvent: "durationchange" },
   { nativeEvent: "ended", playerEvent: "ended" },
   { nativeEvent: "error", playerEvent: "error" },
+  { nativeEvent: "loadeddata", playerEvent: "ready" },
   { nativeEvent: "loadedmetadata", playerEvent: "ready" },
   { nativeEvent: "pause", playerEvent: "pause" },
   { nativeEvent: "play", playerEvent: "play" },
+  { nativeEvent: "playing", playerEvent: "ready" },
   { nativeEvent: "ratechange", playerEvent: "ratechange" },
+  { nativeEvent: "seeked", playerEvent: "ready" },
+  { nativeEvent: "seeking", playerEvent: "buffering" },
+  { nativeEvent: "stalled", playerEvent: "buffering" },
   { nativeEvent: "timeupdate", playerEvent: "timeupdate" },
   { nativeEvent: "volumechange", playerEvent: "volumechange" },
+  { nativeEvent: "waiting", playerEvent: "buffering" },
 ];
 
 export function appendNativeCaptionTracks(
@@ -99,7 +106,11 @@ export function setNativeVideoMetadata(
 ): void {
   video.poster = source.posterUrl ?? "";
   video.preload = "metadata";
-  video.crossOrigin = "anonymous";
+  if (source.crossOrigin) {
+    video.crossOrigin = source.crossOrigin;
+  } else {
+    video.removeAttribute("crossorigin");
+  }
   video.playsInline = true;
 }
 
@@ -125,6 +136,9 @@ function getReadyState(
   }
   if (video.ended) {
     return "ended";
+  }
+  if (!video.paused && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+    return "buffering";
   }
   if (!video.paused) {
     return "playing";

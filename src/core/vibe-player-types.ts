@@ -13,7 +13,9 @@ export interface VibePlayerMediaSource {
 }
 
 export interface VibePlayerFileSource {
+  autoPlay?: boolean;
   captions?: VibePlayerCaptionTrack[];
+  crossOrigin?: "anonymous" | "use-credentials" | null;
   id: string;
   posterUrl?: string | null;
   sources: VibePlayerMediaSource[];
@@ -23,6 +25,7 @@ export interface VibePlayerFileSource {
 
 export interface VibePlayerHlsSource {
   captions?: VibePlayerCaptionTrack[];
+  crossOrigin?: "anonymous" | "use-credentials" | null;
   id: string;
   live?: boolean;
   manifestUrl: string;
@@ -67,11 +70,19 @@ export interface VibePlayerSnapshot {
   muted: boolean;
   paused: boolean;
   playbackRate: number;
-  readyState: "ended" | "error" | "idle" | "loading" | "playing" | "ready";
+  readyState:
+    | "buffering"
+    | "ended"
+    | "error"
+    | "idle"
+    | "loading"
+    | "playing"
+    | "ready";
   volume: number;
 }
 
 export type VibePlayerEventName =
+  | "buffering"
   | "captionschange"
   | "durationchange"
   | "ended"
@@ -79,6 +90,7 @@ export type VibePlayerEventName =
   | "fullscreenchange"
   | "pause"
   | "play"
+  | "playblocked"
   | "ratechange"
   | "ready"
   | "timeupdate"
@@ -139,6 +151,7 @@ export interface VibePlayerControllerState {
   currentSource: VibePlayerSource | null;
   isMounted: boolean;
   lastEvent: VibePlayerEventName | null;
+  playbackBlocked: boolean;
   snapshot: VibePlayerSnapshot;
 }
 

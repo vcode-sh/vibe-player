@@ -40,7 +40,6 @@ function getMountedVideo(target: HTMLElement): HTMLVideoElement {
   }
   return video;
 }
-
 function defineNumberProperty(
   element: HTMLVideoElement,
   key: "duration" | "readyState",
@@ -50,6 +49,27 @@ function defineNumberProperty(
     configurable: true,
     value,
   });
+}
+
+interface DeferredPlayback {
+  promise: Promise<void>;
+  resolve: () => void;
+}
+
+function createDeferredPlayback(): DeferredPlayback {
+  let resolvePlayback: (() => void) | null = null;
+  const promise = new Promise<void>((resolve) => {
+    resolvePlayback = resolve;
+  });
+  return {
+    promise,
+    resolve: () => {
+      if (!resolvePlayback) {
+        throw new Error("Playback resolver was not initialized.");
+      }
+      resolvePlayback();
+    },
+  };
 }
 
 describe("createFileAdapter", () => {
@@ -72,7 +92,7 @@ describe("createFileAdapter", () => {
     const tracks = Array.from(video.querySelectorAll("track"));
     expect(video.poster).toBe(fileSource.posterUrl);
     expect(video.preload).toBe("metadata");
-    expect(video.crossOrigin).toBe("anonymous");
+    expect(video.crossOrigin).toBeNull();
     expect(video.playsInline).toBe(true);
     expect(sources.map((source) => source.type)).toEqual([
       "video/mp4",
@@ -87,6 +107,45 @@ describe("createFileAdapter", () => {
     expect(tracks.map((track) => track.default)).toEqual([false]);
     expect(adapter.capabilities.canShowCaptions).toBe(true);
     expect(adapter.capabilities.supportsPoster).toBe(true);
+  });
+
+  it("uses the native video src for a single file source", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+      () => undefined
+    );
+    const adapter = createFileAdapter();
+    const target = document.createElement("div");
+    const singleFileSource: VibePlayerFileSource = {
+      ...fileSource,
+      autoPlay: true,
+      sources: [
+        {
+          mimeType: "video/mp4",
+          url: "https://example.com/video.mp4",
+        },
+      ],
+    };
+
+    await adapter.mount(target);
+    await adapter.load(singleFileSource);
+
+    const video = getMountedVideo(target);
+    expect(video.autoplay).toBe(false);
+    expect(video.src).toBe("https://example.com/video.mp4");
+    expect(video.querySelector("source")).toBeNull();
+  });
+
+  it("keeps cross-origin configurable for file sources", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+      () => undefined
+    );
+    const adapter = createFileAdapter();
+    const target = document.createElement("div");
+
+    await adapter.mount(target);
+    await adapter.load({ ...fileSource, crossOrigin: "anonymous" });
+
+    expect(getMountedVideo(target).crossOrigin).toBe("anonymous");
   });
 
   it("normalizes native media events into adapter events", async () => {
@@ -138,6 +197,54 @@ describe("createFileAdapter", () => {
     expect(video.muted).toBe(true);
     expect(video.playbackRate).toBe(1.25);
     expect(video.volume).toBe(1);
+  });
+
+  it("stops a pending playback request after unmount", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+      () => undefined
+    );
+    const adapter = createFileAdapter();
+    const target = document.createElement("div");
+    await adapter.mount(target);
+    await adapter.load(fileSource);
+
+    const video = getMountedVideo(target);
+    const playback = createDeferredPlayback();
+    const pauseSpy = vi.fn(() => undefined);
+    video.play = () => playback.promise;
+    video.pause = pauseSpy;
+
+    const playPromise = adapter.play();
+    await adapter.unmount();
+    playback.resolve();
+    await playPromise;
+
+    expect(pauseSpy).toHaveBeenCalledTimes(2);
+    expect(video.isConnected).toBe(false);
+    expect(video.getAttribute("src")).toBeNull();
+  });
+
+  it("stops a pending playback request after pause", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+      () => undefined
+    );
+    const adapter = createFileAdapter();
+    const target = document.createElement("div");
+    await adapter.mount(target);
+    await adapter.load(fileSource);
+
+    const video = getMountedVideo(target);
+    const playback = createDeferredPlayback();
+    const pauseSpy = vi.fn(() => undefined);
+    video.play = () => playback.promise;
+    video.pause = pauseSpy;
+
+    const playPromise = adapter.play();
+    await adapter.pause();
+    playback.resolve();
+    await playPromise;
+
+    expect(pauseSpy).toHaveBeenCalledTimes(2);
   });
 
   it("uses fullscreen only when the mounted video supports it", async () => {

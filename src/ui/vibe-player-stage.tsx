@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createVibePlayerAdapter } from "../adapters";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type {
   VibePlayerAdapter,
   VibePlayerAnalyticsEvent,
-  VibePlayerControllerOptions,
   VibePlayerResumeStore,
   VibePlayerShortcutAction,
   VibePlayerSource,
@@ -19,13 +23,21 @@ import {
   useVibePlayerShortcuts,
   type VibePlayerCaptionTextLoader,
 } from "../react";
+import { useVibePlayerMediaTarget } from "./use-vibe-player-media-target";
+import { useVibePlayerStageClick } from "./use-vibe-player-stage-click";
 import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
 import { VibePlayerControls } from "./vibe-player-controls";
+import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
+import { startVibePlayerAutoplay } from "./vibe-player-stage-autoplay";
+import { createVibePlayerStageControllerOptions } from "./vibe-player-stage-options";
+import { VibePlayerStageStatus } from "./vibe-player-stage-status";
 
 export interface VibePlayerStageProps {
   adapterFactory?:
     | ((source: VibePlayerSource) => VibePlayerAdapter)
     | undefined;
+  autoPlay?: boolean;
+  autoPlayMutedBootstrap?: boolean;
   loadCaptionText?: VibePlayerCaptionTextLoader | undefined;
   onAnalyticsEvent?: ((event: VibePlayerAnalyticsEvent) => void) | undefined;
   onClose?: (() => void) | undefined;
@@ -33,30 +45,13 @@ export interface VibePlayerStageProps {
   resumeStore?: VibePlayerResumeStore | undefined;
   source: VibePlayerSource;
   title?: string | undefined;
-}
-
-function createControllerOptions({
-  adapterFactory,
-  onAnalyticsEvent,
-  resumeStore,
-}: Pick<
-  VibePlayerStageProps,
-  "adapterFactory" | "onAnalyticsEvent" | "resumeStore"
->): VibePlayerControllerOptions {
-  const options: VibePlayerControllerOptions = {
-    adapterFactory: adapterFactory ?? createVibePlayerAdapter,
-  };
-  if (onAnalyticsEvent) {
-    options.onAnalyticsEvent = onAnalyticsEvent;
-  }
-  if (resumeStore) {
-    options.resumeStore = resumeStore;
-  }
-  return options;
+  topActions?: ReactNode;
 }
 
 export function VibePlayerStage({
   adapterFactory,
+  autoPlay = false,
+  autoPlayMutedBootstrap = true,
   loadCaptionText,
   onAnalyticsEvent,
   onClose,
@@ -64,20 +59,22 @@ export function VibePlayerStage({
   resumeStore,
   source,
   title,
+  topActions,
 }: VibePlayerStageProps) {
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [rootElement, setRootElement] = useState<HTMLDivElement | null>(null);
   const controllerOptions = useMemo(
     () =>
-      createControllerOptions({
+      createVibePlayerStageControllerOptions({
         adapterFactory,
         onAnalyticsEvent,
         resumeStore,
       }),
     [adapterFactory, onAnalyticsEvent, resumeStore]
   );
-  const { controller, setTarget, state } =
-    useVibePlayerController(controllerOptions);
+  const { controller, state } = useVibePlayerController(controllerOptions);
+  const { hasMediaTarget, setMediaElement } =
+    useVibePlayerMediaTarget(controller);
   const chrome = useVibePlayerChrome({ open });
   const capabilities = state.capabilities ?? createIdleCapabilities();
   const captions = useVibePlayerCaptions({
@@ -89,12 +86,48 @@ export function VibePlayerStage({
   const playerTitle = title ?? source.title;
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!open) {
-      controller.pause().catch(() => undefined);
+      controller.closeSource().catch(() => undefined);
       return;
     }
-    controller.load(source).catch(() => undefined);
-  }, [controller, open, source]);
+    if (!hasMediaTarget) {
+      return;
+    }
+
+    controller
+      .load(source)
+      .then(() => {
+        if (!(autoPlay && !cancelled)) {
+          return;
+        }
+        return startVibePlayerAutoplay({
+          controller,
+          isCancelled: () => cancelled,
+          mutedBootstrap: autoPlayMutedBootstrap,
+        });
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    autoPlay,
+    autoPlayMutedBootstrap,
+    controller,
+    hasMediaTarget,
+    open,
+    source,
+  ]);
+
+  useEffect(() => {
+    if (!(open && rootElement)) {
+      return;
+    }
+    rootElement.focus({ preventScroll: true });
+  }, [open, rootElement]);
 
   const seekRelative = useCallback(
     (seconds: number) => {
@@ -111,6 +144,11 @@ export function VibePlayerStage({
       : controller.pause();
     command.catch(() => undefined);
   }, [controller, state.snapshot.paused]);
+
+  const handleStageClick = useVibePlayerStageClick({
+    rootElement,
+    togglePlay,
+  });
 
   const toggleMute = useCallback(() => {
     controller.setMuted(!state.snapshot.muted).catch(() => undefined);
@@ -156,6 +194,7 @@ export function VibePlayerStage({
   });
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/noNoninteractiveElementInteractions lint/a11y/useKeyWithClickEvents: the focused stage already handles keyboard shortcuts, while pointer clicks only mirror native video toggling.
     <div
       className="vibe-player-stage"
       data-chrome-hidden={chrome.chromeHidden}
@@ -169,6 +208,7 @@ export function VibePlayerStage({
         }
         chrome.releaseChrome();
       }}
+      onClick={handleStageClick}
       onFocusCapture={(event) => {
         if (event.target === event.currentTarget) {
           chrome.showChrome();
@@ -191,7 +231,11 @@ export function VibePlayerStage({
       ref={setRootElement}
       tabIndex={-1}
     >
-      <div className="vibe-player-stage__media" ref={setTarget} />
+      <VibePlayerMediaSlot onTarget={setMediaElement} />
+      <VibePlayerStageStatus
+        playbackBlocked={state.playbackBlocked}
+        readyState={state.snapshot.readyState}
+      />
       <VibePlayerCaptionOverlay lines={captions.activeLines} />
       <VibePlayerControls
         capabilities={capabilities}
@@ -207,9 +251,13 @@ export function VibePlayerStage({
           controller.enterFullscreen().catch(() => undefined)
         }
         onToggleMute={toggleMute}
+        onTogglePictureInPicture={() =>
+          controller.enterPictureInPicture().catch(() => undefined)
+        }
         onTogglePlay={togglePlay}
         snapshot={state.snapshot}
         title={playerTitle}
+        topActions={topActions}
       />
     </div>
   );

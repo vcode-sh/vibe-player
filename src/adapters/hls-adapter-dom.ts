@@ -4,6 +4,7 @@ import type {
   VibePlayerHlsSource,
   VibePlayerSnapshot,
 } from "../core/vibe-player-types";
+import { canUseNativePictureInPicture } from "./native-picture-in-picture";
 import {
   appendNativeCaptionTracks,
   clearElement,
@@ -35,6 +36,7 @@ export function getHlsVideoCapabilities(
   return {
     ...createIdleCapabilities(),
     canFullscreen: Boolean(video?.requestFullscreen),
+    canPictureInPicture: canUseNativePictureInPicture(video),
     canSeek: !isLive,
     canSetPlaybackRate: true,
     canShowCaptions: Boolean(source?.captions?.length),

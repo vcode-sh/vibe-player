@@ -79,6 +79,14 @@
   white-space: nowrap;
 }
 
+.vibe-player-controls__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.75rem;
+  align-items: center;
+  pointer-events: auto;
+}
+
 .vibe-player-controls__button,
 .vibe-player-controls__rate {
   display: grid;
@@ -100,6 +108,12 @@
 
 .vibe-player-controls__button {
   width: 1.75rem;
+}
+
+.vibe-player-controls__icon {
+  width: 1rem;
+  height: 1rem;
+  pointer-events: none;
 }
 
 .vibe-player-controls__button:hover,
@@ -154,6 +168,11 @@
 
   .vibe-player-controls__button {
     width: 1.5rem;
+  }
+
+  .vibe-player-controls__icon {
+    width: 0.875rem;
+    height: 0.875rem;
   }
 
   .vibe-player-controls__button,

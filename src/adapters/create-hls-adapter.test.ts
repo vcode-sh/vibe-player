@@ -35,6 +35,11 @@ interface RuntimeProbe {
   teardownCount: number;
 }
 
+interface DeferredPlayback {
+  promise: Promise<void>;
+  resolve: () => void;
+}
+
 function createRuntime(canUseManagedHls = true): {
   probe: RuntimeProbe;
   runtime: HlsAdapterRuntime;
@@ -83,6 +88,22 @@ function getManagedSession(probe: RuntimeProbe): ManagedHlsSession {
     throw new Error("Expected managed HLS session.");
   }
   return probe.session;
+}
+
+function createDeferredPlayback(): DeferredPlayback {
+  let resolvePlayback: (() => void) | null = null;
+  const promise = new Promise<void>((resolve) => {
+    resolvePlayback = resolve;
+  });
+  return {
+    promise,
+    resolve: () => {
+      if (!resolvePlayback) {
+        throw new Error("Playback resolver was not initialized.");
+      }
+      resolvePlayback();
+    },
+  };
 }
 
 describe("createHlsAdapter", () => {
@@ -196,6 +217,31 @@ describe("createHlsAdapter", () => {
       type: "networkError",
     });
     expect(probe.teardownCount).toBe(1);
+  });
+
+  it("stops a pending playback request after pause", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("");
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+      () => undefined
+    );
+    const { runtime } = createRuntime();
+    const adapter = createHlsAdapter(runtime);
+    const target = document.createElement("div");
+    await adapter.mount(target);
+    await adapter.load(hlsSource);
+
+    const video = getMountedVideo(target);
+    const playback = createDeferredPlayback();
+    const pauseSpy = vi.fn(() => undefined);
+    video.play = () => playback.promise;
+    video.pause = pauseSpy;
+
+    const playPromise = adapter.play();
+    await adapter.pause();
+    playback.resolve();
+    await playPromise;
+
+    expect(pauseSpy).toHaveBeenCalledTimes(2);
   });
 
   it("rejects unsupported sources and unavailable HLS runtimes", async () => {

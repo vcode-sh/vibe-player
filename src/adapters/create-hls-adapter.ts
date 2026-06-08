@@ -14,6 +14,7 @@ import {
   getHlsVideoSnapshot,
   setHlsVideoSource,
 } from "./hls-adapter-dom";
+import { enterNativePictureInPicture } from "./native-picture-in-picture";
 import { clearElement, createNativeVideo } from "./native-video-dom";
 
 type VibePlayerAdapterListener = (event: VibePlayerAdapterEvent) => void;
@@ -80,6 +81,8 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   private readonly listeners = new Set<VibePlayerAdapterListener>();
   private readonly runtime: HlsAdapterRuntime;
   private managedHlsTeardown: (() => void) | null = null;
+  private mounted = false;
+  private playbackGeneration = 0;
   private source: VibePlayerHlsSource | null = null;
   private video: HTMLVideoElement | null = null;
   private live = false;
@@ -111,6 +114,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
 
     this.destroyManagedHls();
     this.source = source;
+    this.playbackGeneration += 1;
     this.live = Boolean(source.live);
     setHlsVideoSource(video, source, nativeHls ? "native" : "managed");
 
@@ -135,21 +139,37 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
 
   mount(target: HTMLElement): Promise<void> {
     const video = this.ensureVideo();
-    if (video.parentElement !== target) {
-      clearElement(target);
-      target.append(video);
+    this.mounted = true;
+    if (video.parentElement === target) {
+      return Promise.resolve();
     }
+    clearElement(target);
+    target.append(video);
     this.emit("ready");
     return Promise.resolve();
   }
 
   pause(): Promise<void> {
+    this.playbackGeneration += 1;
     this.video?.pause();
     return Promise.resolve();
   }
 
   async play(): Promise<void> {
-    await this.video?.play();
+    const video = this.video;
+    if (!video) {
+      return;
+    }
+    this.playbackGeneration += 1;
+    const playbackGeneration = this.playbackGeneration;
+    await video.play();
+    if (
+      this.playbackGeneration !== playbackGeneration ||
+      this.video !== video ||
+      !(this.mounted && video.isConnected)
+    ) {
+      video.pause();
+    }
   }
 
   seekTo(seconds: number): Promise<void> {
@@ -195,6 +215,10 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     this.emit("fullscreenchange");
   }
 
+  async enterPictureInPicture(): Promise<void> {
+    await enterNativePictureInPicture(this.video);
+  }
+
   async exitFullscreen(): Promise<void> {
     await document.exitFullscreen?.();
     this.emit("fullscreenchange");
@@ -208,9 +232,16 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   unmount(): Promise<void> {
-    this.video?.pause();
+    this.mounted = false;
+    this.playbackGeneration += 1;
+    if (this.video) {
+      this.video.pause();
+      this.video.removeAttribute("src");
+      clearElement(this.video);
+      this.video.load();
+      this.video.remove();
+    }
     this.destroyManagedHls();
-    this.video?.remove();
     return Promise.resolve();
   }
 

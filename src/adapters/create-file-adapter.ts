@@ -15,6 +15,7 @@ import {
   getFileVideoSnapshot,
   setFileVideoSource,
 } from "./file-adapter-dom";
+import { enterNativePictureInPicture } from "./native-picture-in-picture";
 
 type VibePlayerAdapterListener = (event: VibePlayerAdapterEvent) => void;
 
@@ -25,6 +26,8 @@ export function createFileAdapter(): VibePlayerAdapter {
 class FileVibePlayerAdapter implements VibePlayerAdapter {
   readonly kind = "file";
   private readonly listeners = new Set<VibePlayerAdapterListener>();
+  private mounted = false;
+  private playbackGeneration = 0;
   private source: VibePlayerFileSource | null = null;
   private video: HTMLVideoElement | null = null;
 
@@ -51,6 +54,7 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     }
 
     this.source = fileSource;
+    this.playbackGeneration += 1;
     const video = this.ensureVideo();
     setFileVideoSource(video, fileSource);
     video.load();
@@ -60,21 +64,37 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
 
   mount(target: HTMLElement): Promise<void> {
     const video = this.ensureVideo();
-    if (video.parentElement !== target) {
-      clearElement(target);
-      target.append(video);
+    this.mounted = true;
+    if (video.parentElement === target) {
+      return Promise.resolve();
     }
+    clearElement(target);
+    target.append(video);
     this.emit("ready");
     return Promise.resolve();
   }
 
   pause(): Promise<void> {
+    this.playbackGeneration += 1;
     this.video?.pause();
     return Promise.resolve();
   }
 
   async play(): Promise<void> {
-    await this.video?.play();
+    const video = this.video;
+    if (!video) {
+      return;
+    }
+    this.playbackGeneration += 1;
+    const playbackGeneration = this.playbackGeneration;
+    await video.play();
+    if (
+      this.playbackGeneration !== playbackGeneration ||
+      this.video !== video ||
+      !(this.mounted && video.isConnected)
+    ) {
+      video.pause();
+    }
   }
 
   seekTo(seconds: number): Promise<void> {
@@ -120,6 +140,10 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     this.emit("fullscreenchange");
   }
 
+  async enterPictureInPicture(): Promise<void> {
+    await enterNativePictureInPicture(this.video);
+  }
+
   async exitFullscreen(): Promise<void> {
     await document.exitFullscreen?.();
     this.emit("fullscreenchange");
@@ -133,8 +157,15 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   unmount(): Promise<void> {
-    this.video?.pause();
-    this.video?.remove();
+    this.mounted = false;
+    this.playbackGeneration += 1;
+    if (this.video) {
+      this.video.pause();
+      this.video.removeAttribute("src");
+      clearElement(this.video);
+      this.video.load();
+      this.video.remove();
+    }
     return Promise.resolve();
   }
 

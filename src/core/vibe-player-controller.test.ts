@@ -20,6 +20,7 @@ class TestAdapter implements VibePlayerAdapter {
   readonly calls: string[] = [];
   readonly capabilities = { ...createIdleCapabilities(), canSeek: true };
   readonly kind: VibePlayerAdapter["kind"] = "file";
+  playError: Error | null = null;
   private listener: ((event: VibePlayerAdapterEvent) => void) | null = null;
   private snapshot = createIdleSnapshot();
 
@@ -50,6 +51,9 @@ class TestAdapter implements VibePlayerAdapter {
 
   play(): Promise<void> {
     this.calls.push("play");
+    if (this.playError) {
+      return Promise.reject(this.playError);
+    }
     return Promise.resolve();
   }
 
@@ -93,6 +97,12 @@ function getAdapter(adapters: TestAdapter[], index: number): TestAdapter {
     throw new Error(`Missing test adapter at index ${index}`);
   }
   return adapter;
+}
+
+function createBlockedPlaybackError(): Error {
+  const error = new Error("Playback blocked");
+  error.name = "NotAllowedError";
+  return error;
 }
 
 function createControllerHarness(resumeAt: number | null = null) {
@@ -167,6 +177,21 @@ describe("VibePlayerController", () => {
     expect(resumeCalls).toContain("set:video-1:24");
   });
 
+  it("tracks browser-blocked playback attempts", async () => {
+    const { adapters, controller } = createControllerHarness();
+    await controller.load(fileSource);
+    const adapter = getAdapter(adapters, 0);
+    adapter.playError = createBlockedPlaybackError();
+
+    await controller.play();
+
+    expect(controller.getState().lastEvent).toBe("playblocked");
+    expect(controller.getState().playbackBlocked).toBe(true);
+    adapter.playError = null;
+    adapter.emit("play", { currentTime: 0, paused: false });
+    expect(controller.getState().playbackBlocked).toBe(false);
+  });
+
   it("emits session analytics once per milestone", async () => {
     const { adapters, analytics, controller, resumeCalls } =
       createControllerHarness();
@@ -211,5 +236,19 @@ describe("VibePlayerController", () => {
       "closed",
       "opened",
     ]);
+  });
+
+  it("clears the active source without losing the mount target", async () => {
+    const { adapters, controller } = createControllerHarness();
+    const target = document.createElement("div");
+
+    await controller.mount(target);
+    await controller.load(fileSource);
+    await controller.closeSource();
+    await controller.load({ ...fileSource, id: "video-2" });
+
+    expect(getAdapter(adapters, 0).calls).toContain("unmount");
+    expect(getAdapter(adapters, 1).calls).toContain("mount:div");
+    expect(controller.getState().currentSource?.id).toBe("video-2");
   });
 });

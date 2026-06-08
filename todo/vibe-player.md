@@ -1,8 +1,8 @@
 # Vibe Player Plan
 
-Status: in progress; Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 complete; Phase 8 initial build-level Discovery integration complete with live visual QA pending
+Status: in progress; Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 9 complete; Phase 8 Discovery integration in runtime hardening pass
 Created: 2026-06-08 19:52 CEST
-Last verified: 2026-06-08 23:07 CEST
+Last verified: 2026-06-09 00:37 CEST
 Target: standalone reusable video-player package with Discovery-grade UI, motion, and multi-provider playback
 Primary implementation location: `/Users/tomrobak/_projects_/vibe-player`
 Reference source location: `/Users/tomrobak/_projects_/spreadoo/apps/web/src/features/discover`
@@ -91,17 +91,18 @@ Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-08 23:07 CEST:
 - YouTube snapshot and capability normalization lives in `src/adapters/youtube-adapter-state.ts`
 - no package source import currently references Discover, `apps/web`, Next.js routing, app telemetry, browser storage, or app aliases
 
-Spreadoo integration snapshot verified in `/Users/tomrobak/_projects_/spreadoo` on 2026-06-08 23:07 CEST:
+Spreadoo integration snapshot verified in `/Users/tomrobak/_projects_/spreadoo` on 2026-06-09 00:37 CEST:
 
 - `apps/web` depends on `@vibe-code/vibe-player` through a local `file:../../../vibe-player` dependency for the current private integration pass
 - `apps/web/next.config.ts` transpiles `@vibe-code/vibe-player`
-- `apps/web/src/globals.css` imports `@vibe-code/vibe-player/styles.css`
+- `apps/web/src/app/layout.tsx` imports `@vibe-code/vibe-player/styles.css` as global package CSS
 - `apps/web/src/features/discover/discover-vibe-player-source.ts` maps `DiscoverVideo` to package `VibePlayerSource` without importing package internals into the package
 - `apps/web/src/features/discover/discover-vibe-player-resume.ts` adapts existing Discover resume memory to `VibePlayerResumeStore`
 - `apps/web/src/features/discover/discover-video-player.tsx` is now a thin wrapper around `VibePlayerStage`
 - `apps/web/src/features/discover/use-discover-playback-telemetry.ts` maps package analytics events back into Discover-owned telemetry
 - `apps/web/src/features/discover/discover-player-overlay.tsx` still owns dialog shell, rail, navigation, close behavior, and route choreography
-- live browser visual QA for `/discover` has not been run in this pass because Spreadoo agents must not start or stop dev servers
+- live browser QA on the user-managed `http://localhost:3001/discover/jeff-weinstein?vibePlayerCleanup=1` confirms the package stage now mounts a real full-video element and close cleanup removes it, leaving only the muted background loop
+- browser automation still cannot prove audible autoplay because user activation differs from a human click, but the full-video element reaches `readyState=4` with the correct `1449.834s` duration and no duplicate stage video remains after close
 
 ### Reference source root
 
@@ -684,6 +685,12 @@ Possible host implementations:
 - IndexedDB
 - remote sync
 
+Current package helpers:
+
+- `createMemoryVibePlayerResumeStore` provides a normalized in-memory host store for demos, tests, and non-persistent surfaces
+- `createLocalStorageVibePlayerResumeStore` provides an opt-in browser storage host store with injectable storage for tests and SSR-safe no-storage behavior
+- no player assembly silently enables localStorage; persistence remains a host decision through the `resumeStore` prop/controller option
+
 ### Analytics seam
 
 The package should emit normalized events and let hosts decide what to record.
@@ -905,12 +912,14 @@ Current progress:
 - capabilities model exists in `src/core/vibe-player-types.ts`
 - normalized event names and adapter events exist in `src/core/vibe-player-types.ts`
 - resume and analytics seams exist in `src/core/vibe-player-types.ts`
+- opt-in resume store helpers exist in `src/core/vibe-player-resume-store.ts`: `createMemoryVibePlayerResumeStore` and `createLocalStorageVibePlayerResumeStore`
 - controller skeleton exists in `src/core/vibe-player-controller.ts`
 - progress milestone helper exists in `src/core/vibe-player-events.ts`
 - time helpers exist in `src/core/vibe-player-time.ts`
 - controller tests now cover mount, load, adapter swap, command forwarding, seek analytics, resume restore, progress milestones, started/completed/closed analytics, and teardown
 - session analytics are deduplicated through `src/core/vibe-player-analytics.ts`
 - controller file size is back under the hard 280 LOC limit after extracting analytics and initial-state helpers
+- package playback surfaces still do not enable persistence by default; hosts must pass a `VibePlayerResumeStore` explicitly
 
 Remaining:
 
@@ -930,6 +939,7 @@ Verification:
 - 2026-06-08 21:15 CEST: `bun run check-types`
 - 2026-06-08 21:15 CEST: `bun run test`
 - 2026-06-08 21:15 CEST: `bun run build`
+- 2026-06-09 01:05 CEST: optional resume store helpers added and exported; `bun run check`, `bun run check-types`, targeted resume/controller Vitest files, and `bun run build` passed
 
 ### Phase 2 — File adapter
 
@@ -1029,6 +1039,7 @@ Current progress:
 - `VibePlayerInline`, `VibePlayerModal`, `VibePlayerShell`, and shared `VibePlayerStage` components exist in `src/ui`
 - `VibePlayerCaptionOverlay` exists with Discover-parity caption chip geometry, pointer-through behavior, and `aria-live`
 - `VibePlayerControls` exists with capability-aware play, mute, seek, playback-rate, captions, fullscreen, close, title, top chrome, bottom chrome, and scrim rendering
+- `VibePlayerControls` now uses internal icon-only command buttons with preserved `aria-label` and hover `title` names for play, pause, mute, captions, fullscreen, close, and Picture-in-Picture instead of text glyphs
 - `VibePlayerTimeline` exists with clamped progress, disabled no-duration state, range input, focus halo, current point, hover ghost point, and tooltip behavior
 - `getVibePlayerShortcutAction` and `useVibePlayerShortcuts` exist for provider-capability-aware keyboard handling
 - `useVibePlayerChrome` exists with Discover-parity `2400ms` idle delay, show/hold/release/schedule actions, close reset, and timer cleanup
@@ -1045,6 +1056,7 @@ Current progress:
 - `demo/phase3-runtime.html` imports the built package and package CSS for browser runtime QA of inline and modal surfaces
 - Browser runtime QA verified desktop inline playback, modal open/close, custom captions, analytics events, and mobile layout
 - no intentional Discovery visual deviation is documented for Phase 3 beyond the already-scoped exclusions: no rail, watched state, route choreography, telemetry sink, or ambient background preview
+- 2026-06-09 00:59 CEST: controls UI polish replaced text glyph buttons with package-owned SVG icons and split bottom controls into smaller components to keep cognitive complexity and LOC under repo limits
 
 Remaining:
 
@@ -1351,7 +1363,7 @@ Reference inputs:
 
 ### Phase 8 — Discovery integration
 
-Status: initial build-level integration complete; live visual QA pending.
+Status: runtime hardening pass in progress; build-level integration complete and main live regressions fixed.
 
 Goal: replace the current Discover player implementation with the package.
 
@@ -1374,17 +1386,29 @@ Current progress:
 - `apps/web/package.json` now depends on `@vibe-code/vibe-player` through `file:../../../vibe-player`
 - `bun.lock` records the local package dependency
 - `apps/web/next.config.ts` includes `transpilePackages: ["@vibe-code/vibe-player"]`
-- `apps/web/src/globals.css` imports the package stylesheet
+- `apps/web/src/app/layout.tsx` imports the package stylesheet directly so Next includes the package CSS in the app bundle
 - `discover-vibe-player-source.ts` adapts Discover full-video/caption/poster data to `VibePlayerFileSource` and `VibePlayerHlsSource`
+- `discover-vibe-player-source.ts` sets `autoPlay: true` for Discover file playback to preserve the old native `<video autoPlay>` contract
 - `discover-vibe-player-resume.ts` keeps existing Discover resume behavior behind the package `VibePlayerResumeStore` seam
 - `DiscoverVideoPlayer` now renders `VibePlayerStage` and no longer owns native `<video>` state, custom caption rendering, controls, seek, rate, mute, fullscreen, or shortcut internals
+- `DiscoverVideoPlayer` passes package `topActions` for the Discover YouTube link instead of hardcoding Discover-specific UI inside the package
 - `useDiscoverPlaybackTelemetry` maps package analytics events to Discover playback events and keeps the oRPC telemetry sink outside the package
 - `DiscoverPlayerOverlay` still owns modal shell, backdrop, rail arrows, thumbnail rail, Escape close behavior, and overlay presence
 - package code still has no imports from Discover, `apps/web`, Next.js routing, app telemetry, browser storage, or app aliases
+- package file playback now uses native `video.src` for single-file sources, keeps `crossOrigin` opt-in instead of forced, and leaves native `video.autoplay` disabled so Stage owns autoplay lifecycle
+- file and HLS adapters now hard-stop pending playback after `pause()` or `unmount()`, clear media on unmount, and guard against stale play promises
+- `VibePlayerStage` now closes the active source on `open=false`, waits for a real media mount target before loading, and re-mounts the media target idempotently so React/Turbopack re-renders cannot leave a detached audio-playing video
+- native media events now surface `buffering` for `waiting`, `stalled`, and `seeking`, and Stage shows a package-owned loading status for `loading`/`buffering`
+- controller state now tracks browser-blocked playback attempts as `playbackBlocked` with a normalized `playblocked` event, so autoplay policy failures are not confused with ordinary paused playback
+- Stage now shows a package-owned `Play to start` status after a browser `NotAllowedError` blocks playback, while preserving the same controller/adapter contract for file, HLS, and YouTube sources
+- native Picture-in-Picture is now enabled for file and HLS playback through adapter capabilities, package controls, and `VibePlayerStage` command wiring; unsupported browsers and YouTube keep `canPictureInPicture: false`
+- Discover telemetry now ignores package `opened` events because Discover already records `opened` from its own overlay lifecycle
 
 Remaining:
 
-- live visual QA on a user-managed Spreadoo dev or deployed runtime is still needed to prove exact Discover feel after the swap
+- continue live visual QA on the user-managed `http://localhost:3001/discover/jeff-weinstein` route until human-click video start, controls, captions, resume, completion telemetry, close/reopen, and route navigation are all proven
+- fix the Jeff Weinstein full-video asset/CDN path: the MP4 is about 670 MiB and has `moov` after `mdat`, so it should be remuxed with `ffmpeg -movflags +faststart` or replaced with HLS/renditions; Cloudflare range probes for the large full video are dynamic/bypass rather than a reliable edge hit
+- align production CORS before using `crossOrigin` for full-video playback; localhost returned CORS headers, but `https://spreadu.com` and `https://www.spreadu.com` did not during this pass
 - the local `file:../../../vibe-player` dependency is acceptable for the private integration pass but should be converted to a release/workspace policy before externalization
 - old Discover player-internal files such as `use-discover-video-player-state.ts`, `discover-video-controls.tsx`, and `discover-caption-overlay.tsx` remain in the tree for now; remove them only after live QA confirms no rollback path is needed and their tests are retired intentionally
 
@@ -1398,10 +1422,33 @@ Verification:
 - 2026-06-08 23:07 CEST: root `bun run check`
 - 2026-06-08 23:07 CEST: root `bun run check-types` passed with 63 of 63 packages successful
 - 2026-06-08 23:07 CEST: `git diff --check` in `/Users/tomrobak/_projects_/spreadoo`
+- 2026-06-08 23:56 CEST: live QA on `http://localhost:3001/discover/jeff-weinstein` showed background autoplay remained correct and muted; the broken surface was the main overlay player
+- 2026-06-08 23:56 CEST: live QA found package CSS was not reliably loaded when imported through `globals.css`; moved package CSS import to `apps/web/src/app/layout.tsx`
+- 2026-06-08 23:56 CEST: live QA found forced `crossOrigin="anonymous"` blocked Discover full-video media metadata because the file endpoint does not send CORS headers; package file sources now keep CORS opt-in
+- 2026-06-08 23:56 CEST: live QA found single MP4 playback should match the old Discover `<video src=...>` path; package file adapter now uses `video.src` for single-source file media instead of a child `<source>`
+- 2026-06-08 23:56 CEST: live QA/user report found duplicated audio risk after autoplay; package file adapter now pauses, clears `src`, clears children, reloads, and removes media on unmount, and pending `play()` pauses if it resolves after unmount
+- 2026-06-08 23:56 CEST: package target checks passed: `bun run check`, `bun run check-types`, `vitest` adapter/stage targets, and `bun run build`
+- 2026-06-08 23:56 CEST: `bun install` in `/Users/tomrobak/_projects_/spreadoo` refreshed the local `file:` package cache after package rebuilds
+- 2026-06-08 23:56 CEST: target Spreadoo Discover tests passed with 4 tests: `discover-video-player.test.tsx`, `discover-vibe-player-source.test.ts`, and `discover-page-client.mocked.test.tsx`
+- 2026-06-09 00:37 CEST: MP4 range/atom audit found Jeff Weinstein full video layout `ftyp/free/mdat/moov`, with `moov` at byte `701507755`; this is not faststart and explains slow metadata/start/frozen-frame risk for a 670 MiB progressive MP4
+- 2026-06-09 00:37 CEST: package target checks passed after runtime hardening: `bun run check`, `bun run check-types`, targeted adapter/controller/stage/control Vitest files, and `bun run build`
+- 2026-06-09 00:37 CEST: `bun install` in `/Users/tomrobak/_projects_/spreadoo` refreshed the local package cache after package rebuilds
+- 2026-06-09 00:37 CEST: target Spreadoo Discover tests passed with 4 tests: `discover-video-player.test.tsx`, `discover-vibe-player-source.test.ts`, and `discover-page-client.mocked.test.tsx`
+- 2026-06-09 00:37 CEST: browser QA on `http://localhost:3001/discover/jeff-weinstein?vibePlayerCleanup=1` showed the dialog now contains one stage video with the full MP4 source, `readyState=4`, duration `1449.834`, and no `crossorigin`; after close, the dialog and stage video are removed and only the muted background loop remains
+- 2026-06-09 00:43 CEST: package playback-blocked hardening passed `bun run check`, `bun run check-types`, targeted controller/stage/controls/file/HLS Vitest files, and `bun run build`
+- 2026-06-09 00:43 CEST: new tests prove `NotAllowedError` from `play()` sets controller `lastEvent: "playblocked"` and `playbackBlocked: true`, and Stage renders the `Play to start` status after rejected autoplay
+- 2026-06-09 00:44 CEST: `bun install` in `/Users/tomrobak/_projects_/spreadoo` refreshed the local package cache after the playback-blocked package build
+- 2026-06-09 00:44 CEST: target Spreadoo Discover tests passed again with 4 tests: `discover-video-player.test.tsx`, `discover-vibe-player-source.test.ts`, and `discover-page-client.mocked.test.tsx`
+- 2026-06-09 00:52 CEST: native Picture-in-Picture package pass completed for file/HLS adapters and controls; `bun run check`, `bun run check-types`, targeted PiP/control/stage Vitest files, `bun run build`, and full `bun run ci` passed with 22 test files and 75 tests
+- 2026-06-09 00:53 CEST: `bun install` in `/Users/tomrobak/_projects_/spreadoo` refreshed the local package cache after the PiP package build; target Spreadoo Discover tests passed again with 4 tests
+- 2026-06-09 00:59 CEST: icon-only controls pass completed; `bun run check`, `bun run check-types`, targeted controls/stage Vitest files, and `bun run build` passed
+- 2026-06-09 01:00 CEST: full package `bun run ci` passed after icon-only controls split with 22 test files and 75 tests; `publint` reported all good and `attw` passed the ESM-only profile
+- 2026-06-09 01:00 CEST: `bun install` in `/Users/tomrobak/_projects_/spreadoo` refreshed the local package cache after the icon controls build; target Spreadoo Discover tests passed again with 4 tests
+- 2026-06-09 01:01 CEST: browser QA on `http://localhost:3001/discover/jeff-weinstein?vibePlayerCleanup=1` confirmed the overlay controls render icon-only package buttons with `aria-label`, hover `title`, empty text content, and SVG icons for Close, Pause, Unmute, Hide captions, Full screen, and Picture in picture; closing the overlay removed the dialog and stage video, leaving only the muted background video
 
 ### Phase 9 — Externalization decision
 
-Status: not started.
+Status: complete for the current private-package release-readiness decision.
 
 Goal: decide whether the package should remain private/internal or become a public/released package.
 
@@ -1420,6 +1467,14 @@ Current progress:
 
 - repo is already standalone and private
 - package should remain private until provider contract, skin contract, and integration story stabilize
+- current `package.json` keeps `"private": true`, `UNLICENSED`, and restricted publish config, matching the current no-public-release decision
+- ESM-only package shape is intentional for now and is validated by the `package:attw` ESM-only profile
+
+Verification:
+
+- 2026-06-09 00:45 CEST: full package `bun run ci` passed: `bun run check`, `bun run check-types`, full Vitest suite with 21 files and 70 tests, `bun run build`, `package:publint`, and `package:attw`
+- 2026-06-09 00:45 CEST: `publint run --strict --pack npm` reported `All good!`
+- 2026-06-09 00:45 CEST: `attw . --pack --profile esm-only --exclude-entrypoints ./styles.css` passed for ESM and bundler consumers; the CJS resolution warning is intentionally ignored by the ESM-only profile
 
 ## Test Strategy
 
@@ -1529,10 +1584,10 @@ Discovery should become a consumer of the package, not the package owner.
 
 These need explicit answers during implementation, not hand-waving.
 
-1. Do we want Picture-in-Picture in v1 for file playback, or leave it for a later phase?
+1. Resolved 2026-06-09: v1 includes native Picture-in-Picture for file and HLS playback when the browser exposes the native API; YouTube PiP remains unsupported in package UI.
 2. Do we want the first exported skin to be branded-default or purely neutral-cinematic?
 3. Should ambient background preview be part of the initial package release, or released one phase later?
-4. Do we want localStorage resume as the default host implementation, or no default persistence?
+4. Resolved 2026-06-09: no default persistence is enabled by player assemblies; v1 provides opt-in memory/localStorage resume store helpers and keeps the host responsible for passing `resumeStore`.
 5. Do we want quality selection in v1 HLS UI, or only normalized playback?
 
 ## Final Recommendation

@@ -11,6 +11,7 @@ function getServerState(): VibePlayerControllerState {
     currentSource: null,
     isMounted: false,
     lastEvent: null,
+    playbackBlocked: false,
     snapshot: {
       currentTime: 0,
       duration: 0,
