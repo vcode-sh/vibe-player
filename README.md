@@ -16,6 +16,10 @@ keyboard behavior, and the default cinematic skin.
   presentation for headless-style surfaces that should not create an iframe
 - package-owned controls, timeline, keyboard shortcuts, captions, PiP, and
   fullscreen where the provider supports them
+- compact package-owned volume popover, quality menu, and exported state
+  helpers for custom/headless control surfaces
+- package-owned control and timeline tooltips with shortcut hints instead of
+  native browser titles
 - opt-in analytics and resume seams
 - ambient/background preview primitives
 - neutral cinematic default skin with stable class-name hooks
@@ -123,9 +127,30 @@ to own YouTube audio/video playback.
 - Map `onAnalyticsEvent` into the host telemetry system instead of coupling the
   package to product event names.
 - Pass `resumeStore` explicitly when the host wants resume persistence.
+- Use `useVibePlayerController` plus exported volume/quality helpers when a
+  host wants custom controls, including Base UI-backed controls. The default
+  package entry stays free of a mandatory Base UI runtime dependency.
 
 See [docs/integration.md](./docs/integration.md) for the full integration
 checklist.
+
+## Local File Dependency Workflow
+
+When a consumer uses `file:../vibe-player`, refresh the package deliberately
+after changes to source, exports, CSS, or build scripts:
+
+1. Run `bun run build` in this package.
+2. Run the consumer package-manager install so its `file:` cache is refreshed.
+3. Restart the consumer dev server after stylesheet or export changes.
+4. From the consumer app cwd, verify the stylesheet resolver:
+
+```bash
+bun -e "console.log(import.meta.resolve('@vibe-code/vibe-player/styles.css'))"
+```
+
+The resolved path should end in `@vibe-code/vibe-player/dist/styles.css`.
+If a framework still reports a missing split source stylesheet, it is serving a
+stale dependency or transform cache, not the public package stylesheet.
 
 ## Local Demo
 
@@ -146,33 +171,25 @@ published `exports` surface.
 
 ## Media Delivery Audit
 
-Use the local media audit before wiring large direct-file assets into a product
+Use the media audit before wiring large direct-file assets into a product
 surface:
 
 ```bash
 bun run media:audit -- https://example.com/video.mp4 --origin https://app.example.com
 ```
 
-It checks byte-range delivery, optional CORS headers for supplied origins, and
-MP4 `moov`/`mdat` ordering so slow progressive assets can be remuxed or moved
-to HLS before they reach the player.
-
-Use `--json --strict` in CI to emit a machine-readable report and fail the
-command when range, faststart, or requested-origin CORS checks fail. The JSON
-payload includes failures and remediation recommendations. In this repo, use
-`bun --silent run` for JSON mode so stdout stays parseable:
+Use `--json --strict` in CI to emit a machine-readable report and fail when
+range, faststart, direct-file size, rollout-readiness, or requested-origin CORS
+checks fail. In this repo, use `bun --silent run` for JSON mode so stdout stays
+parseable:
 
 ```bash
-bun --silent run media:audit -- https://example.com/video.mp4 --origin https://app.example.com --json --strict
+bun --silent run media:audit -- https://example.com/video.mp4 --origin https://app.example.com --max-size-mb 500 --json --strict --require-direct-file-ready
 ```
 
-Add `--credentials` only when the media source will use
-`crossOrigin="use-credentials"`; that mode requires an exact
-`Access-Control-Allow-Origin` match and `Access-Control-Allow-Credentials:
-true`.
-
-The same checker is shipped as `vibe-player-media-audit` for packaged
-installations.
+The same checker is shipped as `vibe-player-media-audit` for packaged installs.
+See [docs/media-delivery.md](./docs/media-delivery.md) for JSON fields, rollout
+decisions, CORS/credentials rules, size handling, and human-output details.
 
 ## Commands
 
@@ -183,11 +200,14 @@ bun run check-types
 bun run test
 bun run build
 bun run media:audit -- <url> --origin <origin>
-bun --silent run media:audit -- <url> --origin <origin> --json --strict
+bun --silent run media:audit -- <url> --origin <origin> --max-size-mb 500 --json --strict --require-direct-file-ready
 bun --silent run media:audit -- <url> --origin <origin> --credentials --json --strict
 bun run package:rules
 bun run package:boundaries
 bun run package:dependencies
+bun run package:release-state
+bun run package:styles
+bun run package:size
 bun run package:surface
 bun run package:tarball
 bun run package:publint

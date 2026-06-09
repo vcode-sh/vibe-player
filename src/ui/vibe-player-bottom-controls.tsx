@@ -6,7 +6,6 @@ import {
 import {
   VibePlayerCaptionsControl,
   VibePlayerFullscreenControl,
-  VibePlayerMuteControl,
   VibePlayerPictureInPictureControl,
   VibePlayerPlaybackControl,
   VibePlayerRateControl,
@@ -14,14 +13,17 @@ import {
 import { getVibePlayerChromeClassName } from "./vibe-player-control-chrome";
 import { VibePlayerQualityControl } from "./vibe-player-quality-control";
 import { VibePlayerTimeline } from "./vibe-player-timeline";
+import { VibePlayerVolumeControl } from "./vibe-player-volume-control";
 
 export interface VibePlayerBottomControlsProps {
   capabilities: VibePlayerCapabilities;
   captionsEnabled: boolean;
   chromeHidden: boolean;
   onSeek: (seconds: number) => void;
+  onSetMuted: ((muted: boolean) => void) | undefined;
   onSetPlaybackRate: (rate: number) => void;
   onSetQuality: ((qualityId: string) => void) | undefined;
+  onSetVolume: ((volume: number) => void) | undefined;
   onToggleCaptions: (() => void) | undefined;
   onToggleFullscreen: (() => void) | undefined;
   onToggleMute: () => void;
@@ -35,8 +37,10 @@ export function VibePlayerBottomControls({
   captionsEnabled,
   chromeHidden,
   onSeek,
+  onSetMuted,
   onSetPlaybackRate,
   onSetQuality,
+  onSetVolume,
   onToggleCaptions,
   onToggleFullscreen,
   onToggleMute,
@@ -55,8 +59,10 @@ export function VibePlayerBottomControls({
         onTogglePlay={onTogglePlay}
         snapshot={snapshot}
       />
-      <VibePlayerMuteControl
+      <VibePlayerVolumeControl
         capabilities={capabilities}
+        onSetMuted={onSetMuted}
+        onSetVolume={onSetVolume}
         onToggleMute={onToggleMute}
         snapshot={snapshot}
       />

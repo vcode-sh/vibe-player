@@ -11,6 +11,7 @@ import {
   VibePlayerControls,
   type VibePlayerResumeStore,
   type VibePlayerSource,
+  VibePlayerStageStatus,
 } from "@vibe-code/vibe-player";
 import {
   type ReactNode,
@@ -21,7 +22,6 @@ import {
 } from "react";
 import { useDemoPlayerStageActions } from "./demo-player-stage-actions";
 import { startDemoAutoplay } from "./demo-player-stage-autoplay";
-import { getDemoPlayerStatusText } from "./demo-player-stage-dom";
 import { DemoPlayerStageRoot } from "./demo-player-stage-root";
 
 interface DemoPlayerStageProps {
@@ -68,12 +68,13 @@ export function DemoPlayerStage({
     enabled: captionsEnabled,
     source,
   });
-  const statusText = getDemoPlayerStatusText(state);
   const {
     handleShortcut,
     seekTo,
+    setMuted,
     setPlaybackRate,
     setQuality,
+    setVolume,
     toggleCaptions,
     toggleFullscreen,
     toggleMute,
@@ -148,23 +149,20 @@ export function DemoPlayerStage({
       togglePlay={togglePlay}
     >
       <div className="vibe-player-stage__media" ref={handleMediaTarget} />
-      {statusText ? (
-        <div
-          aria-live="polite"
-          className="vibe-player-stage__status"
-          role="status"
-        >
-          {statusText}
-        </div>
-      ) : null}
+      <VibePlayerStageStatus
+        playbackBlocked={state.playbackBlocked}
+        snapshot={state.snapshot}
+      />
       <VibePlayerCaptionOverlay lines={captions.activeLines} />
       <VibePlayerControls
         capabilities={capabilities}
         captionsEnabled={captionsEnabled}
         chromeHidden={chrome.chromeHidden}
         onSeek={seekTo}
+        onSetMuted={setMuted}
         onSetPlaybackRate={setPlaybackRate}
         onSetQuality={setQuality}
+        onSetVolume={setVolume}
         onToggleCaptions={toggleCaptions}
         onToggleFullscreen={toggleFullscreen}
         onToggleMute={toggleMute}

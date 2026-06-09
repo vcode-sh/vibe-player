@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
   formatVibePlayerPlaybackRate,
   getNextVibePlayerPlaybackRate,
@@ -14,33 +13,8 @@ import {
   PlayIcon,
   VolumeIcon,
 } from "./vibe-player-icons";
-
-interface VibePlayerToggleButtonProps {
-  active?: boolean;
-  children: ReactNode;
-  label: string;
-  onClick: () => void;
-}
-
-export function VibePlayerToggleButton({
-  active,
-  children,
-  label,
-  onClick,
-}: VibePlayerToggleButtonProps) {
-  return (
-    <button
-      aria-label={label}
-      className="vibe-player-controls__button"
-      data-active={active}
-      onClick={onClick}
-      title={label}
-      type="button"
-    >
-      {children}
-    </button>
-  );
-}
+import { VibePlayerToggleButton } from "./vibe-player-toggle-button";
+import { VibePlayerTooltip } from "./vibe-player-tooltip";
 
 interface VibePlayerPlaybackControlProps {
   onTogglePlay: () => void;
@@ -53,7 +27,12 @@ export function VibePlayerPlaybackControl({
 }: VibePlayerPlaybackControlProps) {
   const label = snapshot.paused ? "Play" : "Pause";
   return (
-    <VibePlayerToggleButton label={label} onClick={onTogglePlay}>
+    <VibePlayerToggleButton
+      label={label}
+      onClick={onTogglePlay}
+      shortcut="Space / K"
+      tooltipAlign="start"
+    >
       {snapshot.paused ? <PlayIcon /> : <PauseIcon />}
     </VibePlayerToggleButton>
   );
@@ -75,7 +54,7 @@ export function VibePlayerMuteControl({
   }
   const label = snapshot.muted ? "Unmute" : "Mute";
   return (
-    <VibePlayerToggleButton label={label} onClick={onToggleMute}>
+    <VibePlayerToggleButton label={label} onClick={onToggleMute} shortcut="M">
       {snapshot.muted ? <MuteIcon /> : <VolumeIcon />}
     </VibePlayerToggleButton>
   );
@@ -97,17 +76,20 @@ export function VibePlayerRateControl({
   }
   const rate = formatVibePlayerPlaybackRate(snapshot.playbackRate);
   return (
-    <button
-      aria-label={`Playback speed ${rate}`}
-      className="vibe-player-controls__rate"
-      onClick={() =>
-        onSetPlaybackRate(getNextVibePlayerPlaybackRate(snapshot.playbackRate))
-      }
-      title="Playback speed"
-      type="button"
-    >
-      {rate}
-    </button>
+    <VibePlayerTooltip label="Playback speed">
+      <button
+        aria-label={`Playback speed ${rate}`}
+        className="vibe-player-controls__rate"
+        onClick={() =>
+          onSetPlaybackRate(
+            getNextVibePlayerPlaybackRate(snapshot.playbackRate)
+          )
+        }
+        type="button"
+      >
+        {rate}
+      </button>
+    </VibePlayerTooltip>
   );
 }
 
@@ -131,6 +113,7 @@ export function VibePlayerCaptionsControl({
       active={captionsEnabled}
       label={label}
       onClick={onToggleCaptions}
+      shortcut="C"
     >
       <CaptionsIcon />
     </VibePlayerToggleButton>
@@ -150,7 +133,12 @@ export function VibePlayerFullscreenControl({
     return null;
   }
   return (
-    <VibePlayerToggleButton label="Full screen" onClick={onToggleFullscreen}>
+    <VibePlayerToggleButton
+      label="Full screen"
+      onClick={onToggleFullscreen}
+      shortcut="F"
+      tooltipAlign="end"
+    >
       <EnterFullscreenIcon />
     </VibePlayerToggleButton>
   );
@@ -172,6 +160,7 @@ export function VibePlayerPictureInPictureControl({
     <VibePlayerToggleButton
       label="Picture in picture"
       onClick={onTogglePictureInPicture}
+      tooltipAlign="end"
     >
       <PictureInPictureIcon />
     </VibePlayerToggleButton>

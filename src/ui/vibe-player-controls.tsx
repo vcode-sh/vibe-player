@@ -3,6 +3,7 @@ import type { VibePlayerCapabilities, VibePlayerSnapshot } from "../core";
 import { VibePlayerBottomControls } from "./vibe-player-bottom-controls";
 import { getVibePlayerChromeClassName } from "./vibe-player-control-chrome";
 import { CloseIcon } from "./vibe-player-icons";
+import { VibePlayerTooltip } from "./vibe-player-tooltip";
 
 export interface VibePlayerControlsProps {
   capabilities: VibePlayerCapabilities;
@@ -10,8 +11,10 @@ export interface VibePlayerControlsProps {
   chromeHidden?: boolean;
   onClose?: (() => void) | undefined;
   onSeek: (seconds: number) => void;
+  onSetMuted?: ((muted: boolean) => void) | undefined;
   onSetPlaybackRate: (rate: number) => void;
   onSetQuality?: ((qualityId: string) => void) | undefined;
+  onSetVolume?: ((volume: number) => void) | undefined;
   onToggleCaptions?: () => void;
   onToggleFullscreen?: () => void;
   onToggleMute: () => void;
@@ -47,15 +50,16 @@ function VibePlayerTopControls({
         <div className="vibe-player-controls__actions">
           {topActions}
           {onClose ? (
-            <button
-              aria-label="Close"
-              className="vibe-player-controls__button"
-              onClick={onClose}
-              title="Close"
-              type="button"
-            >
-              <CloseIcon />
-            </button>
+            <VibePlayerTooltip align="end" label="Close">
+              <button
+                aria-label="Close"
+                className="vibe-player-controls__button"
+                onClick={onClose}
+                type="button"
+              >
+                <CloseIcon />
+              </button>
+            </VibePlayerTooltip>
           ) : null}
         </div>
       ) : null}
@@ -69,8 +73,10 @@ export function VibePlayerControls({
   chromeHidden = false,
   onClose,
   onSeek,
+  onSetMuted,
   onSetPlaybackRate,
   onSetQuality,
+  onSetVolume,
   onToggleCaptions,
   onToggleFullscreen,
   onToggleMute,
@@ -102,8 +108,10 @@ export function VibePlayerControls({
             captionsEnabled={captionsEnabled}
             chromeHidden={chromeHidden}
             onSeek={onSeek}
+            onSetMuted={onSetMuted}
             onSetPlaybackRate={onSetPlaybackRate}
             onSetQuality={onSetQuality}
+            onSetVolume={onSetVolume}
             onToggleCaptions={onToggleCaptions}
             onToggleFullscreen={onToggleFullscreen}
             onToggleMute={onToggleMute}

@@ -32,6 +32,7 @@ export class TestAdapter implements VibePlayerAdapter {
   readonly kind: VibePlayerAdapter["kind"] = "file";
   emitReadyDuringLoad = false;
   loadError: Error | null = null;
+  pauseLeavesSnapshotStale = false;
   playError: Error | null = null;
   private listener: ((event: VibePlayerAdapterEvent) => void) | null = null;
   private snapshot = createIdleSnapshot();
@@ -64,6 +65,9 @@ export class TestAdapter implements VibePlayerAdapter {
 
   pause(): Promise<void> {
     this.calls.push("pause");
+    if (this.pauseLeavesSnapshotStale) {
+      return Promise.resolve();
+    }
     this.snapshot = { ...this.snapshot, paused: true, readyState: "ready" };
     return Promise.resolve();
   }

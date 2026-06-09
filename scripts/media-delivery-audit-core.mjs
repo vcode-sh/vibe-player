@@ -1,26 +1,25 @@
+import { inspectMediaDeliveryCors } from "./media-delivery-audit-cors.mjs";
+import {
+  fetchMediaDeliveryRangeSample,
+  parseMediaDeliveryContentLength,
+  parseMediaDeliveryContentRange,
+} from "./media-delivery-audit-fetch.mjs";
+import {
+  collectMediaDeliveryFailures,
+  collectMediaDeliveryNextActions,
+  collectMediaDeliveryRecommendations,
+  createMediaDeliveryFindings,
+} from "./media-delivery-audit-findings.mjs";
+import { createMediaDeliveryRollout } from "./media-delivery-audit-rollout.mjs";
+
+export {
+  formatMediaDeliveryAuditJson,
+  formatMediaDeliveryAuditText,
+  printMediaDeliveryAuditReport,
+} from "./media-delivery-audit-format.mjs";
+
 const firstSampleSize = 4 * 1024 * 1024;
 const tailSampleSize = 4 * 1024 * 1024;
-const contentRangePattern = /^bytes\s+(\d+)-(\d+)\/(\d+|\*)$/i;
-
-async function fetchRange(url, start, end, origin) {
-  const headers = new Headers();
-  headers.set("Range", `bytes=${start}-${end}`);
-  if (origin) {
-    headers.set("Origin", origin);
-  }
-  const response = await fetch(url, { headers, redirect: "follow" });
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  return { bytes, headers: response.headers, status: response.status };
-}
-
-function parseContentRange(value) {
-  const match = value?.match(contentRangePattern);
-  if (!match) {
-    return null;
-  }
-  const total = match[3] === "*" ? null : Number(match[3]);
-  return { end: Number(match[2]), start: Number(match[1]), total };
-}
 
 function readBoxType(bytes, offset) {
   return String.fromCharCode(
@@ -93,169 +92,101 @@ function inspectMp4(firstBytes, tailBytes, tailStart) {
   return { boxes, faststart, isMp4, mdatBox, moovBox, tailMoovOffset };
 }
 
-function inspectCors(headers, origin, credentialsRequired) {
-  const allowOrigin = headers.get("access-control-allow-origin");
-  const allowCredentials = headers.get("access-control-allow-credentials");
-  const originAllowed = allowOrigin === "*" || allowOrigin === origin;
-  const credentialsAllowed =
-    !credentialsRequired ||
-    (allowOrigin === origin && allowCredentials === "true");
-  const allowed = originAllowed && credentialsAllowed;
-  return {
-    allowCredentials,
-    allowOrigin,
-    allowed,
-    credentialsRequired,
-    origin,
-  };
+function resolveMediaDeliveryTotalSize(
+  contentRange,
+  contentLength,
+  sampleSize
+) {
+  if (contentRange) {
+    return {
+      totalSize: contentRange.total ?? sampleSize,
+      totalSizeKnown: contentRange.total !== null,
+    };
+  }
+  if (contentLength !== null) {
+    return { totalSize: contentLength, totalSizeKnown: true };
+  }
+  return { totalSize: sampleSize, totalSizeKnown: false };
 }
 
 async function collectCorsResults(url, origins, credentialsRequired) {
   const corsResults = [];
   for (const origin of origins) {
-    const response = await fetchRange(url, 0, 0, origin);
+    const response = await fetchMediaDeliveryRangeSample({
+      end: 0,
+      origin,
+      start: 0,
+      url,
+    });
     corsResults.push(
-      inspectCors(response.headers, origin, credentialsRequired)
+      inspectMediaDeliveryCors(response.headers, origin, credentialsRequired)
     );
   }
   return corsResults;
 }
 
-function getCorsFailure(result) {
-  if (result.allowed) {
-    return null;
-  }
-  if (result.credentialsRequired) {
-    return `Credentialed CORS is missing for ${result.origin}`;
-  }
-  return `CORS is missing for ${result.origin}`;
-}
-
-function collectFailures(rangeOk, mp4, corsResults) {
-  const failures = [];
-  if (!rangeOk) {
-    failures.push("range requests are not confirmed");
-  }
-  if (mp4.isMp4 && !mp4.faststart) {
-    failures.push("MP4 is not faststart");
-  }
-  for (const result of corsResults) {
-    const failure = getCorsFailure(result);
-    if (failure) {
-      failures.push(failure);
-    }
-  }
-  return failures;
-}
-
-function collectRecommendations(rangeOk, mp4, corsResults) {
-  const recommendations = [];
-  if (!rangeOk) {
-    recommendations.push("Enable HTTP byte-range responses for media assets.");
-  }
-  if (mp4.isMp4 && !mp4.faststart) {
-    recommendations.push(
-      "Remux MP4 with `ffmpeg -movflags +faststart` or serve HLS renditions."
-    );
-  }
-  for (const result of corsResults) {
-    if (!result.allowed) {
-      if (result.credentialsRequired) {
-        recommendations.push(
-          `Set Access-Control-Allow-Origin to ${result.origin} and Access-Control-Allow-Credentials: true before using crossOrigin="use-credentials".`
-        );
-      } else {
-        recommendations.push(
-          `Allow ${result.origin} in Access-Control-Allow-Origin before enabling crossOrigin.`
-        );
-      }
-    }
-  }
-  return recommendations;
-}
-
 export async function createMediaDeliveryAuditReport(input) {
   const credentialsRequired = input.credentials === true;
-  const first = await fetchRange(input.url, 0, firstSampleSize - 1);
-  const contentRange = parseContentRange(first.headers.get("content-range"));
-  const totalSize = contentRange?.total ?? first.bytes.length;
-  const tailStart = Math.max(0, totalSize - tailSampleSize);
-  const tail = await fetchRange(input.url, tailStart, totalSize - 1);
-  const mp4 = inspectMp4(first.bytes, tail.bytes, tailStart);
+  const first = await fetchMediaDeliveryRangeSample({
+    end: firstSampleSize - 1,
+    start: 0,
+    url: input.url,
+  });
+  const contentRange = parseMediaDeliveryContentRange(
+    first.headers.get("content-range")
+  );
+  const contentLength = parseMediaDeliveryContentLength(first.headers);
+  const { totalSize, totalSizeKnown } = resolveMediaDeliveryTotalSize(
+    contentRange,
+    contentLength,
+    first.bytes.length
+  );
   const rangeOk = first.status === 206 && Boolean(contentRange);
+  const tailStart = Math.max(0, totalSize - tailSampleSize);
+  const tailBytes =
+    rangeOk && totalSizeKnown
+      ? (
+          await fetchMediaDeliveryRangeSample({
+            end: totalSize - 1,
+            start: tailStart,
+            url: input.url,
+          })
+        ).bytes
+      : new Uint8Array();
+  const mp4 = inspectMp4(first.bytes, tailBytes, tailStart);
   const corsResults = await collectCorsResults(
     input.url,
     input.origins,
     credentialsRequired
   );
-  const failures = collectFailures(rangeOk, mp4, corsResults);
-  const recommendations = collectRecommendations(rangeOk, mp4, corsResults);
+  const maxSizeBytes = input.maxSizeBytes ?? null;
+  const findings = createMediaDeliveryFindings({
+    corsResults,
+    maxSizeBytes,
+    mp4,
+    rangeOk,
+    totalSize,
+    totalSizeKnown,
+  });
+  const rollout = createMediaDeliveryRollout(findings);
+  const failures = collectMediaDeliveryFailures(findings);
+  const nextActions = collectMediaDeliveryNextActions(findings);
+  const recommendations = collectMediaDeliveryRecommendations(findings);
   return {
     corsResults,
     credentialsRequired,
+    findings,
     failures,
+    maxSizeBytes,
     mp4,
+    nextActions,
     rangeOk,
     recommendations,
+    resolvedUrl: first.resolvedUrl,
+    rollout,
     status: first.status,
     totalSize,
+    totalSizeKnown,
     url: input.url,
   };
-}
-
-export function formatMediaDeliveryAuditJson(report) {
-  return `${JSON.stringify({ passed: report.failures.length === 0, ...report }, null, 2)}\n`;
-}
-
-function printBoxSummary(boxes) {
-  const summary = boxes
-    .slice(0, 8)
-    .map((box) => {
-      const marker = box.truncated ? " truncated" : "";
-      return `${box.type}@${box.offset}:${box.size}${marker}`;
-    })
-    .join(", ");
-  console.log(`MP4 boxes: ${summary || "none parsed"}`);
-}
-
-export function printMediaDeliveryAuditReport(report) {
-  console.log("Media delivery audit");
-  console.log(`URL: ${report.url}`);
-  console.log(
-    `HTTP range: ${report.rangeOk ? "ok" : "not confirmed"} (${report.status})`
-  );
-  console.log(`Content length: ${report.totalSize}`);
-  console.log(
-    `Credentialed CORS: ${report.credentialsRequired ? "required" : "not requested"}`
-  );
-  printBoxSummary(report.mp4.boxes);
-  if (report.mp4.isMp4) {
-    console.log(`MP4 faststart: ${report.mp4.faststart ? "ok" : "no"}`);
-    console.log(
-      `moov offset: ${
-        report.mp4.moovBox?.offset ?? report.mp4.tailMoovOffset ?? "not found"
-      }`
-    );
-    console.log(`mdat offset: ${report.mp4.mdatBox?.offset ?? "not found"}`);
-  }
-  for (const result of report.corsResults) {
-    console.log(
-      `CORS ${result.origin}: ${result.allowed ? "ok" : "missing"} ` +
-        `(acao=${result.allowOrigin ?? "none"}, acac=${
-          result.allowCredentials ?? "none"
-        })`
-    );
-  }
-  if (report.failures.length > 0) {
-    console.log("Findings:");
-    for (const failure of report.failures) {
-      console.log(`- ${failure}`);
-    }
-  }
-  if (report.recommendations.length > 0) {
-    console.log("Recommendations:");
-    for (const recommendation of report.recommendations) {
-      console.log(`- ${recommendation}`);
-    }
-  }
 }

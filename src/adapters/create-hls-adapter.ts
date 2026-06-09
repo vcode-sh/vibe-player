@@ -3,7 +3,6 @@ import type {
   VibePlayerAdapterEvent,
   VibePlayerCapabilities,
   VibePlayerEventName,
-  VibePlayerHlsSource,
   VibePlayerSnapshot,
   VibePlayerSource,
 } from "../core/vibe-player-types";
@@ -12,8 +11,14 @@ import {
   getHlsVideoCapabilities,
   getHlsVideoSnapshot,
 } from "./hls-adapter-dom";
-import { loadHlsAdapterSource } from "./hls-adapter-load";
+import { loadCurrentHlsAdapterSource } from "./hls-adapter-load-session";
+import {
+  createHlsAdapterNativeCommands,
+  HlsAdapterNativeCommandDelegate,
+  type HlsAdapterNativeCommands,
+} from "./hls-adapter-native-commands";
 import { createHlsAdapterQualityState } from "./hls-adapter-quality-state";
+import { createHlsAdapterSessionState } from "./hls-adapter-session-state";
 import { defaultHlsAdapterRuntime } from "./hls-managed-runtime";
 import type { ManagedHlsLevel } from "./hls-quality";
 import type {
@@ -21,23 +26,7 @@ import type {
   ManagedHlsController,
 } from "./hls-runtime-types";
 import { clearElement, createNativeVideo } from "./native-video-dom";
-import {
-  clearNativeVideoPlayback,
-  enterNativeVideoFullscreen,
-  enterNativeVideoPictureInPicture,
-  exitNativeVideoFullscreen,
-  type NativeVideoCommandInput,
-  pauseNativeVideo,
-  playNativeVideo,
-  seekNativeVideo,
-  setNativeVideoMuted,
-  setNativeVideoPlaybackRate,
-  setNativeVideoVolume,
-} from "./native-video-playback";
-
-interface HlsAdapterLoadSession {
-  generation: number;
-}
+import { clearNativeVideoPlayback } from "./native-video-playback";
 
 export type * from "./hls-runtime-types";
 export function createHlsAdapter(
@@ -45,33 +34,44 @@ export function createHlsAdapter(
 ): VibePlayerAdapter {
   return new HlsVibePlayerAdapter(runtime);
 }
-class HlsVibePlayerAdapter implements VibePlayerAdapter {
+class HlsVibePlayerAdapter
+  extends HlsAdapterNativeCommandDelegate
+  implements VibePlayerAdapter
+{
   readonly kind = "hls";
   private readonly listeners = new Set<VibePlayerAdapterListener>();
+  protected readonly nativeCommands: HlsAdapterNativeCommands;
+  private readonly session = createHlsAdapterSessionState();
   private readonly runtime: HlsAdapterRuntime;
-  private loadGeneration = 0;
   private managedHlsController: ManagedHlsController | null = null;
-  private mounted = false;
-  private playbackGeneration = 0;
   private readonly quality = createHlsAdapterQualityState();
-  private source: VibePlayerHlsSource | null = null;
   private video: HTMLVideoElement | null = null;
-  private live = false;
   constructor(runtime: HlsAdapterRuntime) {
+    super();
     this.runtime = runtime;
+    this.nativeCommands = createHlsAdapterNativeCommands({
+      canSeek: () => this.session.isSeekable,
+      emit: (type) => this.emit(type),
+      getPlaybackGeneration: () => this.session.playbackGeneration,
+      getSnapshot: () => this.getSnapshot(),
+      getVideo: () => this.video,
+      incrementPlaybackGeneration: () =>
+        this.session.incrementPlaybackGeneration(),
+      isMounted: () => this.session.mounted,
+    });
   }
 
   get capabilities(): VibePlayerCapabilities {
     return getHlsVideoCapabilities(
       this.video,
-      this.source,
-      this.live,
+      this.session.source,
+      this.session.live,
       this.quality.supportsSelection
     );
   }
 
   getSnapshot(): VibePlayerSnapshot {
-    const snapshot = getHlsVideoSnapshot(this.video, this.live);
+    const snapshot = getHlsVideoSnapshot(this.video, this.session.live);
     if (this.quality.options.length === 0) {
       return snapshot;
     }
@@ -84,65 +84,26 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     }
 
     const video = this.ensureVideo();
-    const loadSession = this.prepareLoadSession(source);
-    let managedController: ManagedHlsController | null = null;
-
-    try {
-      managedController = await loadHlsAdapterSource({
-        emit: (type, payload) => {
-          if (this.isCurrentLoadSession(loadSession)) {
-            this.emit(type, payload);
-          }
-        },
-        isActive: () => this.isCurrentLoadSession(loadSession),
-        runtime: this.runtime,
-        setLive: (isLive) => {
-          if (this.isCurrentLoadSession(loadSession)) {
-            this.live = isLive;
-          }
-        },
-        source,
-        updateQualityOptions: (levels, selectedLevelIndex) => {
-          if (this.isCurrentLoadSession(loadSession)) {
-            this.updateQualityOptions(levels, selectedLevelIndex);
-          }
-        },
-        video,
-      });
-    } catch (error) {
-      if (this.isCurrentLoadSession(loadSession)) {
-        throw error;
-      }
-      return;
-    }
-
-    if (!this.isCurrentLoadSession(loadSession)) {
-      managedController?.destroy();
-      return;
-    }
-    this.managedHlsController = managedController;
-  }
-
-  private prepareLoadSession(
-    source: VibePlayerHlsSource
-  ): HlsAdapterLoadSession {
     this.destroyManagedHls();
-    this.source = source;
-    this.loadGeneration += 1;
-    this.playbackGeneration += 1;
-    this.live = Boolean(source.live);
-    return {
-      generation: this.loadGeneration,
-    };
-  }
+    const loadSession = this.session.beginLoad(source);
 
-  private isCurrentLoadSession(loadSession: HlsAdapterLoadSession): boolean {
-    return this.loadGeneration === loadSession.generation;
+    this.managedHlsController = await loadCurrentHlsAdapterSource({
+      emit: (type, payload) => this.emit(type, payload),
+      isCurrentLoadSession: (session) =>
+        this.session.isCurrentLoadSession(session),
+      loadSession,
+      runtime: this.runtime,
+      setLive: (isLive) => this.session.setLive(isLive),
+      source,
+      updateQualityOptions: (levels, selectedLevelIndex) =>
+        this.updateQualityOptions(levels, selectedLevelIndex),
+      video,
+    });
   }
 
   mount(target: HTMLElement): Promise<void> {
     const video = this.ensureVideo();
-    this.mounted = true;
+    this.session.markMounted();
     if (video.parentElement === target) {
       return Promise.resolve();
     }
@@ -152,44 +113,11 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     return Promise.resolve();
   }
 
-  pause(): Promise<void> {
-    return pauseNativeVideo(this.getNativeCommandInput());
-  }
-
-  async play(): Promise<void> {
-    await playNativeVideo(this.getNativeCommandInput());
-  }
-
-  seekTo(seconds: number): Promise<void> {
-    return seekNativeVideo(this.getNativeCommandInput(), seconds);
-  }
-
-  setMuted(value: boolean): Promise<void> {
-    return setNativeVideoMuted(this.getNativeCommandInput(), value);
-  }
-
-  setPlaybackRate(value: number): Promise<void> {
-    return setNativeVideoPlaybackRate(this.getNativeCommandInput(), value);
-  }
   setQuality(qualityId: string): Promise<void> {
     if (this.quality.select(qualityId, this.managedHlsController)) {
       this.emit("qualitychange");
     }
     return Promise.resolve();
-  }
-  setVolume(value: number): Promise<void> {
-    return setNativeVideoVolume(this.getNativeCommandInput(), value);
-  }
-  async enterFullscreen(): Promise<void> {
-    await enterNativeVideoFullscreen(this.getNativeCommandInput());
-  }
-
-  async enterPictureInPicture(): Promise<void> {
-    await enterNativeVideoPictureInPicture(this.getNativeCommandInput());
-  }
-
-  async exitFullscreen(): Promise<void> {
-    await exitNativeVideoFullscreen(this.getNativeCommandInput());
   }
 
   subscribe(listener: VibePlayerAdapterListener): () => void {
@@ -200,15 +128,11 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   unmount(): Promise<void> {
-    this.mounted = false;
-    this.loadGeneration += 1;
-    this.playbackGeneration += 1;
+    this.session.close();
     if (this.video) {
       clearNativeVideoPlayback(this.video);
     }
     this.destroyManagedHls();
-    this.live = false;
-    this.source = null;
     this.video = null;
     return Promise.resolve();
   }
@@ -238,21 +162,6 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     for (const listener of this.listeners) {
       listener(event);
     }
-  }
-
-  private getNativeCommandInput(): NativeVideoCommandInput {
-    return {
-      canSeek: () => !this.live,
-      emit: (type) => this.emit(type),
-      getPlaybackGeneration: () => this.playbackGeneration,
-      getSnapshot: () => this.getSnapshot(),
-      getVideo: () => this.video,
-      incrementPlaybackGeneration: () => {
-        this.playbackGeneration += 1;
-        return this.playbackGeneration;
-      },
-      isMounted: () => this.mounted,
-    };
   }
 
   private ensureVideo(): HTMLVideoElement {

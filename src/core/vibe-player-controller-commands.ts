@@ -13,6 +13,11 @@ export interface HandleVibePlayerControllerPlayInput {
   updateState: (next: Partial<VibePlayerControllerState>) => void;
 }
 
+export interface HandleVibePlayerControllerPauseInput {
+  adapter: VibePlayerAdapter | null;
+  updateState: (next: Partial<VibePlayerControllerState>) => void;
+}
+
 export async function handleVibePlayerControllerPlay({
   adapter,
   updateState,
@@ -40,6 +45,20 @@ export async function handleVibePlayerControllerPlay({
   }
 }
 
+export async function handleVibePlayerControllerPause({
+  adapter,
+  updateState,
+}: HandleVibePlayerControllerPauseInput): Promise<void> {
+  if (!adapter?.capabilities.supportsPlayback) {
+    return;
+  }
+  await adapter.pause();
+  updateState({
+    lastEvent: "pause",
+    snapshot: createPauseIntentSnapshot(adapter.getSnapshot()),
+  });
+}
+
 function createPlayIntentSnapshot(
   snapshot: VibePlayerSnapshot
 ): VibePlayerSnapshot {
@@ -47,6 +66,18 @@ function createPlayIntentSnapshot(
     return snapshot;
   }
   return { ...snapshot, paused: false, readyState: "buffering" };
+}
+
+function createPauseIntentSnapshot(
+  snapshot: VibePlayerSnapshot
+): VibePlayerSnapshot {
+  if (
+    snapshot.readyState === "buffering" ||
+    snapshot.readyState === "playing"
+  ) {
+    return { ...snapshot, paused: true, readyState: "ready" };
+  }
+  return { ...snapshot, paused: true };
 }
 
 export interface HandleVibePlayerControllerSeekInput {

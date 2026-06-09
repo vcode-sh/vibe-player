@@ -5,16 +5,20 @@ import type {
   VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
   VibePlayerControllerState,
+  VibePlayerEventName,
   VibePlayerResumeStore,
+  VibePlayerSnapshot,
   VibePlayerSource,
 } from "./vibe-player-types";
 
 export interface HandleVibePlayerAdapterEventInput {
   adapter: VibePlayerAdapter | null;
   analyticsSession: VibePlayerAnalyticsSession;
+  currentSnapshot: VibePlayerSnapshot;
   currentSource: VibePlayerSource | null;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
   event: VibePlayerAdapterEvent;
+  lastEvent: VibePlayerEventName | null;
   playbackBlocked: boolean;
   resumeStore?: VibePlayerResumeStore | undefined;
   updateState: (next: Partial<VibePlayerControllerState>) => void;
@@ -24,18 +28,28 @@ export function handleVibePlayerAdapterEvent({
   adapter,
   analyticsSession,
   currentSource,
+  currentSnapshot,
   emitAnalytics,
   event,
+  lastEvent,
   playbackBlocked,
   resumeStore,
   updateState,
 }: HandleVibePlayerAdapterEventInput): void {
+  const stateEvent = getControllerStateEvent({
+    currentSnapshot,
+    event,
+    lastEvent,
+  });
   updateState({
     capabilities: adapter?.capabilities ?? createIdleCapabilities(),
-    lastEvent: event.type,
-    playbackBlocked: getNextPlaybackBlocked(event, playbackBlocked),
-    snapshot: event.snapshot,
+    lastEvent: stateEvent.type,
+    playbackBlocked: getNextPlaybackBlocked(stateEvent, playbackBlocked),
+    snapshot: stateEvent.snapshot,
   });
+  if (stateEvent !== event) {
+    return;
+  }
   if (!currentSource) {
     return;
   }
@@ -87,4 +101,43 @@ function getNextPlaybackBlocked(
     return true;
   }
   return playbackBlocked;
+}
+
+interface GetControllerStateEventInput {
+  currentSnapshot: VibePlayerSnapshot;
+  event: VibePlayerAdapterEvent;
+  lastEvent: VibePlayerEventName | null;
+}
+
+function getControllerStateEvent({
+  currentSnapshot,
+  event,
+  lastEvent,
+}: GetControllerStateEventInput): VibePlayerAdapterEvent {
+  if (!shouldPreservePausedIntent({ currentSnapshot, event, lastEvent })) {
+    return event;
+  }
+  return {
+    ...event,
+    snapshot: {
+      ...event.snapshot,
+      paused: true,
+      readyState: "ready",
+    },
+    type: "pause",
+  };
+}
+
+function shouldPreservePausedIntent({
+  currentSnapshot,
+  event,
+  lastEvent,
+}: GetControllerStateEventInput): boolean {
+  if (!(lastEvent === "pause" && currentSnapshot.paused)) {
+    return false;
+  }
+  if (event.snapshot.paused) {
+    return false;
+  }
+  return !(event.type === "ended" || event.type === "error");
 }

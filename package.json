@@ -7,23 +7,30 @@
   "license": "UNLICENSED",
   "type": "module",
   "sideEffects": [
-    "./src/styles/*.css"
+    "./dist/styles.css"
   ],
   "files": [
     "CHANGELOG.md",
     "README.md",
     "dist",
     "docs/integration.md",
+    "docs/media-delivery.md",
     "scripts/audit-media-delivery.mjs",
+    "scripts/media-delivery-audit-args.mjs",
+    "scripts/media-delivery-audit-cors.mjs",
     "scripts/media-delivery-audit-core.mjs",
-    "src/styles/*.css"
+    "scripts/media-delivery-audit-fetch.mjs",
+    "scripts/media-delivery-audit-findings.mjs",
+    "scripts/media-delivery-audit-format.mjs",
+    "scripts/media-delivery-audit-rollout.mjs",
+    "scripts/media-delivery-audit-runner.mjs"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./src/styles/vibe-player.css",
+    "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",
@@ -49,10 +56,10 @@
     "cinematic-ui"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --format esm --dts --clean --sourcemap --out-dir dist --platform neutral --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js",
+    "build": "tsdown src/index.ts --format esm --dts --clean --sourcemap --out-dir dist --platform neutral --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
     "check": "biome check .",
     "check-types": "tsc --noEmit",
-    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run check-types && bun run test && bun run build && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw",
+    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw",
     "demo:vite": "vite --config demo/vite/vite.config.ts --host localhost",
     "demo:vite:build": "vite build --config demo/vite/vite.config.ts",
     "demo:vite:check": "tsc -p demo/vite/tsconfig.json --noEmit",
@@ -65,7 +72,10 @@
     "package:boundaries": "bun scripts/assert-package-boundaries.mjs",
     "package:dependencies": "bun scripts/assert-package-dependencies.mjs",
     "package:publint": "publint run --strict --pack npm",
+    "package:release-state": "bun scripts/assert-release-state.mjs",
     "package:rules": "bun scripts/assert-coding-rules.mjs",
+    "package:size": "bun scripts/assert-package-size.mjs",
+    "package:styles": "bun scripts/assert-built-styles.mjs",
     "package:surface": "bun scripts/assert-public-surface.mjs",
     "package:tarball": "bun scripts/assert-package-tarball.mjs",
     "release:publish": "changeset publish",

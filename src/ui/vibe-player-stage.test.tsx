@@ -88,6 +88,32 @@ describe("VibePlayerStage", () => {
     );
   });
 
+  it("clears blocked playback status after a successful play retry", async () => {
+    const { adapterFactory, adapters } = createStageAdapterFactory({
+      configure: (adapter) => {
+        adapter.playError = createBlockedPlaybackError();
+      },
+    });
+
+    render(
+      <VibePlayerStage
+        adapterFactory={adapterFactory}
+        autoPlay={true}
+        open={true}
+        source={stageFileSource}
+      />
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Play to start")
+    );
+    getStageAdapter(adapters).playError = null;
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    expect(screen.getByRole("button", { name: "Pause" })).toBeVisible();
+  });
+
   it("shows an unavailable status after failed source load", async () => {
     const { adapterFactory } = createStageAdapterFactory({
       configure: (adapter) => {

@@ -43,6 +43,22 @@ export function CloseIcon(props: VibePlayerIconProps) {
   );
 }
 
+export function CheckIcon(props: VibePlayerIconProps) {
+  return (
+    <VibePlayerIconBase {...props}>
+      <path d="M20 6 9 17l-5-5" />
+    </VibePlayerIconBase>
+  );
+}
+
+export function ChevronDownIcon(props: VibePlayerIconProps) {
+  return (
+    <VibePlayerIconBase {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </VibePlayerIconBase>
+  );
+}
+
 export function EnterFullscreenIcon(props: VibePlayerIconProps) {
   return (
     <VibePlayerIconBase {...props}>
@@ -80,6 +96,14 @@ export function PlayIcon(props: VibePlayerIconProps) {
   return (
     <VibePlayerIconBase {...props}>
       <path d="M8 5v14l11-7-11-7z" />
+    </VibePlayerIconBase>
+  );
+}
+
+export function QualityIcon(props: VibePlayerIconProps) {
+  return (
+    <VibePlayerIconBase {...props}>
+      <path d="M4 7h8M16 7h4M14 5v4M4 12h3M11 12h9M9 10v4M4 17h11M19 17h1M17 15v4" />
     </VibePlayerIconBase>
   );
 }

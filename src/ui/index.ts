@@ -5,4 +5,6 @@ export * from "./vibe-player-modal";
 export * from "./vibe-player-quality-control";
 export * from "./vibe-player-shell";
 export * from "./vibe-player-stage";
+export * from "./vibe-player-stage-status";
 export * from "./vibe-player-timeline";
+export * from "./vibe-player-volume-control";

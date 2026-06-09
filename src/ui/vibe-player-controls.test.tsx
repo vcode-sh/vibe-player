@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createIdleCapabilities, createIdleSnapshot } from "../core";
 import { VibePlayerControls } from "./vibe-player-controls";
 
+const highQualityOptionNamePattern = /1080p/;
+
 const capabilities = {
   ...createIdleCapabilities(),
   canFullscreen: true,
@@ -14,6 +16,7 @@ const capabilities = {
   supportsMute: true,
   supportsPlayback: true,
   supportsQualitySelection: true,
+  supportsVolumeControl: true,
 };
 
 const snapshot = {
@@ -34,14 +37,25 @@ const snapshot = {
       selected: false,
     },
   ],
+  volume: 0.42,
 };
+
+function getTooltipRoot(button: HTMLElement): HTMLElement {
+  const root = button.closest("[data-vibe-player-tooltip]");
+  if (!(root instanceof HTMLElement)) {
+    throw new Error("Missing tooltip root");
+  }
+  return root;
+}
 
 describe("VibePlayerControls", () => {
   it("renders capability-aware controls and forwards actions", () => {
     const onTogglePlay = vi.fn();
     const onToggleMute = vi.fn();
+    const onSetMuted = vi.fn();
     const onSetPlaybackRate = vi.fn();
     const onSetQuality = vi.fn();
+    const onSetVolume = vi.fn();
     const onToggleCaptions = vi.fn();
     const onToggleFullscreen = vi.fn();
     const onTogglePictureInPicture = vi.fn();
@@ -52,8 +66,10 @@ describe("VibePlayerControls", () => {
         capabilities={capabilities}
         captionsEnabled={false}
         onSeek={onSeek}
+        onSetMuted={onSetMuted}
         onSetPlaybackRate={onSetPlaybackRate}
         onSetQuality={onSetQuality}
+        onSetVolume={onSetVolume}
         onToggleCaptions={onToggleCaptions}
         onToggleFullscreen={onToggleFullscreen}
         onToggleMute={onToggleMute}
@@ -70,32 +86,49 @@ describe("VibePlayerControls", () => {
       "href",
       "https://example.com/source"
     );
-    expect(screen.getByRole("button", { name: "Play" })).toHaveAttribute(
-      "title",
-      "Play"
-    );
+    const playButton = screen.getByRole("button", { name: "Play" });
+    expect(playButton).not.toHaveAttribute("title");
+    expect(screen.getByText("Space / K")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Picture in picture" })
-    ).toHaveAttribute("title", "Picture in picture");
+    ).not.toHaveAttribute("title");
+    expect(screen.getByText("Picture in picture")).toBeInTheDocument();
+    expect(
+      getTooltipRoot(screen.getByRole("button", { name: "Picture in picture" }))
+    ).toHaveAttribute("data-align", "end");
+    expect(
+      getTooltipRoot(screen.getByRole("button", { name: "Full screen" }))
+    ).toHaveAttribute("data-align", "end");
     expect(
       screen
         .getByRole("button", { name: "Picture in picture" })
         .querySelector("svg")
     ).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
-    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
-    fireEvent.click(screen.getByRole("button", { name: "Playback speed 1x" }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Quality" }), {
-      target: { value: "level:1" },
+    fireEvent.focus(screen.getByRole("slider", { name: "Seek" }));
+    expect(screen.getByText("Seek")).toBeInTheDocument();
+    expect(screen.getByText("← / →")).toBeInTheDocument();
+    fireEvent.click(playButton);
+    expect(screen.queryByRole("slider", { name: "Volume" })).toBeNull();
+    const volumeButton = screen.getByRole("button", {
+      name: "Mute, volume 42%",
     });
+    fireEvent.click(volumeButton);
+    expect(screen.queryByRole("slider", { name: "Volume" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Playback speed 1x" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quality Auto" }));
+    fireEvent.click(
+      screen.getByRole("option", { name: highQualityOptionNamePattern })
+    );
     fireEvent.click(screen.getByRole("button", { name: "Show captions" }));
     fireEvent.click(screen.getByRole("button", { name: "Full screen" }));
     fireEvent.click(screen.getByRole("button", { name: "Picture in picture" }));
 
     expect(onTogglePlay).toHaveBeenCalledTimes(1);
     expect(onToggleMute).toHaveBeenCalledTimes(1);
+    expect(onSetMuted).not.toHaveBeenCalled();
     expect(onSetPlaybackRate).toHaveBeenCalledWith(1.25);
     expect(onSetQuality).toHaveBeenCalledWith("level:1");
+    expect(onSetVolume).not.toHaveBeenCalled();
     expect(onToggleCaptions).toHaveBeenCalledTimes(1);
     expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
     expect(onTogglePictureInPicture).toHaveBeenCalledTimes(1);

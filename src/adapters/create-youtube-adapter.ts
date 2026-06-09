@@ -9,17 +9,8 @@ import type {
 } from "../core/vibe-player-types";
 import type { VibePlayerAdapterListener } from "./adapter-listener";
 import { clearElement } from "./native-video-dom";
-import {
-  enterYouTubeFullscreen,
-  exitYouTubeFullscreen,
-  pauseYouTubeVideo,
-  playYouTubeVideo,
-  seekYouTubeVideo,
-  setYouTubeMuted,
-  setYouTubePlaybackRate,
-  setYouTubeVolume,
-  type YouTubeAdapterCommandInput,
-} from "./youtube-adapter-commands";
+import { YouTubeAdapterCommandDelegate } from "./youtube-adapter-command-delegate";
+import type { YouTubeAdapterCommandInput } from "./youtube-adapter-commands";
 import { loadYouTubePlayer } from "./youtube-adapter-load";
 import {
   getYouTubeCapabilities,
@@ -42,8 +33,12 @@ export function createYouTubeAdapter(
   return new YouTubeVibePlayerAdapter(runtime);
 }
 
-class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
+class YouTubeVibePlayerAdapter
+  extends YouTubeAdapterCommandDelegate
+  implements VibePlayerAdapter
+{
   readonly kind = "youtube";
+  protected readonly commandInput: YouTubeAdapterCommandInput;
   private readonly listeners = new Set<VibePlayerAdapterListener>();
   private readonly playbackWatchdog = new YouTubePlaybackWatchdog({
     emitPlayBlocked: () => this.emit("playblocked"),
@@ -60,7 +55,14 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
   private target: HTMLElement | null = null;
 
   constructor(runtime: YouTubeAdapterRuntime) {
+    super();
     this.runtime = runtime;
+    this.commandInput = {
+      emit: (type) => this.emit(type),
+      getPlayer: () => this.player,
+      getSnapshot: () => this.getSnapshot(),
+      watchdog: this.playbackWatchdog,
+    };
   }
 
   get capabilities(): VibePlayerCapabilities {
@@ -103,38 +105,6 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
     }
     this.emit("ready");
     return Promise.resolve();
-  }
-
-  pause(): Promise<void> {
-    return pauseYouTubeVideo(this.getCommandInput());
-  }
-
-  play(): Promise<void> {
-    return playYouTubeVideo(this.getCommandInput());
-  }
-
-  seekTo(seconds: number): Promise<void> {
-    return seekYouTubeVideo(this.getCommandInput(), seconds);
-  }
-
-  setMuted(value: boolean): Promise<void> {
-    return setYouTubeMuted(this.getCommandInput(), value);
-  }
-
-  setPlaybackRate(value: number): Promise<void> {
-    return setYouTubePlaybackRate(this.getCommandInput(), value);
-  }
-
-  setVolume(value: number): Promise<void> {
-    return setYouTubeVolume(this.getCommandInput(), value);
-  }
-
-  async enterFullscreen(): Promise<void> {
-    await enterYouTubeFullscreen(this.getCommandInput());
-  }
-
-  async exitFullscreen(): Promise<void> {
-    await exitYouTubeFullscreen(this.getCommandInput());
   }
 
   subscribe(listener: VibePlayerAdapterListener): () => void {
@@ -204,14 +174,5 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
   private emitTimeUpdate(): void {
     this.playbackWatchdog.completeIfAdvanced(this.getSnapshot().currentTime);
     this.emit("timeupdate");
-  }
-
-  private getCommandInput(): YouTubeAdapterCommandInput {
-    return {
-      emit: (type) => this.emit(type),
-      getPlayer: () => this.player,
-      getSnapshot: () => this.getSnapshot(),
-      watchdog: this.playbackWatchdog,
-    };
   }
 }

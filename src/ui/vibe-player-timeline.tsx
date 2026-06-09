@@ -1,4 +1,10 @@
-import { type PointerEvent, useCallback, useRef, useState } from "react";
+import {
+  type FocusEvent,
+  type PointerEvent,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 import { formatVibePlayerTime } from "../core";
 
 export interface VibePlayerTimelineProps {
@@ -34,6 +40,7 @@ export function VibePlayerTimeline({
   onSeek,
 }: VibePlayerTimelineProps) {
   const [hoverPercent, setHoverPercent] = useState<number | null>(null);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pointerSeekingRef = useRef(false);
   const hasDuration = duration > 0 && !disabled;
@@ -42,8 +49,10 @@ export function VibePlayerTimeline({
     : 0;
   const hoverTime =
     hoverPercent === null ? null : timeFromPercent(duration, hoverPercent);
-  const tooltipPercent =
-    hoverPercent === null ? 0 : Math.min(94, Math.max(6, hoverPercent));
+  const tooltipTime =
+    hoverTime ?? (focused && hasDuration ? currentTime : null);
+  const rawTooltipPercent = hoverPercent ?? progress;
+  const tooltipPercent = Math.min(94, Math.max(6, rawTooltipPercent));
 
   const updateHover = useCallback((event: PointerEvent<HTMLDivElement>) => {
     setHoverPercent(getPointerPercent(event));
@@ -66,6 +75,14 @@ export function VibePlayerTimeline({
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   }, []);
+
+  function handleInputBlur(event: FocusEvent<HTMLInputElement>): void {
+    setFocused(false);
+    if (!pointerSeekingRef.current) {
+      setHoverPercent(null);
+    }
+    event.currentTarget.blur();
+  }
 
   return (
     <div
@@ -104,7 +121,9 @@ export function VibePlayerTimeline({
         disabled={!hasDuration}
         max={duration || 0}
         min={0}
+        onBlur={handleInputBlur}
         onChange={(event) => onSeek(Number(event.currentTarget.value))}
+        onFocus={() => setFocused(true)}
         ref={inputRef}
         step={0.1}
         type="range"
@@ -130,12 +149,16 @@ export function VibePlayerTimeline({
           />
         )}
       </div>
-      {hoverTime === null || !hasDuration ? null : (
+      {tooltipTime === null || !hasDuration ? null : (
         <output
           className="vibe-player-timeline__tooltip"
           style={{ left: `${tooltipPercent}%` }}
         >
-          {formatVibePlayerTime(hoverTime)}
+          <span className="vibe-player-timeline__tooltip-label">Seek</span>
+          <span className="vibe-player-timeline__tooltip-time">
+            {formatVibePlayerTime(tooltipTime)}
+          </span>
+          <span className="vibe-player-timeline__tooltip-shortcut">← / →</span>
         </output>
       )}
     </div>

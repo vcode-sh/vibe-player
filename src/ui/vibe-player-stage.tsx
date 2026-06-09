@@ -1,8 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import {
-  createIdleCapabilities,
-  shouldRevealVibePlayerChromeForKey,
-} from "../core";
+import { createIdleCapabilities } from "../core";
 import {
   useVibePlayerCaptions,
   useVibePlayerChrome,
@@ -11,7 +8,7 @@ import {
 } from "../react";
 import { useVibePlayerMediaTarget } from "./use-vibe-player-media-target";
 import { useVibePlayerStageActions } from "./use-vibe-player-stage-actions";
-import { useVibePlayerStageClick } from "./use-vibe-player-stage-click";
+import { useVibePlayerStageRootEvents } from "./use-vibe-player-stage-root-events";
 import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
 import { VibePlayerControls } from "./vibe-player-controls";
 import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
@@ -114,7 +111,8 @@ export function VibePlayerStage({
     rootElement.focus({ preventScroll: true });
   }, [open, rootElement]);
 
-  const handleStageClick = useVibePlayerStageClick({
+  const rootEvents = useVibePlayerStageRootEvents({
+    chrome,
     rootElement,
     togglePlay: actions.togglePlay,
   });
@@ -130,40 +128,10 @@ export function VibePlayerStage({
   });
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/noNoninteractiveElementInteractions lint/a11y/useKeyWithClickEvents: the focused stage already handles keyboard shortcuts, while pointer clicks only mirror native video toggling.
     <div
       className="vibe-player-stage"
       data-chrome-hidden={chrome.chromeHidden}
-      onBlurCapture={(event) => {
-        const nextTarget = event.relatedTarget;
-        if (
-          nextTarget instanceof Node &&
-          event.currentTarget.contains(nextTarget)
-        ) {
-          return;
-        }
-        chrome.releaseChrome();
-      }}
-      onClick={handleStageClick}
-      onFocusCapture={(event) => {
-        if (event.target === event.currentTarget) {
-          chrome.showChrome();
-          return;
-        }
-        chrome.holdChrome();
-      }}
-      onKeyDownCapture={(event) => {
-        if (
-          shouldRevealVibePlayerChromeForKey({
-            chromeHidden: chrome.chromeHidden,
-            key: event.key,
-          })
-        ) {
-          chrome.showChrome();
-        }
-      }}
-      onPointerDown={chrome.showChrome}
-      onPointerMove={chrome.showChrome}
+      {...rootEvents}
       ref={setRootElement}
       tabIndex={-1}
     >
@@ -179,8 +147,10 @@ export function VibePlayerStage({
         chromeHidden={chrome.chromeHidden}
         onClose={onClose}
         onSeek={actions.seekTo}
+        onSetMuted={actions.setMuted}
         onSetPlaybackRate={actions.setPlaybackRate}
         onSetQuality={actions.setQuality}
+        onSetVolume={actions.setVolume}
         onToggleCaptions={actions.toggleCaptions}
         onToggleFullscreen={actions.toggleFullscreen}
         onToggleMute={actions.toggleMute}

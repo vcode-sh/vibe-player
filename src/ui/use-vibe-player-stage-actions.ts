@@ -14,8 +14,10 @@ export interface UseVibePlayerStageActionsInput {
 export interface VibePlayerStageActions {
   handleShortcut: (action: VibePlayerShortcutAction) => void;
   seekTo: (seconds: number) => void;
+  setMuted: (muted: boolean) => void;
   setPlaybackRate: (rate: number) => void;
   setQuality: (qualityId: string) => void;
+  setVolume: (volume: number) => void;
   toggleCaptions: () => void;
   toggleFullscreen: () => void;
   toggleMute: () => void;
@@ -45,6 +47,15 @@ export function useVibePlayerStageActions({
       controller.play().catch(() => undefined);
     }
   }, [controller, snapshot.muted, snapshot.paused]);
+  const setMuted = useCallback(
+    (muted: boolean) => {
+      controller.setMuted(muted).catch(() => undefined);
+      if (!(muted || snapshot.paused)) {
+        controller.play().catch(() => undefined);
+      }
+    },
+    [controller, snapshot.paused]
+  );
   const toggleCaptions = useCallback(() => {
     setCaptionsEnabled((value) => !value);
   }, [setCaptionsEnabled]);
@@ -69,6 +80,12 @@ export function useVibePlayerStageActions({
   const setQuality = useCallback(
     (qualityId: string) => {
       controller.setQuality(qualityId).catch(() => undefined);
+    },
+    [controller]
+  );
+  const setVolume = useCallback(
+    (volume: number) => {
+      controller.setVolume(volume).catch(() => undefined);
     },
     [controller]
   );
@@ -103,8 +120,10 @@ export function useVibePlayerStageActions({
   return {
     handleShortcut,
     seekTo,
+    setMuted,
     setPlaybackRate,
     setQuality,
+    setVolume,
     toggleCaptions,
     toggleFullscreen,
     toggleMute,

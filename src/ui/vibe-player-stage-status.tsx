@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { VibePlayerSnapshot } from "../core";
 
 export interface VibePlayerStageStatusProps {
@@ -10,11 +11,14 @@ interface VibePlayerStageStatusView {
   tone: "busy" | "error" | "notice";
 }
 
+const busyStatusDelayMs = 320;
+
 export function VibePlayerStageStatus({
   playbackBlocked,
   snapshot,
 }: VibePlayerStageStatusProps) {
   const view = getVibePlayerStageStatusView({ playbackBlocked, snapshot });
+  const revealBusy = useDelayedBusyStatus(view?.tone === "busy");
 
   if (!view) {
     return null;
@@ -22,13 +26,21 @@ export function VibePlayerStageStatus({
 
   const className = `vibe-player-stage__status vibe-player-stage__status--${view.tone}`;
   if (view.tone === "busy") {
+    if (!revealBusy) {
+      return null;
+    }
     return (
-      <div aria-live="polite" className={className} role="status">
+      <div
+        aria-label={view.label}
+        aria-live="polite"
+        className={className}
+        role="status"
+      >
+        <span aria-hidden="true" className="vibe-player-stage__status-halo" />
         <span
           aria-hidden="true"
           className="vibe-player-stage__status-spinner"
         />
-        <span className="vibe-player-stage__status-sr">{view.label}</span>
       </div>
     );
   }
@@ -61,7 +73,7 @@ function getVibePlayerStageStatusView({
     return null;
   }
 
-  return { label: "Loading video", tone: "busy" };
+  return { label: "Buffering video", tone: "busy" };
 }
 
 function shouldShowBusyStatus(snapshot: VibePlayerSnapshot): boolean {
@@ -70,12 +82,26 @@ function shouldShowBusyStatus(snapshot: VibePlayerSnapshot): boolean {
   ) {
     return false;
   }
-  if (!snapshot.paused) {
-    return true;
-  }
-  return (
-    snapshot.readyState === "loading" &&
-    snapshot.currentTime <= 0 &&
-    snapshot.duration <= 0
-  );
+  return !snapshot.paused;
+}
+
+function useDelayedBusyStatus(active: boolean): boolean {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!active) {
+      setVisible(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setVisible(true);
+    }, busyStatusDelayMs);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [active]);
+
+  return active && visible;
 }

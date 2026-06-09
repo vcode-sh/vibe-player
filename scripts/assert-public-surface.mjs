@@ -18,6 +18,17 @@ const requiredSymbols = [
   "VibePlayerAmbientPreview",
   "cinematicDefaultSkin",
   "VibePlayerSkinPreset",
+  "VibePlayerStageStatus",
+  "VibePlayerStageStatusProps",
+  "VibePlayerVolumeControl",
+  "VibePlayerVolumeState",
+  "VibePlayerVolumeStateInput",
+  "VibePlayerQualityOption",
+  "createVibePlayerVolumeState",
+  "clampVibePlayerVolume",
+  "getVibePlayerVolumePercent",
+  "getSelectedVibePlayerQualityOption",
+  "canRenderVibePlayerQualityOptions",
 ];
 
 const forbiddenSymbols = [
@@ -25,8 +36,11 @@ const forbiddenSymbols = [
   "PlayGuardedNativeVideoInput",
   "VibePlayerAdapterListener",
   "HlsAdapterQualityState",
+  "HlsAdapterLoadSession",
   "createHlsAdapterQualityState",
   "MutableHlsAdapterQualityState",
+  "LoadCurrentHlsAdapterSourceInput",
+  "loadCurrentHlsAdapterSource",
   "TestStageAdapter",
   "StageAdapterFactoryHarness",
   "createStageAdapterFactory",
@@ -72,6 +86,7 @@ const forbiddenSymbols = [
   "enterYouTubeFullscreen",
   "exitYouTubeFullscreen",
   "VibePlayerBackgroundLayer",
+  "VibePlayerToggleButton",
 ];
 
 function collectMissingSymbols(declaration, symbols) {

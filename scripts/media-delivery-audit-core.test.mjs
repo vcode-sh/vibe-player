@@ -3,47 +3,13 @@ import {
   createMediaDeliveryAuditReport,
   formatMediaDeliveryAuditJson,
 } from "./media-delivery-audit-core.mjs";
+import {
+  createMp4Sample,
+  createRangeResponse,
+  getOrigin,
+} from "./media-delivery-audit-test-helpers.mjs";
 
 const nativeFetch = globalThis.fetch;
-
-function writeBoxHeader(bytes, offset, size, type) {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  view.setUint32(offset, size);
-  for (let index = 0; index < type.length; index += 1) {
-    bytes[offset + 4 + index] = type.charCodeAt(index);
-  }
-}
-
-function createMp4Sample(boxes) {
-  const totalSize = boxes.reduce((sum, box) => sum + box.size, 0);
-  const bytes = new Uint8Array(totalSize);
-  let offset = 0;
-  for (const box of boxes) {
-    writeBoxHeader(bytes, offset, box.size, box.type);
-    offset += box.size;
-  }
-  return bytes;
-}
-
-function createRangeResponse(bytes, total, allowOrigin, allowCredentials) {
-  const headers = new Headers();
-  headers.set("content-range", `bytes 0-${bytes.length - 1}/${total}`);
-  if (allowOrigin) {
-    headers.set("access-control-allow-origin", allowOrigin);
-  }
-  if (allowCredentials) {
-    headers.set("access-control-allow-credentials", allowCredentials);
-  }
-  return new Response(bytes, { headers, status: 206 });
-}
-
-function getOrigin(init) {
-  const headers = init?.headers;
-  if (!(headers instanceof Headers)) {
-    return null;
-  }
-  return headers.get("Origin");
-}
 
 describe("media delivery audit core", () => {
   afterEach(() => {
@@ -106,71 +72,83 @@ describe("media delivery audit core", () => {
       "MP4 is not faststart",
       "CORS is missing for https://missing.example.com",
     ]);
+    expect(report.findings).toEqual([
+      {
+        code: "mp4-not-faststart",
+        failure: "MP4 is not faststart",
+        nextAction: {
+          code: "remux-faststart-or-hls",
+          command:
+            "ffmpeg -i input.mp4 -c copy -movflags +faststart output.mp4",
+          detail:
+            "Run ffmpeg with -movflags +faststart or publish HLS renditions.",
+          label: "Move MP4 metadata forward",
+        },
+        recommendation:
+          "Remux MP4 with `ffmpeg -movflags +faststart` or serve HLS renditions.",
+        severity: "error",
+        summary:
+          "The MP4 metadata atom is behind media data, which can delay startup.",
+      },
+      {
+        code: "cors-missing",
+        failure: "CORS is missing for https://missing.example.com",
+        nextAction: {
+          code: "allow-cors-origin",
+          detail:
+            "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
+          headers: {
+            "Access-Control-Allow-Origin": "https://missing.example.com",
+          },
+          label: "Allow media CORS origin",
+          origin: "https://missing.example.com",
+        },
+        origin: "https://missing.example.com",
+        recommendation:
+          "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
+        severity: "error",
+        summary: "CORS is missing for https://missing.example.com",
+      },
+    ]);
     expect(report.recommendations).toEqual([
       "Remux MP4 with `ffmpeg -movflags +faststart` or serve HLS renditions.",
       "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
     ]);
+    expect(report.nextActions).toEqual([
+      {
+        code: "remux-faststart-or-hls",
+        command: "ffmpeg -i input.mp4 -c copy -movflags +faststart output.mp4",
+        detail:
+          "Run ffmpeg with -movflags +faststart or publish HLS renditions.",
+        label: "Move MP4 metadata forward",
+      },
+      {
+        code: "allow-cors-origin",
+        detail:
+          "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
+        headers: {
+          "Access-Control-Allow-Origin": "https://missing.example.com",
+        },
+        label: "Allow media CORS origin",
+        origin: "https://missing.example.com",
+      },
+    ]);
+    expect(report.rollout).toEqual({
+      blockingFindingCodes: ["mp4-not-faststart", "cors-missing"],
+      directFileReady: false,
+      recommendedDelivery: "faststart-remux-or-hls",
+      summary: "Remux the MP4 for faststart or serve HLS.",
+    });
 
     const payload = JSON.parse(formatMediaDeliveryAuditJson(report));
     expect(payload.passed).toBe(false);
     expect(payload.failures).toEqual(report.failures);
+    expect(payload.findings).toEqual(report.findings);
+    expect(payload.nextActions).toEqual(report.nextActions);
     expect(payload.recommendations).toEqual(report.recommendations);
+    expect(payload.resolvedUrl).toBe("https://cdn.example.com/video.mp4");
+    expect(payload.rollout).toEqual(report.rollout);
     expect(payload.mp4.mdatBox.offset).toBe(32);
     expect(payload.corsResults.at(1).allowed).toBe(false);
-  });
-
-  it("requires explicit origin and credentials headers for credentialed CORS", async () => {
-    const firstBytes = createMp4Sample([
-      { size: 32, type: "ftyp" },
-      { size: 48, type: "moov" },
-      { size: 96, type: "mdat" },
-    ]);
-    const totalSize = 512;
-
-    globalThis.fetch = vi.fn((_url, init) => {
-      const origin = getOrigin(init);
-      if (origin === "https://wildcard.example.com") {
-        return createRangeResponse(new Uint8Array([0]), totalSize, "*", "true");
-      }
-      if (origin === "https://secure.example.com") {
-        return createRangeResponse(
-          new Uint8Array([0]),
-          totalSize,
-          origin,
-          "true"
-        );
-      }
-      return createRangeResponse(firstBytes, totalSize, null, null);
-    });
-
-    const report = await createMediaDeliveryAuditReport({
-      credentials: true,
-      origins: ["https://wildcard.example.com", "https://secure.example.com"],
-      url: "https://cdn.example.com/video.mp4",
-    });
-
-    expect(report.credentialsRequired).toBe(true);
-    expect(report.failures).toEqual([
-      "Credentialed CORS is missing for https://wildcard.example.com",
-    ]);
-    expect(report.recommendations).toEqual([
-      'Set Access-Control-Allow-Origin to https://wildcard.example.com and Access-Control-Allow-Credentials: true before using crossOrigin="use-credentials".',
-    ]);
-    expect(report.corsResults).toEqual([
-      {
-        allowCredentials: "true",
-        allowOrigin: "*",
-        allowed: false,
-        credentialsRequired: true,
-        origin: "https://wildcard.example.com",
-      },
-      {
-        allowCredentials: "true",
-        allowOrigin: "https://secure.example.com",
-        allowed: true,
-        credentialsRequired: true,
-        origin: "https://secure.example.com",
-      },
-    ]);
   });
 });

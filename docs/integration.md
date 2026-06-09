@@ -29,6 +29,23 @@ If the consuming app uses a local `file:` dependency or a framework that does
 not transpile package source automatically, add `@vibe-code/vibe-player` to the
 app transpilation allowlist.
 
+For local `file:` consumers, refresh in this order after package source, export,
+CSS, or build-script changes:
+
+1. Run `bun run build` in this package.
+2. Run the consumer package-manager install to refresh its `file:` cache.
+3. Restart the consumer dev server after stylesheet or export changes.
+4. From the consumer app cwd, verify:
+
+```bash
+bun -e "console.log(import.meta.resolve('@vibe-code/vibe-player/styles.css'))"
+```
+
+The resolver should point at `@vibe-code/vibe-player/dist/styles.css`. If it
+points at `src/styles/vibe-player.css`, or the framework still reports a
+missing split stylesheet such as `vibe-player-tooltip.css`, the consumer is
+serving a stale dependency or transform cache.
+
 Use the exported skin preset when the host wants a scoped wrapper:
 
 ```tsx
@@ -56,27 +73,21 @@ Before rollout, audit large direct-file assets:
 bun run media:audit -- https://cdn.example.com/video.mp4 --origin https://app.example.com
 ```
 
-The audit checks range delivery, optional CORS headers for supplied origins, and
-MP4 `moov`/`mdat` ordering. Treat failed faststart or range checks as an asset
-delivery issue, not as a player-control bug.
+The audit checks range delivery, optional CORS headers for supplied origins, MP4
+`moov`/`mdat` ordering, direct-file size thresholds, and rollout readiness.
+Treat failed faststart, range, CORS, or size-threshold checks as asset delivery
+issues, not as player-control bugs.
 
-For CI or asset ingestion jobs in this repo, use silent JSON mode:
+For CI or asset ingestion jobs in this repo, use silent JSON mode and fail on
+the direct-file rollout decision:
 
 ```bash
-bun --silent run media:audit -- https://cdn.example.com/video.mp4 --origin https://app.example.com --json --strict
+bun --silent run media:audit -- https://cdn.example.com/video.mp4 --origin https://app.example.com --max-size-mb 500 --json --strict --require-direct-file-ready
 ```
 
-That emits a stable JSON payload with `passed`, `failures`, CORS results, and
-MP4 box offsets while returning a non-zero exit code when delivery checks fail.
-The same payload includes `recommendations` with remediation guidance for range,
-faststart, and requested-origin CORS failures.
-
-Add `--credentials` only for sources that will use
-`crossOrigin="use-credentials"`. Credentialed media requires an exact
-`Access-Control-Allow-Origin` origin match and
-`Access-Control-Allow-Credentials: true`; wildcard `*` is not enough.
-
 Packaged installations expose the same checker as `vibe-player-media-audit`.
+See [media-delivery.md](./media-delivery.md) for JSON fields, stable findings,
+`nextActions`, rollout decisions, credentials-mode CORS, and human output.
 
 Use HLS for long videos, adaptive delivery, or assets where progressive MP4
 startup is unreliable. HLS sources can expose package quality selection when
@@ -119,6 +130,18 @@ control path. Browser automation may still block or pause audible playback, so
 consumer QA should include one real human-click audio smoke test on the target
 origin.
 
+The default controls expose volume through a compact package-owned popover. The
+popover keeps the bottom chrome dense, renders a vertical `0..100` slider, and
+continues to send normalized `0..1` values through the controller and adapter
+contract. Raising volume from a muted state unmutes through the same user
+interaction path. Hovering or focusing the volume icon opens the slider, while
+clicking the icon remains a fast mute/unmute action.
+
+Default controls use package-owned tooltips rather than native `title`
+attributes. Supported keyboard shortcuts are shown directly in the tooltip:
+`Space / K` for play/pause, `M` for mute, `C` for captions, `F` for fullscreen,
+and `← / →` for timeline seek.
+
 ## CORS And Credentials
 
 Leave `crossOrigin` unset unless the media host sends matching CORS headers for
@@ -146,6 +169,11 @@ duplicate host-owned lifecycle events.
 Top-level product actions, such as "Watch on YouTube", should be passed as
 host-owned UI through player composition props rather than hardcoded in the
 package.
+
+For custom/headless surfaces, use `useVibePlayerController` together with the
+exported volume and quality helpers. Base UI is a good optional host-layer fit
+for custom sliders and menus, but the default package entrypoint does not make
+`@base-ui/react` a mandatory runtime dependency.
 
 ## Verification Checklist
 

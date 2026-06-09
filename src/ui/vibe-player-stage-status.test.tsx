@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerSnapshot } from "../core";
 import { VibePlayerStageStatus } from "./vibe-player-stage-status";
 
@@ -20,22 +20,42 @@ function createSnapshot(
 }
 
 describe("VibePlayerStageStatus", () => {
-  it("keeps passive paused loading hidden after playback advanced", () => {
-    const snapshot = createSnapshot({
-      currentTime: 42,
-      duration: 120,
-      paused: true,
-      readyState: "loading",
-    });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-    render(
-      <VibePlayerStageStatus playbackBlocked={false} snapshot={snapshot} />
+  it("keeps passive paused loading hidden after playback advanced", () => {
+    const { rerender } = render(
+      <VibePlayerStageStatus
+        playbackBlocked={false}
+        snapshot={createSnapshot({
+          currentTime: 42,
+          duration: 120,
+          paused: true,
+          readyState: "loading",
+        })}
+      />
+    );
+
+    expect(screen.queryByRole("status")).toBeNull();
+
+    rerender(
+      <VibePlayerStageStatus
+        playbackBlocked={false}
+        snapshot={createSnapshot({
+          currentTime: 0,
+          duration: 0,
+          paused: true,
+          readyState: "loading",
+        })}
+      />
     );
 
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("renders compact busy chrome while active playback buffers", () => {
+  it("delays compact busy chrome for active playback buffers", () => {
+    vi.useFakeTimers();
     const snapshot = createSnapshot({
       paused: false,
       readyState: "buffering",
@@ -45,12 +65,87 @@ describe("VibePlayerStageStatus", () => {
       <VibePlayerStageStatus playbackBlocked={false} snapshot={snapshot} />
     );
 
-    const status = screen.getByRole("status");
+    expect(screen.queryByRole("status")).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(319);
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    const status = screen.getByRole("status", { name: "Buffering video" });
     expect(status).toHaveClass("vibe-player-stage__status--busy");
-    expect(status).toHaveTextContent("Loading video");
+    expect(status).toHaveTextContent("");
     expect(
       status.querySelector(".vibe-player-stage__status-spinner")
     ).not.toBeNull();
+    expect(
+      status.querySelector(".vibe-player-stage__status-halo")
+    ).not.toBeNull();
+  });
+
+  it("cancels transient busy chrome when playback pauses before the delay", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <VibePlayerStageStatus
+        playbackBlocked={false}
+        snapshot={createSnapshot({
+          paused: false,
+          readyState: "buffering",
+        })}
+      />
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(90);
+    });
+    rerender(
+      <VibePlayerStageStatus
+        playbackBlocked={false}
+        snapshot={createSnapshot({
+          paused: true,
+          readyState: "loading",
+        })}
+      />
+    );
+    act(() => {
+      vi.advanceTimersByTime(180);
+    });
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("clears visible busy chrome as soon as playback pauses", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <VibePlayerStageStatus
+        playbackBlocked={false}
+        snapshot={createSnapshot({
+          paused: false,
+          readyState: "buffering",
+        })}
+      />
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(320);
+    });
+    expect(screen.getByRole("status")).toHaveClass(
+      "vibe-player-stage__status--busy"
+    );
+
+    rerender(
+      <VibePlayerStageStatus
+        playbackBlocked={false}
+        snapshot={createSnapshot({
+          paused: true,
+          readyState: "loading",
+        })}
+      />
+    );
+
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("keeps blocked playback and errors readable", () => {

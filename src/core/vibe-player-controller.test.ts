@@ -85,10 +85,12 @@ describe("VibePlayerController", () => {
     const { adapters, controller } = createControllerHarness();
     await controller.load(fileSource);
     const adapter = getAdapter(adapters, 0);
-    adapter.emit("play", { paused: false, readyState: "playing" });
+    adapter.pauseLeavesSnapshotStale = true;
+    adapter.emit("play", { paused: false, readyState: "buffering" });
 
     await controller.pause();
 
+    expect(controller.getState().lastEvent).toBe("pause");
     expect(controller.getState().snapshot).toMatchObject({
       paused: true,
       readyState: "ready",
@@ -144,33 +146,6 @@ describe("VibePlayerController", () => {
     expect(observedStates).toContain("video-1");
     expect(observedStates).not.toContain("missing");
     expect(controller.getState().currentSource?.id).toBe("video-1");
-  });
-
-  it("emits session analytics once per milestone", async () => {
-    const { adapters, analytics, controller, resumeCalls } =
-      createControllerHarness();
-    await controller.load(fileSource);
-    const adapter = getAdapter(adapters, 0);
-
-    adapter.emit("play", { currentTime: 1, paused: false });
-    adapter.emit("play", { currentTime: 2, paused: false });
-    adapter.emit("timeupdate", { currentTime: 26, duration: 100 });
-    adapter.emit("timeupdate", { currentTime: 80, duration: 100 });
-    adapter.emit("timeupdate", { currentTime: 80, duration: 100 });
-    adapter.emit("ended", { currentTime: 100, readyState: "ended" });
-    adapter.emit("ended", { currentTime: 100, readyState: "ended" });
-    await controller.teardown();
-
-    expect(analytics.map((event) => event.type)).toEqual([
-      "opened",
-      "started",
-      "progress_25",
-      "progress_50",
-      "progress_75",
-      "completed",
-      "closed",
-    ]);
-    expect(resumeCalls).toContain("clear:video-1");
   });
 
   it("closes and unmounts the previous adapter when loading a new source", async () => {

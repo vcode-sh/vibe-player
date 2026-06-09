@@ -1,5 +1,6 @@
 import { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
 import {
+  handleVibePlayerControllerPause,
   handleVibePlayerControllerPlay,
   handleVibePlayerControllerSeek,
 } from "./vibe-player-controller-commands";
@@ -10,47 +11,37 @@ import { createIdleSnapshot } from "./vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
-  VibePlayerAnalyticsEvent,
   VibePlayerControllerOptions,
   VibePlayerControllerState,
   VibePlayerSource,
 } from "./vibe-player-types";
 
 type VibePlayerStateListener = (state: VibePlayerControllerState) => void;
-
 export class VibePlayerController {
   private adapter: VibePlayerAdapter | null = null;
   private adapterUnsubscribe: (() => void) | null = null;
   private readonly adapterFactory: VibePlayerControllerOptions["adapterFactory"];
   private readonly analyticsSession: VibePlayerAnalyticsSession;
   private readonly listeners = new Set<VibePlayerStateListener>();
-  private readonly onAnalyticsEvent:
-    | ((event: VibePlayerAnalyticsEvent) => void)
-    | undefined;
-  private readonly resumeStore:
-    | VibePlayerControllerOptions["resumeStore"]
-    | undefined;
+  private readonly onAnalyticsEvent: VibePlayerControllerOptions["onAnalyticsEvent"];
+  private readonly resumeStore: VibePlayerControllerOptions["resumeStore"];
   private operationGeneration = 0;
   private state = createInitialControllerState();
   private target: HTMLElement | null = null;
-
   constructor(options: VibePlayerControllerOptions) {
     this.adapterFactory = options.adapterFactory;
     this.onAnalyticsEvent = options.onAnalyticsEvent;
     this.resumeStore = options.resumeStore;
     this.analyticsSession = new VibePlayerAnalyticsSession((event) =>
-      this.emitAnalytics(event)
+      this.onAnalyticsEvent?.(event)
     );
   }
-
   getState(): VibePlayerControllerState {
     return this.state;
   }
   subscribe(listener: VibePlayerStateListener): () => void {
     this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
+    return () => this.listeners.delete(listener);
   }
   async mount(target: HTMLElement): Promise<void> {
     const targetChanged = this.target !== target || !this.state.isMounted;
@@ -68,9 +59,7 @@ export class VibePlayerController {
   async unmount(): Promise<void> {
     this.operationGeneration += 1;
     this.target = null;
-    if (this.adapter) {
-      await this.adapter.unmount();
-    }
+    await this.adapter?.unmount();
     this.updateState({ isMounted: false });
   }
   async load(source: VibePlayerSource): Promise<void> {
@@ -79,7 +68,7 @@ export class VibePlayerController {
       adapterFactory: this.adapterFactory,
       analyticsSession: this.analyticsSession,
       currentState: this.state,
-      emitAnalytics: (event) => this.emitAnalytics(event),
+      emitAnalytics: (event) => this.onAnalyticsEvent?.(event),
       handleAdapterEvent: (event) => this.handleAdapterEvent(event),
       isCurrentOperation: (generation) => this.isCurrentOperation(generation),
       operationGeneration: this.operationGeneration,
@@ -117,15 +106,17 @@ export class VibePlayerController {
     });
   }
   async pause(): Promise<void> {
-    await this.adapter?.pause();
-    this.syncFromAdapter();
+    await handleVibePlayerControllerPause({
+      adapter: this.adapter,
+      updateState: (next) => this.updateState(next),
+    });
   }
   async seekTo(seconds: number): Promise<void> {
     await handleVibePlayerControllerSeek({
       adapter: this.adapter,
       currentSource: this.state.currentSource,
       duration: this.state.snapshot.duration,
-      emitAnalytics: (event) => this.emitAnalytics(event),
+      emitAnalytics: (event) => this.onAnalyticsEvent?.(event),
       resumeStore: this.resumeStore,
       seconds,
     });
@@ -160,16 +151,16 @@ export class VibePlayerController {
     this.state = createInitialControllerState();
     this.notify();
   }
-  private emitAnalytics(event: VibePlayerAnalyticsEvent): void {
-    this.onAnalyticsEvent?.(event);
-  }
   private handleAdapterEvent(event: VibePlayerAdapterEvent): void {
     handleVibePlayerAdapterEvent({
       adapter: this.adapter,
       analyticsSession: this.analyticsSession,
       currentSource: this.state.currentSource,
-      emitAnalytics: (analyticsEvent) => this.emitAnalytics(analyticsEvent),
+      currentSnapshot: this.state.snapshot,
+      emitAnalytics: (analyticsEvent) =>
+        this.onAnalyticsEvent?.(analyticsEvent),
       event,
+      lastEvent: this.state.lastEvent,
       playbackBlocked: this.state.playbackBlocked,
       resumeStore: this.resumeStore,
       updateState: (next) => this.updateState(next),
@@ -192,9 +183,7 @@ export class VibePlayerController {
   private async teardownAdapter(): Promise<void> {
     this.adapterUnsubscribe?.();
     this.adapterUnsubscribe = null;
-    if (this.adapter) {
-      await this.adapter.unmount();
-    }
+    await this.adapter?.unmount();
     this.adapter = null;
   }
   private updateState(

@@ -11,6 +11,7 @@ coverage/
 # Tooling caches
 .turbo/
 .vite/
+test-results/
 
 # Environment files
 .env

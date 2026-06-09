@@ -15,8 +15,10 @@ interface UseDemoPlayerStageActionsInput {
 export interface DemoPlayerStageActions {
   handleShortcut: (action: VibePlayerShortcutAction) => void;
   seekTo: (seconds: number) => void;
+  setMuted: (muted: boolean) => void;
   setPlaybackRate: (rate: number) => void;
   setQuality: (qualityId: string) => void;
+  setVolume: (volume: number) => void;
   toggleCaptions: () => void;
   toggleFullscreen: () => void;
   toggleMute: () => void;
@@ -46,6 +48,13 @@ export function useDemoPlayerStageActions({
   const toggleMute = useCallback(() => {
     controller.setMuted(!muted).catch(() => undefined);
   }, [controller, muted]);
+
+  const setMuted = useCallback(
+    (nextMuted: boolean) => {
+      controller.setMuted(nextMuted).catch(() => undefined);
+    },
+    [controller]
+  );
 
   const toggleCaptions = useCallback(() => {
     setCaptionsEnabled((value) => !value);
@@ -80,6 +89,13 @@ export function useDemoPlayerStageActions({
     [controller]
   );
 
+  const setVolume = useCallback(
+    (volume: number) => {
+      controller.setVolume(volume).catch(() => undefined);
+    },
+    [controller]
+  );
+
   const handleShortcut = useCallback(
     (action: VibePlayerShortcutAction) => {
       if (action === "toggle-play") {
@@ -110,8 +126,10 @@ export function useDemoPlayerStageActions({
   return {
     handleShortcut,
     seekTo,
+    setMuted,
     setPlaybackRate,
     setQuality,
+    setVolume,
     toggleCaptions,
     toggleFullscreen,
     toggleMute,
