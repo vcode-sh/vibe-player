@@ -21,8 +21,8 @@ function collectMediaAuditBinIssues(manifest, packageFiles) {
 
 function collectManifestIdentityIssues(manifest) {
   const issues = [];
-  if (manifest.name !== "@vibe-code/vibe-player") {
-    issues.push('package name must remain "@vibe-code/vibe-player".');
+  if (manifest.name !== "vibe-player") {
+    issues.push('package name must remain "vibe-player".');
   }
   if ("private" in manifest) {
     issues.push("package manifest must not set private for public release.");

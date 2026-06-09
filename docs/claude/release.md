@@ -2,7 +2,7 @@
 
 ## Current state
 
-- Package: `@vibe-code/vibe-player`
+- Package: `vibe-player`
 - License: `Apache-2.0`
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
 - Output: ESM-only, built into `dist`
@@ -14,8 +14,8 @@
 
 Publish only built package output and consumer docs. Do not publish plans,
 workspace notes, app-specific source, demos, tests, or split source CSS files.
-Consumers must use `@vibe-code/vibe-player` and
-`@vibe-code/vibe-player/styles.css`.
+Consumers must use `vibe-player` and
+`vibe-player/styles.css`.
 
 Local `file:` dependencies are for active package work only. Stable consumers
 should use the npm package or a real workspace boundary.

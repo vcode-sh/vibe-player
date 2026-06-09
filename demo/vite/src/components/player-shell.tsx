@@ -2,7 +2,7 @@ import type {
   VibePlayerAnalyticsEvent,
   VibePlayerControllerState,
   VibePlayerResumeStore,
-} from "@vibe-code/vibe-player";
+} from "vibe-player";
 import type { DemoSourceItem } from "../demo-sources";
 import { DemoPlayerStage } from "./demo-player-stage";
 import { PlayerStateStrip } from "./player-state-strip";

@@ -1,4 +1,4 @@
-import type { VibePlayerController } from "@vibe-code/vibe-player";
+import type { VibePlayerController } from "vibe-player";
 
 interface StartDemoAutoplayInput {
   controller: VibePlayerController;

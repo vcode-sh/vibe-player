@@ -1,10 +1,10 @@
+import { useCallback, useRef, useState } from "react";
 import {
   cinematicDefaultSkin,
   createLocalStorageVibePlayerResumeStore,
   type VibePlayerAnalyticsEvent,
   type VibePlayerControllerState,
-} from "@vibe-code/vibe-player";
-import { useCallback, useRef, useState } from "react";
+} from "vibe-player";
 import { AnalyticsFeed } from "./components/analytics-feed";
 import { PlayerShell } from "./components/player-shell";
 import { SourceRail } from "./components/source-rail";
@@ -52,10 +52,10 @@ export function App() {
       <header className="vp-demo-topbar">
         <div>
           <span className="vp-demo-mark">VP</span>
-          <span>@vibe-code/vibe-player</span>
+          <span>vibe-player</span>
         </div>
         <a
-          href="https://www.npmjs.com/package/@vibe-code/vibe-player"
+          href="https://www.npmjs.com/package/vibe-player"
           rel="noreferrer"
           target="_blank"
         >

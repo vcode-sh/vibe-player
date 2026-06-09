@@ -1,4 +1,4 @@
-import type { VibePlayerSource } from "@vibe-code/vibe-player";
+import type { VibePlayerSource } from "vibe-player";
 
 interface PosterOptions {
   accent: string;

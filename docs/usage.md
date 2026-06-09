@@ -7,19 +7,19 @@ routing, telemetry, persistence, auth, billing, SEO, and media policy.
 ## Install
 
 ```bash
-npm install @vibe-code/vibe-player
+npm install vibe-player
 ```
 
 Import the stylesheet once from the app root:
 
 ```ts
-import "@vibe-code/vibe-player/styles.css";
+import "vibe-player/styles.css";
 ```
 
 ## Render A Player
 
 ```tsx
-import { VibePlayerStage } from "@vibe-code/vibe-player";
+import { VibePlayerStage } from "vibe-player";
 
 export function ProductVideo() {
   return <VibePlayerStage source={source} />;
@@ -152,7 +152,7 @@ or quality controls.
 Packaged installs include a CLI:
 
 ```bash
-npx --package @vibe-code/vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
+npx --package vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
 ```
 
 In this repo, the same checker runs as:

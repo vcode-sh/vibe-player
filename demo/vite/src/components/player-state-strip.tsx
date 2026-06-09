@@ -1,4 +1,4 @@
-import type { VibePlayerControllerState } from "@vibe-code/vibe-player";
+import type { VibePlayerControllerState } from "vibe-player";
 import type { DemoSourceItem } from "../demo-sources";
 
 interface PlayerStateStripProps {

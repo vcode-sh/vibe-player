@@ -16,11 +16,11 @@ function getResolveConfig(mode: string) {
   return {
     alias: [
       {
-        find: "@vibe-code/vibe-player/styles.css",
+        find: "vibe-player/styles.css",
         replacement: resolve(packageRoot, "src/styles/vibe-player.css"),
       },
       {
-        find: "@vibe-code/vibe-player",
+        find: "vibe-player",
         replacement: resolve(packageRoot, "src/index.ts"),
       },
     ],

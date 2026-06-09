@@ -1,5 +1,5 @@
-import { shouldRevealVibePlayerChromeForKey } from "@vibe-code/vibe-player";
 import type { ReactNode } from "react";
+import { shouldRevealVibePlayerChromeForKey } from "vibe-player";
 import { isInteractiveClickTarget } from "./demo-player-stage-dom";
 
 interface DemoPlayerStageRootProps {

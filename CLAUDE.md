@@ -13,7 +13,7 @@ player.
 - Public-ready package repository
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
 - License: Apache-2.0
-- npm package: `@vibe-code/vibe-player`
+- npm package: `vibe-player`
 
 ## Repo goals
 

@@ -1,4 +1,11 @@
 import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
   createIdleCapabilities,
   createVibePlayerAdapter,
   useVibePlayerCaptions,
@@ -12,14 +19,7 @@ import {
   type VibePlayerResumeStore,
   type VibePlayerSource,
   VibePlayerStageStatus,
-} from "@vibe-code/vibe-player";
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+} from "vibe-player";
 import { useDemoPlayerStageActions } from "./demo-player-stage-actions";
 import { startDemoAutoplay } from "./demo-player-stage-autoplay";
 import { DemoPlayerStageRoot } from "./demo-player-stage-root";

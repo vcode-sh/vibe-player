@@ -1,4 +1,4 @@
-import type { VibePlayerControllerState } from "@vibe-code/vibe-player";
+import type { VibePlayerControllerState } from "vibe-player";
 import type { DemoAnalyticsItem } from "../demo-analytics";
 import type { DemoSourceItem } from "../demo-sources";
 import { createSourceAccentStyle } from "./source-accent-style";

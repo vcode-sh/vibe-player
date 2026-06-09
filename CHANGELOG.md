@@ -8,7 +8,7 @@ The format is based on Keep a Changelog.
 
 ### Added
 
-- Initial standalone repository scaffold for `@vibe-code/vibe-player`
+- Initial standalone repository scaffold for `vibe-player`
 - Package-first architecture split across `core`, `adapters`, `react`, `ui`,
   `captions`, `skins`, and `styles`
 - Provider adapters for direct file, HLS, YouTube iframe, and compliant

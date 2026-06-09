@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import "@vibe-code/vibe-player/styles.css";
+import "vibe-player/styles.css";
 import "./styles/app.css";
 import "./styles/demo-panel.css";
 import "./styles/source-rail.css";

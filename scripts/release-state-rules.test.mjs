@@ -21,7 +21,7 @@ function createManifest(patch = {}) {
     homepage: "https://github.com/vcode-sh/vibe-player#readme",
     license: "Apache-2.0",
     module: "./dist/index.js",
-    name: "@vibe-code/vibe-player",
+    name: "vibe-player",
     packageManager: "bun@1.3.14",
     publishConfig: { access: "public", provenance: true },
     repository: {

@@ -2,8 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@vibe-code/vibe-player": ["../../src/index.ts"],
-      "@vibe-code/vibe-player/styles.css": ["../../src/styles/vibe-player.css"]
+      "vibe-player": ["../../src/index.ts"],
+      "vibe-player/styles.css": ["../../src/styles/vibe-player.css"]
     },
     "types": ["vite/client"]
   },

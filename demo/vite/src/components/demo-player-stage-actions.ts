@@ -1,8 +1,8 @@
+import { type Dispatch, type SetStateAction, useCallback } from "react";
 import type {
   VibePlayerController,
   VibePlayerShortcutAction,
-} from "@vibe-code/vibe-player";
-import { type Dispatch, type SetStateAction, useCallback } from "react";
+} from "vibe-player";
 
 interface UseDemoPlayerStageActionsInput {
   controller: VibePlayerController;

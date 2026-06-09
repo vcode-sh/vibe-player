@@ -1,13 +1,13 @@
 # Vibe Player
 
-[![npm](https://img.shields.io/npm/v/@vibe-code/vibe-player?style=flat-square)](https://www.npmjs.com/package/@vibe-code/vibe-player)
-[![license](https://img.shields.io/npm/l/@vibe-code/vibe-player?style=flat-square)](./LICENSE)
+[![npm](https://img.shields.io/npm/v/vibe-player?style=flat-square)](https://www.npmjs.com/package/vibe-player)
+[![license](https://img.shields.io/npm/l/vibe-player?style=flat-square)](./LICENSE)
 [![React](https://img.shields.io/badge/react-19-61dafb?style=flat-square&logo=react&logoColor=111)](https://react.dev/)
 [![Sponsor vcode-sh](https://img.shields.io/badge/sponsor-vcode--sh-ea4aaa?style=flat-square&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/vcode-sh)
 
 Video players are easy, right up until they are not.
 
-`@vibe-code/vibe-player` is a cinematic React player package for teams that
+`vibe-player` is a cinematic React player package for teams that
 want polished playback without inheriting someone else's product app. Files,
 HLS, YouTube iframe playback, compliant YouTube external handoff, captions,
 keyboard shortcuts, volume, quality, PiP, fullscreen, tooltips, and a clean
@@ -19,14 +19,14 @@ Built by [Vibe Code](https://x.com/vcode_sh). Say hi at
 ## Install
 
 ```bash
-npm install @vibe-code/vibe-player
-pnpm add @vibe-code/vibe-player
-bun add @vibe-code/vibe-player
+npm install vibe-player
+pnpm add vibe-player
+bun add vibe-player
 ```
 
 ```tsx
-import "@vibe-code/vibe-player/styles.css";
-import { VibePlayerStage } from "@vibe-code/vibe-player";
+import "vibe-player/styles.css";
+import { VibePlayerStage } from "vibe-player";
 
 export function Film() {
   return (
@@ -79,7 +79,7 @@ modes through the real package player. No pretend product shell required.
 ## Media Audit
 
 ```bash
-npx --package @vibe-code/vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
+npx --package vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
 ```
 
 Use this before blaming the player for a slow, frozen, non-faststart, CORS-bent

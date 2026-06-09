@@ -22,11 +22,11 @@ Import the package stylesheet once from the app's global CSS entrypoint or root
 layout:
 
 ```ts
-import "@vibe-code/vibe-player/styles.css";
+import "vibe-player/styles.css";
 ```
 
 If the consuming app uses a local `file:` dependency or a framework that does
-not transpile package source automatically, add `@vibe-code/vibe-player` to the
+not transpile package source automatically, add `vibe-player` to the
 app transpilation allowlist.
 
 For local `file:` consumers, refresh in this order after package source, export,
@@ -38,10 +38,10 @@ CSS, or build-script changes:
 4. From the consumer app cwd, verify:
 
 ```bash
-bun -e "console.log(import.meta.resolve('@vibe-code/vibe-player/styles.css'))"
+bun -e "console.log(import.meta.resolve('vibe-player/styles.css'))"
 ```
 
-The resolver should point at `@vibe-code/vibe-player/dist/styles.css`. If it
+The resolver should point at `vibe-player/dist/styles.css`. If it
 points at `src/styles/vibe-player.css`, or the framework still reports a
 missing split stylesheet such as `vibe-player-tooltip.css`, the consumer is
 serving a stale dependency or transform cache.
@@ -49,7 +49,7 @@ serving a stale dependency or transform cache.
 Use the exported skin preset when the host wants a scoped wrapper:
 
 ```tsx
-import { cinematicDefaultSkin, VibePlayerStage } from "@vibe-code/vibe-player";
+import { cinematicDefaultSkin, VibePlayerStage } from "vibe-player";
 
 export function PlayerSurface() {
   return (
@@ -70,7 +70,7 @@ metadata atom at the beginning of the file, for example via `ffmpeg -movflags
 Before rollout, audit large direct-file assets:
 
 ```bash
-npx --package @vibe-code/vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
+npx --package vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
 ```
 
 The audit checks range delivery, optional CORS headers for supplied origins, MP4
