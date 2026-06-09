@@ -1,139 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { VibePlayerController } from "./vibe-player-controller";
-import { createIdleCapabilities, createIdleSnapshot } from "./vibe-player-time";
-import type {
-  VibePlayerAdapter,
-  VibePlayerAdapterEvent,
-  VibePlayerAnalyticsEvent,
-  VibePlayerEventName,
-  VibePlayerFileSource,
-  VibePlayerSnapshot,
-} from "./vibe-player-types";
-
-const fileSource: VibePlayerFileSource = {
-  id: "video-1",
-  sources: [{ mimeType: "video/mp4", url: "https://example.com/video.mp4" }],
-  type: "file",
-};
-
-class TestAdapter implements VibePlayerAdapter {
-  readonly calls: string[] = [];
-  readonly capabilities = { ...createIdleCapabilities(), canSeek: true };
-  readonly kind: VibePlayerAdapter["kind"] = "file";
-  playError: Error | null = null;
-  private listener: ((event: VibePlayerAdapterEvent) => void) | null = null;
-  private snapshot = createIdleSnapshot();
-
-  emit(type: VibePlayerEventName, patch: Partial<VibePlayerSnapshot>): void {
-    this.snapshot = { ...this.snapshot, ...patch };
-    this.listener?.({ snapshot: this.snapshot, type });
-  }
-
-  getSnapshot(): VibePlayerSnapshot {
-    return this.snapshot;
-  }
-
-  load(source: VibePlayerFileSource): Promise<void> {
-    this.calls.push(`load:${source.id}`);
-    this.snapshot = { ...this.snapshot, duration: 100, readyState: "ready" };
-    return Promise.resolve();
-  }
-
-  mount(target: HTMLElement): Promise<void> {
-    this.calls.push(`mount:${target.tagName.toLowerCase()}`);
-    return Promise.resolve();
-  }
-
-  pause(): Promise<void> {
-    this.calls.push("pause");
-    return Promise.resolve();
-  }
-
-  play(): Promise<void> {
-    this.calls.push("play");
-    if (this.playError) {
-      return Promise.reject(this.playError);
-    }
-    return Promise.resolve();
-  }
-
-  seekTo(seconds: number): Promise<void> {
-    this.calls.push(`seek:${seconds}`);
-    this.snapshot = { ...this.snapshot, currentTime: seconds };
-    return Promise.resolve();
-  }
-
-  setMuted(value: boolean): Promise<void> {
-    this.calls.push(`muted:${String(value)}`);
-    return Promise.resolve();
-  }
-
-  setPlaybackRate(value: number): Promise<void> {
-    this.calls.push(`rate:${value}`);
-    return Promise.resolve();
-  }
-
-  setVolume(value: number): Promise<void> {
-    this.calls.push(`volume:${value}`);
-    return Promise.resolve();
-  }
-
-  subscribe(listener: (event: VibePlayerAdapterEvent) => void): () => void {
-    this.listener = listener;
-    return () => {
-      this.listener = null;
-    };
-  }
-
-  unmount(): Promise<void> {
-    this.calls.push("unmount");
-    return Promise.resolve();
-  }
-}
-
-function getAdapter(adapters: TestAdapter[], index: number): TestAdapter {
-  const adapter = adapters[index];
-  if (!adapter) {
-    throw new Error(`Missing test adapter at index ${index}`);
-  }
-  return adapter;
-}
-
-function createBlockedPlaybackError(): Error {
-  const error = new Error("Playback blocked");
-  error.name = "NotAllowedError";
-  return error;
-}
-
-function createControllerHarness(resumeAt: number | null = null) {
-  const adapters: TestAdapter[] = [];
-  const analytics: VibePlayerAnalyticsEvent[] = [];
-  const resumeCalls: string[] = [];
-  const resumeStore = {
-    clear(sourceId: string) {
-      resumeCalls.push(`clear:${sourceId}`);
-    },
-    get(sourceId: string) {
-      resumeCalls.push(`get:${sourceId}`);
-      return resumeAt;
-    },
-    set(sourceId: string, seconds: number) {
-      resumeCalls.push(`set:${sourceId}:${seconds}`);
-    },
-  };
-  const controller = new VibePlayerController({
-    adapterFactory: () => {
-      const adapter = new TestAdapter();
-      adapters.push(adapter);
-      return adapter;
-    },
-    onAnalyticsEvent: (event) => {
-      analytics.push(event);
-    },
-    resumeStore,
-  });
-  return { adapters, analytics, controller, resumeCalls };
-}
+import {
+  createBlockedPlaybackError,
+  createControllerHarness,
+  createControllerWithAdapter,
+  fileSource,
+  getAdapter,
+  TestAdapter,
+} from "./vibe-player-controller-test-helpers";
+import type { VibePlayerFileSource } from "./vibe-player-types";
 
 describe("VibePlayerController", () => {
   it("mounts, loads, and restores resume position", async () => {
@@ -177,6 +51,36 @@ describe("VibePlayerController", () => {
     expect(resumeCalls).toContain("set:video-1:24");
   });
 
+  it("surfaces play intent as buffering before provider playback events", async () => {
+    const { adapters, controller } = createControllerHarness();
+    await controller.load(fileSource);
+    const adapter = getAdapter(adapters, 0);
+
+    await controller.play();
+
+    expect(controller.getState().lastEvent).toBe("play");
+    expect(controller.getState().playbackBlocked).toBe(false);
+    expect(controller.getState().snapshot).toMatchObject({
+      paused: false,
+      readyState: "buffering",
+    });
+    adapter.emit("play", { paused: false, readyState: "playing" });
+    expect(controller.getState().snapshot.readyState).toBe("playing");
+  });
+
+  it("does not surface play intent for non-playable adapters", async () => {
+    const { adapters, controller } = createControllerHarness();
+    await controller.load(fileSource);
+    const adapter = getAdapter(adapters, 0);
+    adapter.capabilities.supportsPlayback = false;
+
+    await controller.play();
+
+    expect(adapter.calls).not.toContain("play");
+    expect(controller.getState().lastEvent).toBe("ready");
+    expect(controller.getState().snapshot.readyState).toBe("ready");
+  });
+
   it("tracks browser-blocked playback attempts", async () => {
     const { adapters, controller } = createControllerHarness();
     await controller.load(fileSource);
@@ -187,9 +91,45 @@ describe("VibePlayerController", () => {
 
     expect(controller.getState().lastEvent).toBe("playblocked");
     expect(controller.getState().playbackBlocked).toBe(true);
+    expect(controller.getState().snapshot.paused).toBe(true);
     adapter.playError = null;
     adapter.emit("play", { currentTime: 0, paused: false });
     expect(controller.getState().playbackBlocked).toBe(false);
+    adapter.emit("playblocked", { paused: true });
+    expect(controller.getState().playbackBlocked).toBe(true);
+  });
+
+  it("surfaces adapter load failures as an error state", async () => {
+    const adapter = new TestAdapter();
+    adapter.loadError = new Error("Provider failed");
+    const { analytics, controller } = createControllerWithAdapter(adapter);
+
+    await expect(controller.load(fileSource)).rejects.toThrow(
+      "Provider failed"
+    );
+
+    expect(controller.getState()).toMatchObject({ currentSource: fileSource });
+    expect(controller.getState().lastEvent).toBe("error");
+    expect(controller.getState().snapshot.readyState).toBe("error");
+    expect(analytics.map((event) => event.type)).toEqual(["error"]);
+  });
+
+  it("keeps source identity for adapter events emitted during load", async () => {
+    const adapter = new TestAdapter();
+    adapter.emitReadyDuringLoad = true;
+    const { controller } = createControllerWithAdapter(adapter);
+    const observedStates: string[] = [];
+    controller.subscribe((state) => {
+      if (state.lastEvent === "ready") {
+        observedStates.push(state.currentSource?.id ?? "missing");
+      }
+    });
+
+    await controller.load(fileSource);
+
+    expect(observedStates).toContain("video-1");
+    expect(observedStates).not.toContain("missing");
+    expect(controller.getState().currentSource?.id).toBe("video-1");
   });
 
   it("emits session analytics once per milestone", async () => {

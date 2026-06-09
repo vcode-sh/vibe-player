@@ -1,4 +1,3 @@
-import { clampVibePlayerTime } from "../core/vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
@@ -8,95 +7,75 @@ import type {
   VibePlayerSnapshot,
   VibePlayerSource,
 } from "../core/vibe-player-types";
+import type { VibePlayerAdapterListener } from "./adapter-listener";
 import {
-  canUseNativeHls,
   getHlsVideoCapabilities,
   getHlsVideoSnapshot,
-  setHlsVideoSource,
 } from "./hls-adapter-dom";
-import { enterNativePictureInPicture } from "./native-picture-in-picture";
+import { loadHlsAdapterSource } from "./hls-adapter-load";
+import { createHlsAdapterQualityState } from "./hls-adapter-quality-state";
+import { defaultHlsAdapterRuntime } from "./hls-managed-runtime";
+import type { ManagedHlsLevel } from "./hls-quality";
+import type {
+  HlsAdapterRuntime,
+  ManagedHlsController,
+} from "./hls-runtime-types";
 import { clearElement, createNativeVideo } from "./native-video-dom";
+import {
+  clearNativeVideoPlayback,
+  enterNativeVideoFullscreen,
+  enterNativeVideoPictureInPicture,
+  exitNativeVideoFullscreen,
+  type NativeVideoCommandInput,
+  pauseNativeVideo,
+  playNativeVideo,
+  seekNativeVideo,
+  setNativeVideoMuted,
+  setNativeVideoPlaybackRate,
+  setNativeVideoVolume,
+} from "./native-video-playback";
 
-type VibePlayerAdapterListener = (event: VibePlayerAdapterEvent) => void;
-type ManagedHlsTeardown = () => void;
-
-export interface HlsAdapterErrorPayload
-  extends Record<string, boolean | string> {
-  details: string;
-  fatal: boolean;
-  message: string;
-  type: string;
+interface HlsAdapterLoadSession {
+  generation: number;
 }
 
-export interface ManagedHlsSession {
-  manifestUrl: string;
-  onError: (payload: HlsAdapterErrorPayload) => void;
-  onLevelLoaded: (isLive: boolean) => void;
-  onReady: () => void;
-  video: HTMLVideoElement;
-}
-
-export interface HlsAdapterRuntime {
-  attachManagedHls(
-    session: ManagedHlsSession
-  ): ManagedHlsTeardown | Promise<ManagedHlsTeardown>;
-  canUseManagedHls(): boolean;
-}
-
-const defaultHlsAdapterRuntime: HlsAdapterRuntime = {
-  async attachManagedHls(session) {
-    const { default: Hls } = await import("hls.js");
-    if (!Hls.isSupported()) {
-      throw new Error("hls.js is not supported in this environment.");
-    }
-    const hls = new Hls();
-    hls.on(Hls.Events.MANIFEST_PARSED, () => session.onReady());
-    hls.on(Hls.Events.LEVEL_LOADED, (_event, data) =>
-      session.onLevelLoaded(data.details.live)
-    );
-    hls.on(Hls.Events.ERROR, (_event, data) =>
-      session.onError({
-        details: data.details,
-        fatal: data.fatal,
-        message: data.error.message,
-        type: data.type,
-      })
-    );
-    hls.attachMedia(session.video);
-    hls.loadSource(session.manifestUrl);
-    return () => hls.destroy();
-  },
-  canUseManagedHls: () =>
-    "ManagedMediaSource" in globalThis || "MediaSource" in globalThis,
-};
-
+export type * from "./hls-runtime-types";
 export function createHlsAdapter(
   runtime: HlsAdapterRuntime = defaultHlsAdapterRuntime
 ): VibePlayerAdapter {
   return new HlsVibePlayerAdapter(runtime);
 }
-
 class HlsVibePlayerAdapter implements VibePlayerAdapter {
   readonly kind = "hls";
   private readonly listeners = new Set<VibePlayerAdapterListener>();
   private readonly runtime: HlsAdapterRuntime;
-  private managedHlsTeardown: (() => void) | null = null;
+  private loadGeneration = 0;
+  private managedHlsController: ManagedHlsController | null = null;
   private mounted = false;
   private playbackGeneration = 0;
+  private readonly quality = createHlsAdapterQualityState();
   private source: VibePlayerHlsSource | null = null;
   private video: HTMLVideoElement | null = null;
   private live = false;
-
   constructor(runtime: HlsAdapterRuntime) {
     this.runtime = runtime;
   }
 
   get capabilities(): VibePlayerCapabilities {
-    return getHlsVideoCapabilities(this.video, this.source, this.live);
+    return getHlsVideoCapabilities(
+      this.video,
+      this.source,
+      this.live,
+      this.quality.supportsSelection
+    );
   }
 
   getSnapshot(): VibePlayerSnapshot {
-    return getHlsVideoSnapshot(this.video, this.live);
+    const snapshot = getHlsVideoSnapshot(this.video, this.live);
+    if (this.quality.options.length === 0) {
+      return snapshot;
+    }
+    return { ...snapshot, qualityOptions: this.quality.options };
   }
 
   async load(source: VibePlayerSource): Promise<void> {
@@ -105,36 +84,60 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     }
 
     const video = this.ensureVideo();
-    const nativeHls = canUseNativeHls(video);
-    if (!(nativeHls || this.runtime.canUseManagedHls())) {
-      throw new Error(
-        "HLS playback requires native HLS or MediaSource support."
-      );
-    }
+    const loadSession = this.prepareLoadSession(source);
+    let managedController: ManagedHlsController | null = null;
 
-    this.destroyManagedHls();
-    this.source = source;
-    this.playbackGeneration += 1;
-    this.live = Boolean(source.live);
-    setHlsVideoSource(video, source, nativeHls ? "native" : "managed");
-
-    if (nativeHls) {
-      video.load();
-      this.emit("ready");
+    try {
+      managedController = await loadHlsAdapterSource({
+        emit: (type, payload) => {
+          if (this.isCurrentLoadSession(loadSession)) {
+            this.emit(type, payload);
+          }
+        },
+        isActive: () => this.isCurrentLoadSession(loadSession),
+        runtime: this.runtime,
+        setLive: (isLive) => {
+          if (this.isCurrentLoadSession(loadSession)) {
+            this.live = isLive;
+          }
+        },
+        source,
+        updateQualityOptions: (levels, selectedLevelIndex) => {
+          if (this.isCurrentLoadSession(loadSession)) {
+            this.updateQualityOptions(levels, selectedLevelIndex);
+          }
+        },
+        video,
+      });
+    } catch (error) {
+      if (this.isCurrentLoadSession(loadSession)) {
+        throw error;
+      }
       return;
     }
 
-    video.load();
-    this.managedHlsTeardown = await this.runtime.attachManagedHls({
-      manifestUrl: source.manifestUrl,
-      onError: (payload) => this.emit("error", payload),
-      onLevelLoaded: (isLive) => {
-        this.live = isLive;
-        this.emit("durationchange");
-      },
-      onReady: () => this.emit("ready"),
-      video,
-    });
+    if (!this.isCurrentLoadSession(loadSession)) {
+      managedController?.destroy();
+      return;
+    }
+    this.managedHlsController = managedController;
+  }
+
+  private prepareLoadSession(
+    source: VibePlayerHlsSource
+  ): HlsAdapterLoadSession {
+    this.destroyManagedHls();
+    this.source = source;
+    this.loadGeneration += 1;
+    this.playbackGeneration += 1;
+    this.live = Boolean(source.live);
+    return {
+      generation: this.loadGeneration,
+    };
+  }
+
+  private isCurrentLoadSession(loadSession: HlsAdapterLoadSession): boolean {
+    return this.loadGeneration === loadSession.generation;
   }
 
   mount(target: HTMLElement): Promise<void> {
@@ -150,78 +153,43 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   pause(): Promise<void> {
-    this.playbackGeneration += 1;
-    this.video?.pause();
-    return Promise.resolve();
+    return pauseNativeVideo(this.getNativeCommandInput());
   }
 
   async play(): Promise<void> {
-    const video = this.video;
-    if (!video) {
-      return;
-    }
-    this.playbackGeneration += 1;
-    const playbackGeneration = this.playbackGeneration;
-    await video.play();
-    if (
-      this.playbackGeneration !== playbackGeneration ||
-      this.video !== video ||
-      !(this.mounted && video.isConnected)
-    ) {
-      video.pause();
-    }
+    await playNativeVideo(this.getNativeCommandInput());
   }
 
   seekTo(seconds: number): Promise<void> {
-    const video = this.video;
-    if (!(video && !this.live)) {
-      return Promise.resolve();
-    }
-    video.currentTime = clampVibePlayerTime(
-      seconds,
-      this.getSnapshot().duration,
-      false
-    );
-    this.emit("timeupdate");
-    return Promise.resolve();
+    return seekNativeVideo(this.getNativeCommandInput(), seconds);
   }
 
   setMuted(value: boolean): Promise<void> {
-    if (this.video) {
-      this.video.muted = value;
-      this.emit("volumechange");
-    }
-    return Promise.resolve();
+    return setNativeVideoMuted(this.getNativeCommandInput(), value);
   }
 
   setPlaybackRate(value: number): Promise<void> {
-    if (this.video) {
-      this.video.playbackRate = value;
-      this.emit("ratechange");
+    return setNativeVideoPlaybackRate(this.getNativeCommandInput(), value);
+  }
+  setQuality(qualityId: string): Promise<void> {
+    if (this.quality.select(qualityId, this.managedHlsController)) {
+      this.emit("qualitychange");
     }
     return Promise.resolve();
   }
-
   setVolume(value: number): Promise<void> {
-    if (this.video) {
-      this.video.volume = Math.min(1, Math.max(0, value));
-      this.emit("volumechange");
-    }
-    return Promise.resolve();
+    return setNativeVideoVolume(this.getNativeCommandInput(), value);
   }
-
   async enterFullscreen(): Promise<void> {
-    await this.video?.requestFullscreen();
-    this.emit("fullscreenchange");
+    await enterNativeVideoFullscreen(this.getNativeCommandInput());
   }
 
   async enterPictureInPicture(): Promise<void> {
-    await enterNativePictureInPicture(this.video);
+    await enterNativeVideoPictureInPicture(this.getNativeCommandInput());
   }
 
   async exitFullscreen(): Promise<void> {
-    await document.exitFullscreen?.();
-    this.emit("fullscreenchange");
+    await exitNativeVideoFullscreen(this.getNativeCommandInput());
   }
 
   subscribe(listener: VibePlayerAdapterListener): () => void {
@@ -233,21 +201,29 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
 
   unmount(): Promise<void> {
     this.mounted = false;
+    this.loadGeneration += 1;
     this.playbackGeneration += 1;
     if (this.video) {
-      this.video.pause();
-      this.video.removeAttribute("src");
-      clearElement(this.video);
-      this.video.load();
-      this.video.remove();
+      clearNativeVideoPlayback(this.video);
     }
     this.destroyManagedHls();
+    this.live = false;
+    this.source = null;
+    this.video = null;
     return Promise.resolve();
   }
 
   private destroyManagedHls(): void {
-    this.managedHlsTeardown?.();
-    this.managedHlsTeardown = null;
+    this.managedHlsController?.destroy();
+    this.managedHlsController = null;
+    this.quality.reset();
+  }
+  private updateQualityOptions(
+    levels: ManagedHlsLevel[],
+    selectedLevelIndex: number
+  ): void {
+    this.quality.update(levels, selectedLevelIndex);
+    this.emit("qualitychange");
   }
 
   private emit(
@@ -262,6 +238,21 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     for (const listener of this.listeners) {
       listener(event);
     }
+  }
+
+  private getNativeCommandInput(): NativeVideoCommandInput {
+    return {
+      canSeek: () => !this.live,
+      emit: (type) => this.emit(type),
+      getPlaybackGeneration: () => this.playbackGeneration,
+      getSnapshot: () => this.getSnapshot(),
+      getVideo: () => this.video,
+      incrementPlaybackGeneration: () => {
+        this.playbackGeneration += 1;
+        return this.playbackGeneration;
+      },
+      isMounted: () => this.mounted,
+    };
   }
 
   private ensureVideo(): HTMLVideoElement {

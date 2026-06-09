@@ -33,7 +33,7 @@ export function handleVibePlayerAdapterEvent({
   updateState({
     capabilities: adapter?.capabilities ?? createIdleCapabilities(),
     lastEvent: event.type,
-    playbackBlocked: event.type === "play" ? false : playbackBlocked,
+    playbackBlocked: getNextPlaybackBlocked(event, playbackBlocked),
     snapshot: event.snapshot,
   });
   if (!currentSource) {
@@ -74,4 +74,17 @@ export function handleVibePlayerAdapterEvent({
       type: "error",
     });
   }
+}
+
+function getNextPlaybackBlocked(
+  event: VibePlayerAdapterEvent,
+  playbackBlocked: boolean
+): boolean {
+  if (event.type === "play") {
+    return false;
+  }
+  if (event.type === "playblocked") {
+    return true;
+  }
+  return playbackBlocked;
 }

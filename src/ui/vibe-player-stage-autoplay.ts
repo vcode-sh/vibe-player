@@ -1,7 +1,13 @@
-import type { VibePlayerController } from "../core/vibe-player-controller";
+import type { VibePlayerControllerState } from "../core";
+
+export interface VibePlayerAutoplayController {
+  getState: () => VibePlayerControllerState;
+  play: () => Promise<void>;
+  setMuted: (value: boolean) => Promise<void>;
+}
 
 export interface VibePlayerAutoplayOptions {
-  controller: VibePlayerController;
+  controller: VibePlayerAutoplayController;
   isCancelled: () => boolean;
   mutedBootstrap: boolean;
 }
@@ -27,8 +33,4 @@ export async function startVibePlayerAutoplay({
     return;
   }
   await controller.play();
-  if (isCancelled()) {
-    return;
-  }
-  await controller.setMuted(false);
 }

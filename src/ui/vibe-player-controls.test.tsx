@@ -12,6 +12,8 @@ const capabilities = {
   canShowCaptions: true,
   supportsDuration: true,
   supportsMute: true,
+  supportsPlayback: true,
+  supportsQualitySelection: true,
 };
 
 const snapshot = {
@@ -21,6 +23,17 @@ const snapshot = {
   muted: false,
   paused: true,
   playbackRate: 1,
+  qualityOptions: [
+    { auto: true, id: "auto", label: "Auto", selected: true },
+    { auto: false, height: 720, id: "level:0", label: "720p", selected: false },
+    {
+      auto: false,
+      height: 1080,
+      id: "level:1",
+      label: "1080p",
+      selected: false,
+    },
+  ],
 };
 
 describe("VibePlayerControls", () => {
@@ -28,6 +41,7 @@ describe("VibePlayerControls", () => {
     const onTogglePlay = vi.fn();
     const onToggleMute = vi.fn();
     const onSetPlaybackRate = vi.fn();
+    const onSetQuality = vi.fn();
     const onToggleCaptions = vi.fn();
     const onToggleFullscreen = vi.fn();
     const onTogglePictureInPicture = vi.fn();
@@ -39,6 +53,7 @@ describe("VibePlayerControls", () => {
         captionsEnabled={false}
         onSeek={onSeek}
         onSetPlaybackRate={onSetPlaybackRate}
+        onSetQuality={onSetQuality}
         onToggleCaptions={onToggleCaptions}
         onToggleFullscreen={onToggleFullscreen}
         onToggleMute={onToggleMute}
@@ -70,6 +85,9 @@ describe("VibePlayerControls", () => {
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
     fireEvent.click(screen.getByRole("button", { name: "Mute" }));
     fireEvent.click(screen.getByRole("button", { name: "Playback speed 1x" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Quality" }), {
+      target: { value: "level:1" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Show captions" }));
     fireEvent.click(screen.getByRole("button", { name: "Full screen" }));
     fireEvent.click(screen.getByRole("button", { name: "Picture in picture" }));
@@ -77,6 +95,7 @@ describe("VibePlayerControls", () => {
     expect(onTogglePlay).toHaveBeenCalledTimes(1);
     expect(onToggleMute).toHaveBeenCalledTimes(1);
     expect(onSetPlaybackRate).toHaveBeenCalledWith(1.25);
+    expect(onSetQuality).toHaveBeenCalledWith("level:1");
     expect(onToggleCaptions).toHaveBeenCalledTimes(1);
     expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
     expect(onTogglePictureInPicture).toHaveBeenCalledTimes(1);
@@ -100,5 +119,25 @@ describe("VibePlayerControls", () => {
       screen.queryByRole("button", { name: "Picture in picture" })
     ).toBeNull();
     expect(screen.queryByRole("button", { name: "Show captions" })).toBeNull();
+  });
+
+  it("hides playback chrome for non-playable handoff surfaces", () => {
+    render(
+      <VibePlayerControls
+        capabilities={createIdleCapabilities()}
+        onSeek={vi.fn()}
+        onSetPlaybackRate={vi.fn()}
+        onToggleMute={vi.fn()}
+        onTogglePlay={vi.fn()}
+        snapshot={snapshot}
+        title="External video"
+        topActions={<a href="https://youtube.com/watch?v=demo">Open</a>}
+      />
+    );
+
+    expect(screen.getByText("External video")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Play" })).toBeNull();
+    expect(screen.queryByRole("slider")).toBeNull();
   });
 });

@@ -8,94 +8,25 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VibePlayerAmbientPreview } from "./vibe-player-ambient-preview";
 import { VibePlayerBackgroundPreview } from "./vibe-player-background-preview";
-
-const nativeIntersectionObserver = globalThis.IntersectionObserver;
-const nativeMatchMedia = window.matchMedia;
-const nativePause = window.HTMLMediaElement.prototype.pause;
-const nativePlay = window.HTMLMediaElement.prototype.play;
-
-const pauseMock = vi.fn(() => undefined);
-const playMock = vi.fn(() => Promise.resolve());
-
-const previewSource = {
-  id: "preview-one",
-  posterUrl: "/poster.webp",
-  previewVideoUrl: "/loop.mp4",
-};
-
-function installMatchMedia(matches: boolean): void {
-  Object.defineProperty(window, "matchMedia", {
-    configurable: true,
-    value: (query: string): MediaQueryList => ({
-      addEventListener: () => undefined,
-      addListener: () => undefined,
-      dispatchEvent: () => false,
-      matches,
-      media: query,
-      onchange: null,
-      removeEventListener: () => undefined,
-      removeListener: () => undefined,
-    }),
-  });
-}
-
-function installMediaMocks(): void {
-  Object.defineProperty(window.HTMLMediaElement.prototype, "pause", {
-    configurable: true,
-    value: pauseMock,
-  });
-  Object.defineProperty(window.HTMLMediaElement.prototype, "play", {
-    configurable: true,
-    value: playMock,
-  });
-}
-
-function removeIntersectionObserver(): void {
-  Object.defineProperty(globalThis, "IntersectionObserver", {
-    configurable: true,
-    value: undefined,
-  });
-}
-
-function restoreBrowserGlobals(): void {
-  Object.defineProperty(globalThis, "IntersectionObserver", {
-    configurable: true,
-    value: nativeIntersectionObserver,
-  });
-  Object.defineProperty(window, "matchMedia", {
-    configurable: true,
-    value: nativeMatchMedia,
-  });
-  Object.defineProperty(window.HTMLMediaElement.prototype, "pause", {
-    configurable: true,
-    value: nativePause,
-  });
-  Object.defineProperty(window.HTMLMediaElement.prototype, "play", {
-    configurable: true,
-    value: nativePlay,
-  });
-}
-
-function getVideo(container: HTMLElement, src: string): HTMLVideoElement {
-  const video = container.querySelector(`video[src="${src}"]`);
-  if (!(video instanceof HTMLVideoElement)) {
-    throw new Error(`Expected preview video for ${src}.`);
-  }
-  return video;
-}
+import {
+  getPoster,
+  getVideo,
+  installMatchMedia,
+  installPreviewBrowserMocks,
+  pauseMock,
+  playMock,
+  previewSource,
+  restorePreviewBrowserMocks,
+} from "./vibe-player-background-preview-test-helpers";
 
 describe("VibePlayerBackgroundPreview", () => {
   beforeEach(() => {
-    installMediaMocks();
-    installMatchMedia(false);
-    removeIntersectionObserver();
-    pauseMock.mockClear();
-    playMock.mockClear();
+    installPreviewBrowserMocks();
   });
 
   afterEach(() => {
     cleanup();
-    restoreBrowserGlobals();
+    restorePreviewBrowserMocks();
   });
 
   it("plays muted loop previews best-effort when motion is allowed", async () => {
@@ -159,6 +90,60 @@ describe("VibePlayerBackgroundPreview", () => {
     fireEvent.loadedData(nextVideo);
 
     await waitFor(() => expect(nextVideo.dataset.visible).toBe("true"));
+  });
+
+  it("does not preserve a separate preview without an explicit preserve key", () => {
+    const first = render(
+      <VibePlayerBackgroundPreview
+        preservePreviousLayer
+        source={previewSource}
+      />
+    );
+    first.unmount();
+
+    const { container } = render(
+      <VibePlayerBackgroundPreview
+        preservePreviousLayer
+        source={{
+          id: "preview-two",
+          posterUrl: "/poster-two.webp",
+          previewVideoUrl: "/loop-two.mp4",
+        }}
+      />
+    );
+
+    expect(container.querySelector('video[src="/loop.mp4"]')).toBeNull();
+    expect(getVideo(container, "/loop-two.mp4")).toBeInTheDocument();
+  });
+
+  it("preserves a previous preview across remounts with a shared preserve key", () => {
+    const first = render(
+      <VibePlayerBackgroundPreview
+        preserveKey="hero-preview"
+        preservePreviousLayer
+        source={previewSource}
+      />
+    );
+    first.unmount();
+
+    const { container } = render(
+      <VibePlayerBackgroundPreview
+        preserveKey="hero-preview"
+        preservePreviousLayer
+        source={{
+          id: "preview-two",
+          posterUrl: "/poster-two.webp",
+          previewVideoUrl: "/loop-two.mp4",
+        }}
+      />
+    );
+
+    const previousVideo = getVideo(container, "/loop.mp4");
+    const nextVideo = getVideo(container, "/loop-two.mp4");
+    const previousPoster = getPoster(container, "/poster.webp");
+    expect(previousPoster.dataset.visible).toBe("true");
+    expect(previousVideo).toBeInTheDocument();
+    expect(nextVideo.dataset.visible).toBe("false");
   });
 
   it("pauses preview video for reduced-motion viewers", async () => {

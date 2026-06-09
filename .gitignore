@@ -3,6 +3,8 @@ node_modules/
 
 # Build artifacts
 dist/
+build/
+build-packaged/
 coverage/
 *.tsbuildinfo
 

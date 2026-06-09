@@ -1,0 +1,128 @@
+.vp-demo-panel__section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.vp-demo-panel__section + .vp-demo-panel__section {
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vp-source-proof {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.vp-source-proof div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.vp-source-proof dt {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.42);
+  text-transform: uppercase;
+}
+
+.vp-source-proof dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+.vp-state-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.vp-state-grid div {
+  min-width: 0;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  border-radius: 6px;
+}
+
+.vp-state-grid dt {
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.42);
+  text-transform: uppercase;
+}
+
+.vp-state-grid dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 720;
+  color: rgba(255, 255, 255, 0.86);
+  white-space: nowrap;
+}
+
+.vp-capability-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.vp-capability-flags li {
+  min-height: 24px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 780;
+  color: rgba(255, 255, 255, 0.46);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.vp-capability-flags li[data-active="true"] {
+  color: #07100e;
+  background: var(--source-accent);
+  border-color: var(--source-accent);
+}
+
+.vp-capability-list {
+  display: grid;
+  gap: 7px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.vp-capability-list li {
+  position: relative;
+  min-height: 30px;
+  padding: 7px 9px 7px 24px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.055);
+  border-radius: 6px;
+}
+
+.vp-capability-list li::before {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  margin-left: -14px;
+  content: "";
+  background: var(--source-accent);
+  border-radius: 50%;
+}

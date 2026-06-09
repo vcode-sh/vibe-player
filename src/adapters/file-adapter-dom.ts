@@ -20,15 +20,19 @@ export function getFileVideoCapabilities(
   video: HTMLVideoElement | null,
   source: VibePlayerFileSource | null
 ): VibePlayerCapabilities {
+  if (!(video && source)) {
+    return createIdleCapabilities();
+  }
   return {
     ...createIdleCapabilities(),
-    canFullscreen: Boolean(video?.requestFullscreen),
+    canFullscreen: Boolean(video.requestFullscreen),
     canPictureInPicture: canUseNativePictureInPicture(video),
     canSeek: true,
     canSetPlaybackRate: true,
     canShowCaptions: Boolean(source?.captions?.length),
     supportsDuration: true,
     supportsMute: true,
+    supportsPlayback: true,
     supportsPoster: Boolean(source?.posterUrl),
     supportsVolumeControl: true,
   };

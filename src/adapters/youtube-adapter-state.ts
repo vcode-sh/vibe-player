@@ -31,6 +31,7 @@ export function getYouTubeCapabilities(
     isLive: false,
     supportsDuration: true,
     supportsMute: true,
+    supportsPlayback: true,
     supportsPoster: false,
     supportsQualitySelection: false,
     supportsVolumeControl: true,
@@ -88,7 +89,11 @@ function getReadyState(
   if (state === youtubePlayerStates.playing) {
     return "playing";
   }
+  if (state === youtubePlayerStates.buffering) {
+    return "buffering";
+  }
   if (
+    state === youtubePlayerStates.unstarted ||
     state === youtubePlayerStates.paused ||
     state === youtubePlayerStates.cued
   ) {

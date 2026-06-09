@@ -1,4 +1,3 @@
-import { clampVibePlayerTime } from "../core/vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
@@ -8,11 +7,25 @@ import type {
   VibePlayerSource,
   VibePlayerYouTubeSource,
 } from "../core/vibe-player-types";
+import type { VibePlayerAdapterListener } from "./adapter-listener";
 import { clearElement } from "./native-video-dom";
+import {
+  enterYouTubeFullscreen,
+  exitYouTubeFullscreen,
+  pauseYouTubeVideo,
+  playYouTubeVideo,
+  seekYouTubeVideo,
+  setYouTubeMuted,
+  setYouTubePlaybackRate,
+  setYouTubeVolume,
+  type YouTubeAdapterCommandInput,
+} from "./youtube-adapter-commands";
+import { loadYouTubePlayer } from "./youtube-adapter-load";
 import {
   getYouTubeCapabilities,
   getYouTubeSnapshot,
 } from "./youtube-adapter-state";
+import { handleYouTubeAdapterStateChange } from "./youtube-adapter-state-change";
 import { defaultYouTubeAdapterRuntime } from "./youtube-iframe-runtime";
 import {
   type YouTubeAdapterRuntime,
@@ -20,8 +33,8 @@ import {
   type YouTubePlayerState,
   youtubePlayerStates,
 } from "./youtube-iframe-types";
-
-type VibePlayerAdapterListener = (event: VibePlayerAdapterEvent) => void;
+import { YouTubePlaybackWatchdog } from "./youtube-playback-watchdog";
+import { YouTubeTimeUpdates } from "./youtube-time-updates";
 
 export function createYouTubeAdapter(
   runtime: YouTubeAdapterRuntime = defaultYouTubeAdapterRuntime
@@ -32,13 +45,19 @@ export function createYouTubeAdapter(
 class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
   readonly kind = "youtube";
   private readonly listeners = new Set<VibePlayerAdapterListener>();
+  private readonly playbackWatchdog = new YouTubePlaybackWatchdog({
+    emitPlayBlocked: () => this.emit("playblocked"),
+    hasPlayer: () => Boolean(this.player),
+  });
   private readonly runtime: YouTubeAdapterRuntime;
+  private readonly timeUpdates = new YouTubeTimeUpdates({
+    onTimeUpdate: () => this.emitTimeUpdate(),
+  });
   private mountElement: HTMLElement | null = null;
   private player: YouTubePlayerHandle | null = null;
   private playerState: YouTubePlayerState = youtubePlayerStates.unstarted;
   private source: VibePlayerYouTubeSource | null = null;
   private target: HTMLElement | null = null;
-  private timeupdateInterval: number | null = null;
 
   constructor(runtime: YouTubeAdapterRuntime) {
     this.runtime = runtime;
@@ -62,17 +81,18 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
     const mountElement = this.createMountElement();
     this.mountElement = mountElement;
     this.target?.append(mountElement);
-    this.player = await this.runtime.createPlayer({
-      element: mountElement,
-      onError: (payload) => this.emit("error", payload),
-      onPlaybackRateChange: () => this.emit("ratechange"),
-      onReady: () => this.emit("ready"),
-      onStateChange: (state) => this.handleStateChange(state),
-      ...(source.startSeconds === undefined
-        ? {}
-        : { startSeconds: source.startSeconds }),
-      videoId: source.youtubeVideoId,
-    });
+    try {
+      this.player = await loadYouTubePlayer({
+        element: mountElement,
+        emit: (type, payload) => this.emit(type, payload),
+        handleStateChange: (state) => this.handleStateChange(state),
+        runtime: this.runtime,
+        source,
+      });
+    } catch (error) {
+      this.destroyPlayer();
+      throw error;
+    }
   }
 
   mount(target: HTMLElement): Promise<void> {
@@ -86,60 +106,35 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   pause(): Promise<void> {
-    this.player?.pauseVideo();
-    return Promise.resolve();
+    return pauseYouTubeVideo(this.getCommandInput());
   }
 
   play(): Promise<void> {
-    this.player?.playVideo();
-    return Promise.resolve();
+    return playYouTubeVideo(this.getCommandInput());
   }
 
   seekTo(seconds: number): Promise<void> {
-    const player = this.player;
-    if (!player) {
-      return Promise.resolve();
-    }
-    const time = clampVibePlayerTime(
-      seconds,
-      this.getSnapshot().duration,
-      false
-    );
-    player.seekTo(time, true);
-    this.emit("timeupdate");
-    return Promise.resolve();
+    return seekYouTubeVideo(this.getCommandInput(), seconds);
   }
 
   setMuted(value: boolean): Promise<void> {
-    if (value) {
-      this.player?.mute();
-    } else {
-      this.player?.unMute();
-    }
-    this.emit("volumechange");
-    return Promise.resolve();
+    return setYouTubeMuted(this.getCommandInput(), value);
   }
 
   setPlaybackRate(value: number): Promise<void> {
-    this.player?.setPlaybackRate(value);
-    this.emit("ratechange");
-    return Promise.resolve();
+    return setYouTubePlaybackRate(this.getCommandInput(), value);
   }
 
   setVolume(value: number): Promise<void> {
-    this.player?.setVolume(Math.min(100, Math.max(0, value * 100)));
-    this.emit("volumechange");
-    return Promise.resolve();
+    return setYouTubeVolume(this.getCommandInput(), value);
   }
 
   async enterFullscreen(): Promise<void> {
-    await this.player?.getIframe?.()?.requestFullscreen?.();
-    this.emit("fullscreenchange");
+    await enterYouTubeFullscreen(this.getCommandInput());
   }
 
   async exitFullscreen(): Promise<void> {
-    await document.exitFullscreen?.();
-    this.emit("fullscreenchange");
+    await exitYouTubeFullscreen(this.getCommandInput());
   }
 
   subscribe(listener: VibePlayerAdapterListener): () => void {
@@ -158,9 +153,8 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   private createMountElement(): HTMLElement {
-    const target = this.target;
-    if (target) {
-      clearElement(target);
+    if (this.target) {
+      clearElement(this.target);
     }
     const element = document.createElement("div");
     element.className =
@@ -169,9 +163,12 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   private destroyPlayer(): void {
-    this.stopTimeUpdates();
+    this.playbackWatchdog.cancelIntent();
+    this.timeUpdates.stop();
     this.player?.destroy();
     this.player = null;
+    this.playerState = youtubePlayerStates.unstarted;
+    this.source = null;
     this.mountElement?.remove();
     this.mountElement = null;
   }
@@ -191,37 +188,30 @@ class YouTubeVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   private handleStateChange(state: YouTubePlayerState): void {
-    this.playerState = state;
-    if (state === youtubePlayerStates.playing) {
-      this.startTimeUpdates();
-      this.emit("play");
-      return;
-    }
-    this.stopTimeUpdates();
-    if (state === youtubePlayerStates.paused) {
-      this.emit("pause");
-      return;
-    }
-    if (state === youtubePlayerStates.ended) {
-      this.emit("ended");
-    }
+    handleYouTubeAdapterStateChange({
+      emit: (type) => this.emit(type),
+      getCurrentTime: () => this.getSnapshot().currentTime,
+      playerState: state,
+      setPlayerState: (nextState) => {
+        this.playerState = nextState;
+      },
+      startTimeUpdates: () => this.timeUpdates.start(),
+      stopTimeUpdates: () => this.timeUpdates.stop(),
+      watchdog: this.playbackWatchdog,
+    });
   }
 
-  private startTimeUpdates(): void {
-    if (this.timeupdateInterval) {
-      return;
-    }
-    this.timeupdateInterval = window.setInterval(
-      () => this.emit("timeupdate"),
-      500
-    );
+  private emitTimeUpdate(): void {
+    this.playbackWatchdog.completeIfAdvanced(this.getSnapshot().currentTime);
+    this.emit("timeupdate");
   }
 
-  private stopTimeUpdates(): void {
-    if (!this.timeupdateInterval) {
-      return;
-    }
-    window.clearInterval(this.timeupdateInterval);
-    this.timeupdateInterval = null;
+  private getCommandInput(): YouTubeAdapterCommandInput {
+    return {
+      emit: (type) => this.emit(type),
+      getPlayer: () => this.player,
+      getSnapshot: () => this.getSnapshot(),
+      watchdog: this.playbackWatchdog,
+    };
   }
 }

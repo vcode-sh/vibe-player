@@ -22,8 +22,10 @@ export interface YouTubePlayerSession {
   onPlaybackRateChange: () => void;
   onReady: () => void;
   onStateChange: (state: YouTubePlayerState) => void;
+  origin?: string;
   startSeconds?: number;
   videoId: string;
+  widgetReferrer?: string;
 }
 
 export interface YouTubePlayerHandle {
@@ -62,9 +64,11 @@ export interface YouTubeIframePlayerOptions {
     onStateChange: (event: YouTubeIframeEvent) => void;
   };
   playerVars: {
+    origin: string;
     playsinline: 1;
     rel: 0;
     start?: number;
+    widget_referrer?: string;
   };
   videoId: string;
 }
@@ -82,7 +86,7 @@ export interface YouTubeIframeApi {
 
 declare global {
   interface Window {
-    onYouTubeIframeAPIReady?: () => void;
-    YT?: YouTubeIframeApi;
+    onYouTubeIframeAPIReady: (() => void) | undefined;
+    YT: YouTubeIframeApi | undefined;
   }
 }

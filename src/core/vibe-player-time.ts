@@ -18,6 +18,7 @@ export function createIdleCapabilities(): VibePlayerCapabilities {
     isLive: false,
     supportsDuration: false,
     supportsMute: false,
+    supportsPlayback: false,
     supportsPoster: false,
     supportsQualitySelection: false,
     supportsVolumeControl: false,

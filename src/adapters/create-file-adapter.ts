@@ -1,4 +1,3 @@
-import { clampVibePlayerTime } from "../core/vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
@@ -8,6 +7,7 @@ import type {
   VibePlayerSnapshot,
   VibePlayerSource,
 } from "../core/vibe-player-types";
+import type { VibePlayerAdapterListener } from "./adapter-listener";
 import {
   clearElement,
   createFileVideo,
@@ -15,9 +15,19 @@ import {
   getFileVideoSnapshot,
   setFileVideoSource,
 } from "./file-adapter-dom";
-import { enterNativePictureInPicture } from "./native-picture-in-picture";
-
-type VibePlayerAdapterListener = (event: VibePlayerAdapterEvent) => void;
+import {
+  clearNativeVideoPlayback,
+  enterNativeVideoFullscreen,
+  enterNativeVideoPictureInPicture,
+  exitNativeVideoFullscreen,
+  type NativeVideoCommandInput,
+  pauseNativeVideo,
+  playNativeVideo,
+  seekNativeVideo,
+  setNativeVideoMuted,
+  setNativeVideoPlaybackRate,
+  setNativeVideoVolume,
+} from "./native-video-playback";
 
 export function createFileAdapter(): VibePlayerAdapter {
   return new FileVibePlayerAdapter();
@@ -75,78 +85,39 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   pause(): Promise<void> {
-    this.playbackGeneration += 1;
-    this.video?.pause();
-    return Promise.resolve();
+    return pauseNativeVideo(this.getNativeCommandInput());
   }
 
   async play(): Promise<void> {
-    const video = this.video;
-    if (!video) {
-      return;
-    }
-    this.playbackGeneration += 1;
-    const playbackGeneration = this.playbackGeneration;
-    await video.play();
-    if (
-      this.playbackGeneration !== playbackGeneration ||
-      this.video !== video ||
-      !(this.mounted && video.isConnected)
-    ) {
-      video.pause();
-    }
+    await playNativeVideo(this.getNativeCommandInput());
   }
 
   seekTo(seconds: number): Promise<void> {
-    const video = this.video;
-    if (!video) {
-      return Promise.resolve();
-    }
-    video.currentTime = clampVibePlayerTime(
-      seconds,
-      this.getSnapshot().duration,
-      false
-    );
-    this.emit("timeupdate");
-    return Promise.resolve();
+    return seekNativeVideo(this.getNativeCommandInput(), seconds);
   }
 
   setMuted(value: boolean): Promise<void> {
-    if (this.video) {
-      this.video.muted = value;
-      this.emit("volumechange");
-    }
-    return Promise.resolve();
+    return setNativeVideoMuted(this.getNativeCommandInput(), value);
   }
 
   setPlaybackRate(value: number): Promise<void> {
-    if (this.video) {
-      this.video.playbackRate = value;
-      this.emit("ratechange");
-    }
-    return Promise.resolve();
+    return setNativeVideoPlaybackRate(this.getNativeCommandInput(), value);
   }
 
   setVolume(value: number): Promise<void> {
-    if (this.video) {
-      this.video.volume = Math.min(1, Math.max(0, value));
-      this.emit("volumechange");
-    }
-    return Promise.resolve();
+    return setNativeVideoVolume(this.getNativeCommandInput(), value);
   }
 
   async enterFullscreen(): Promise<void> {
-    await this.video?.requestFullscreen();
-    this.emit("fullscreenchange");
+    await enterNativeVideoFullscreen(this.getNativeCommandInput());
   }
 
   async enterPictureInPicture(): Promise<void> {
-    await enterNativePictureInPicture(this.video);
+    await enterNativeVideoPictureInPicture(this.getNativeCommandInput());
   }
 
   async exitFullscreen(): Promise<void> {
-    await document.exitFullscreen?.();
-    this.emit("fullscreenchange");
+    await exitNativeVideoFullscreen(this.getNativeCommandInput());
   }
 
   subscribe(listener: VibePlayerAdapterListener): () => void {
@@ -160,12 +131,10 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     this.mounted = false;
     this.playbackGeneration += 1;
     if (this.video) {
-      this.video.pause();
-      this.video.removeAttribute("src");
-      clearElement(this.video);
-      this.video.load();
-      this.video.remove();
+      clearNativeVideoPlayback(this.video);
     }
+    this.source = null;
+    this.video = null;
     return Promise.resolve();
   }
 
@@ -177,6 +146,20 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     for (const listener of this.listeners) {
       listener(event);
     }
+  }
+
+  private getNativeCommandInput(): NativeVideoCommandInput {
+    return {
+      emit: (type) => this.emit(type),
+      getPlaybackGeneration: () => this.playbackGeneration,
+      getSnapshot: () => this.getSnapshot(),
+      getVideo: () => this.video,
+      incrementPlaybackGeneration: () => {
+        this.playbackGeneration += 1;
+        return this.playbackGeneration;
+      },
+      isMounted: () => this.mounted,
+    };
   }
 
   private ensureVideo(): HTMLVideoElement {

@@ -7,6 +7,7 @@ export function VibePlayerAmbientPreview({
   className,
   onActivate,
   paused,
+  preserveKey,
   preservePreviousLayer,
   source,
   title,
@@ -15,6 +16,7 @@ export function VibePlayerAmbientPreview({
     <>
       <VibePlayerBackgroundPreview
         paused={paused}
+        preserveKey={preserveKey}
         preservePreviousLayer={preservePreviousLayer}
         source={source}
       />

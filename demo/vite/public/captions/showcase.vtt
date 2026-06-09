@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.000
+Vibe Player keeps file, HLS, and embedded providers behind one package API.
+
+00:00:04.000 --> 00:00:08.000
+The demo uses the same chrome and controls across every playback source.
+
+00:00:08.000 --> 00:00:12.000
+Keyboard shortcuts, captions, seek, mute, and analytics stay provider neutral.

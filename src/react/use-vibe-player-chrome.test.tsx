@@ -45,6 +45,22 @@ describe("useVibePlayerChrome", () => {
     expect(result.current.chromeHidden).toBe(true);
   });
 
+  it("keeps chrome visible when idle hiding is disabled", () => {
+    const { result } = renderHook(() =>
+      useVibePlayerChrome({
+        autoHide: false,
+        idleDelayMs: 1000,
+        open: true,
+      })
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(result.current.chromeHidden).toBe(false);
+  });
+
   it("resets chrome and clears timers when closed", () => {
     const { result, rerender } = renderHook(
       ({ open }) => useVibePlayerChrome({ idleDelayMs: 1000, open }),

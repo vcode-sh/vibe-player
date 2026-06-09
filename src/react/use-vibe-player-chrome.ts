@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export const VIBE_PLAYER_CHROME_IDLE_DELAY_MS = 2400;
 
 export interface UseVibePlayerChromeOptions {
+  autoHide?: boolean;
   idleDelayMs?: number;
   open: boolean;
 }
@@ -16,6 +17,7 @@ export interface VibePlayerChromeState {
 }
 
 export function useVibePlayerChrome({
+  autoHide = true,
   idleDelayMs = VIBE_PLAYER_CHROME_IDLE_DELAY_MS,
   open,
 }: UseVibePlayerChromeOptions): VibePlayerChromeState {
@@ -33,14 +35,14 @@ export function useVibePlayerChrome({
 
   const scheduleChromeHide = useCallback(() => {
     clearIdleTimer();
-    if (focusWithinRef.current) {
+    if (!autoHide || focusWithinRef.current) {
       return;
     }
     idleTimerRef.current = window.setTimeout(
       () => setChromeHidden(true),
       idleDelayMs
     );
-  }, [clearIdleTimer, idleDelayMs]);
+  }, [autoHide, clearIdleTimer, idleDelayMs]);
 
   const holdChrome = useCallback(() => {
     focusWithinRef.current = true;
@@ -69,6 +71,14 @@ export function useVibePlayerChrome({
     }
     showChrome();
   }, [clearIdleTimer, open, showChrome]);
+
+  useEffect(() => {
+    if (autoHide) {
+      return;
+    }
+    clearIdleTimer();
+    setChromeHidden(false);
+  }, [autoHide, clearIdleTimer]);
 
   return {
     chromeHidden,

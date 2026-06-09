@@ -9,14 +9,10 @@ export function useVibePlayerMediaTarget(controller: VibePlayerController) {
       return;
     }
     controller.mount(mediaElement).catch(() => undefined);
-  });
-
-  useEffect(
-    () => () => {
+    return () => {
       controller.unmount().catch(() => undefined);
-    },
-    [controller]
-  );
+    };
+  }, [controller, mediaElement]);
 
   return {
     hasMediaTarget: Boolean(mediaElement),

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { cinematicDefaultMotion, cinematicDefaultSkinTokens } from ".";
+import {
+  cinematicDefaultMotion,
+  cinematicDefaultSkin,
+  cinematicDefaultSkinClassNames,
+  cinematicDefaultSkinTokens,
+} from ".";
 
 describe("cinematic default skin tokens", () => {
   it("freezes Discovery overlay motion and chrome timing", () => {
@@ -42,5 +47,24 @@ describe("cinematic default skin tokens", () => {
     expect(cinematicDefaultMotion.easeEmphasized).toBe(
       cinematicDefaultSkinTokens.motion.easeEmphasized
     );
+  });
+
+  it("exports the first skin as a neutral cinematic preset", () => {
+    expect(cinematicDefaultSkin.metadata).toEqual({
+      colorScheme: "dark",
+      id: "cinematic-default",
+      intent: "neutral-cinematic",
+      label: "Cinematic default",
+    });
+    expect(cinematicDefaultSkin.classNames.root).toBe(
+      "vibe-player-skin--cinematic-default"
+    );
+    expect(cinematicDefaultSkin.classNames.modalPanel).toBe(
+      cinematicDefaultSkinClassNames.modalPanel
+    );
+    expect(cinematicDefaultSkinClassNames.panel).toBe(
+      cinematicDefaultSkinClassNames.modalPanel
+    );
+    expect(cinematicDefaultSkin.tokens).toBe(cinematicDefaultSkinTokens);
   });
 });

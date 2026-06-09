@@ -1,17 +1,4 @@
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import type {
-  VibePlayerAdapter,
-  VibePlayerAnalyticsEvent,
-  VibePlayerResumeStore,
-  VibePlayerShortcutAction,
-  VibePlayerSource,
-} from "../core";
+import { useEffect, useMemo, useState } from "react";
 import {
   createIdleCapabilities,
   shouldRevealVibePlayerChromeForKey,
@@ -21,9 +8,9 @@ import {
   useVibePlayerChrome,
   useVibePlayerController,
   useVibePlayerShortcuts,
-  type VibePlayerCaptionTextLoader,
 } from "../react";
 import { useVibePlayerMediaTarget } from "./use-vibe-player-media-target";
+import { useVibePlayerStageActions } from "./use-vibe-player-stage-actions";
 import { useVibePlayerStageClick } from "./use-vibe-player-stage-click";
 import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
 import { VibePlayerControls } from "./vibe-player-controls";
@@ -31,22 +18,9 @@ import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
 import { startVibePlayerAutoplay } from "./vibe-player-stage-autoplay";
 import { createVibePlayerStageControllerOptions } from "./vibe-player-stage-options";
 import { VibePlayerStageStatus } from "./vibe-player-stage-status";
+import type { VibePlayerStageProps } from "./vibe-player-stage-types";
 
-export interface VibePlayerStageProps {
-  adapterFactory?:
-    | ((source: VibePlayerSource) => VibePlayerAdapter)
-    | undefined;
-  autoPlay?: boolean;
-  autoPlayMutedBootstrap?: boolean;
-  loadCaptionText?: VibePlayerCaptionTextLoader | undefined;
-  onAnalyticsEvent?: ((event: VibePlayerAnalyticsEvent) => void) | undefined;
-  onClose?: (() => void) | undefined;
-  open?: boolean;
-  resumeStore?: VibePlayerResumeStore | undefined;
-  source: VibePlayerSource;
-  title?: string | undefined;
-  topActions?: ReactNode;
-}
+export type { VibePlayerStageProps } from "./vibe-player-stage-types";
 
 export function VibePlayerStage({
   adapterFactory,
@@ -75,7 +49,10 @@ export function VibePlayerStage({
   const { controller, state } = useVibePlayerController(controllerOptions);
   const { hasMediaTarget, setMediaElement } =
     useVibePlayerMediaTarget(controller);
-  const chrome = useVibePlayerChrome({ open });
+  const chrome = useVibePlayerChrome({
+    autoHide: source.type !== "youtube",
+    open,
+  });
   const capabilities = state.capabilities ?? createIdleCapabilities();
   const captions = useVibePlayerCaptions({
     currentTime: state.snapshot.currentTime,
@@ -84,6 +61,11 @@ export function VibePlayerStage({
     ...(loadCaptionText ? { loadCaptionText } : {}),
   });
   const playerTitle = title ?? source.title;
+  const actions = useVibePlayerStageActions({
+    controller,
+    setCaptionsEnabled,
+    snapshot: state.snapshot,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -129,66 +111,17 @@ export function VibePlayerStage({
     rootElement.focus({ preventScroll: true });
   }, [open, rootElement]);
 
-  const seekRelative = useCallback(
-    (seconds: number) => {
-      controller
-        .seekTo(state.snapshot.currentTime + seconds)
-        .catch(() => undefined);
-    },
-    [controller, state.snapshot.currentTime]
-  );
-
-  const togglePlay = useCallback(() => {
-    const command = state.snapshot.paused
-      ? controller.play()
-      : controller.pause();
-    command.catch(() => undefined);
-  }, [controller, state.snapshot.paused]);
-
   const handleStageClick = useVibePlayerStageClick({
     rootElement,
-    togglePlay,
+    togglePlay: actions.togglePlay,
   });
-
-  const toggleMute = useCallback(() => {
-    controller.setMuted(!state.snapshot.muted).catch(() => undefined);
-  }, [controller, state.snapshot.muted]);
-
-  const handleShortcut = useCallback(
-    (action: VibePlayerShortcutAction) => {
-      if (action === "toggle-play") {
-        togglePlay();
-        return;
-      }
-      if (action === "toggle-mute") {
-        toggleMute();
-        return;
-      }
-      if (action === "seek-backward") {
-        seekRelative(-10);
-        return;
-      }
-      if (action === "seek-forward") {
-        seekRelative(10);
-        return;
-      }
-      if (action === "fullscreen") {
-        controller.enterFullscreen().catch(() => undefined);
-        return;
-      }
-      if (action === "toggle-captions") {
-        setCaptionsEnabled((value) => !value);
-      }
-    },
-    [controller, seekRelative, toggleMute, togglePlay]
-  );
 
   useVibePlayerShortcuts({
     canFullscreen: capabilities.canFullscreen,
     canSeek: capabilities.canSeek,
     canShowCaptions: capabilities.canShowCaptions,
     enabled: open,
-    onShortcut: handleShortcut,
+    onShortcut: actions.handleShortcut,
     supportsMute: capabilities.supportsMute,
     target: rootElement,
   });
@@ -242,19 +175,14 @@ export function VibePlayerStage({
         captionsEnabled={captionsEnabled}
         chromeHidden={chrome.chromeHidden}
         onClose={onClose}
-        onSeek={(seconds) => controller.seekTo(seconds).catch(() => undefined)}
-        onSetPlaybackRate={(rate) =>
-          controller.setPlaybackRate(rate).catch(() => undefined)
-        }
-        onToggleCaptions={() => setCaptionsEnabled((value) => !value)}
-        onToggleFullscreen={() =>
-          controller.enterFullscreen().catch(() => undefined)
-        }
-        onToggleMute={toggleMute}
-        onTogglePictureInPicture={() =>
-          controller.enterPictureInPicture().catch(() => undefined)
-        }
-        onTogglePlay={togglePlay}
+        onSeek={actions.seekTo}
+        onSetPlaybackRate={actions.setPlaybackRate}
+        onSetQuality={actions.setQuality}
+        onToggleCaptions={actions.toggleCaptions}
+        onToggleFullscreen={actions.toggleFullscreen}
+        onToggleMute={actions.toggleMute}
+        onTogglePictureInPicture={actions.togglePictureInPicture}
+        onTogglePlay={actions.togglePlay}
         snapshot={state.snapshot}
         title={playerTitle}
         topActions={topActions}

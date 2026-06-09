@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerFileSource, VibePlayerHlsSource } from "../core";
 import { createFileAdapter } from "./create-file-adapter";
-import { createHlsAdapter, type HlsAdapterRuntime } from "./create-hls-adapter";
+import { createHlsAdapter } from "./create-hls-adapter";
+import type { HlsAdapterRuntime } from "./hls-runtime-types";
 import {
   canUseNativePictureInPicture,
   enterNativePictureInPicture,
@@ -137,7 +138,10 @@ describe("native picture-in-picture", () => {
       () => undefined
     );
     const runtime: HlsAdapterRuntime = {
-      attachManagedHls: () => () => undefined,
+      attachManagedHls: () => ({
+        destroy: () => undefined,
+        setQualityLevel: () => undefined,
+      }),
       canUseManagedHls: () => true,
     };
     const adapter = createHlsAdapter(runtime);

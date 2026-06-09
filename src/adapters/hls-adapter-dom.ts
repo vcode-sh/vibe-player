@@ -31,11 +31,15 @@ export function canUseNativeHls(video: HTMLVideoElement): boolean {
 export function getHlsVideoCapabilities(
   video: HTMLVideoElement | null,
   source: VibePlayerHlsSource | null,
-  isLive: boolean
+  isLive: boolean,
+  supportsQualitySelection: boolean
 ): VibePlayerCapabilities {
+  if (!(video && source)) {
+    return createIdleCapabilities();
+  }
   return {
     ...createIdleCapabilities(),
-    canFullscreen: Boolean(video?.requestFullscreen),
+    canFullscreen: Boolean(video.requestFullscreen),
     canPictureInPicture: canUseNativePictureInPicture(video),
     canSeek: !isLive,
     canSetPlaybackRate: true,
@@ -43,7 +47,9 @@ export function getHlsVideoCapabilities(
     isLive,
     supportsDuration: !isLive,
     supportsMute: true,
+    supportsPlayback: true,
     supportsPoster: Boolean(source?.posterUrl),
+    supportsQualitySelection,
     supportsVolumeControl: true,
   };
 }

@@ -38,6 +38,7 @@ class TestInlineAdapter implements VibePlayerAdapter {
     canShowCaptions: true,
     supportsDuration: true,
     supportsMute: true,
+    supportsPlayback: true,
   };
   readonly kind = "file";
   private snapshot: VibePlayerSnapshot = {

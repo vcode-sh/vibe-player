@@ -32,6 +32,7 @@ class TestModalAdapter implements VibePlayerAdapter {
     canSeek: true,
     supportsDuration: true,
     supportsMute: true,
+    supportsPlayback: true,
   };
   readonly kind = "file";
   private readonly snapshot: VibePlayerSnapshot = {

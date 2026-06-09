@@ -3,16 +3,20 @@ import { VibePlayerBackgroundLayer } from "./vibe-player-background-layer";
 import type {
   VibePlayerBackgroundLayerSnapshot,
   VibePlayerBackgroundLayerState,
-  VibePlayerBackgroundPreviewProps,
-} from "./vibe-player-preview-types";
+} from "./vibe-player-background-layer-types";
+import type { VibePlayerBackgroundPreviewProps } from "./vibe-player-preview-types";
 
 const FRAME_READY_FALLBACK_MS = 2500;
 const LAYER_RETIRE_DELAY_MS = 300;
 
-let previousLayerSnapshot: VibePlayerBackgroundLayerSnapshot | null = null;
+const previousLayerSnapshots = new Map<
+  string,
+  VibePlayerBackgroundLayerSnapshot
+>();
 
 export function VibePlayerBackgroundPreview({
   paused = false,
+  preserveKey,
   preservePreviousLayer = false,
   source,
 }: VibePlayerBackgroundPreviewProps) {
@@ -22,7 +26,7 @@ export function VibePlayerBackgroundPreview({
     [activeLayerId, source]
   );
   const [layers, setLayers] = useState<VibePlayerBackgroundLayerState[]>(() =>
-    getInitialLayers(currentLayer, preservePreviousLayer)
+    getInitialLayers(currentLayer, preservePreviousLayer, preserveKey)
   );
   const [readyLayerId, setReadyLayerId] = useState<string | null>(
     currentLayer.previewVideoUrl ? null : activeLayerId
@@ -38,7 +42,9 @@ export function VibePlayerBackgroundPreview({
   );
 
   useEffect(() => {
-    previousLayerSnapshot = currentLayer;
+    if (preservePreviousLayer) {
+      rememberLayerSnapshot(preserveKey, currentLayer);
+    }
     setReadyLayerId(currentLayer.previewVideoUrl ? null : activeLayerId);
     setLayers((current) => {
       if (current.some((layer) => layer.id === activeLayerId)) {
@@ -54,7 +60,7 @@ export function VibePlayerBackgroundPreview({
       setReadyLayerId(activeLayerId);
     }, FRAME_READY_FALLBACK_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [activeLayerId, currentLayer]);
+  }, [activeLayerId, currentLayer, preserveKey, preservePreviousLayer]);
 
   useEffect(() => {
     if (readyLayerId !== activeLayerId) {
@@ -111,8 +117,10 @@ function createLayerSnapshot(
 
 function getInitialLayers(
   currentLayer: VibePlayerBackgroundLayerSnapshot,
-  preservePreviousLayer: boolean
+  preservePreviousLayer: boolean,
+  preserveKey: string | undefined
 ): VibePlayerBackgroundLayerState[] {
+  const previousLayerSnapshot = getPreviousLayerSnapshot(preserveKey);
   if (
     preservePreviousLayer &&
     previousLayerSnapshot &&
@@ -124,6 +132,24 @@ function getInitialLayers(
     ];
   }
   return [{ ...currentLayer, visible: true }];
+}
+
+function getPreviousLayerSnapshot(
+  preserveKey: string | undefined
+): VibePlayerBackgroundLayerSnapshot | null {
+  if (!preserveKey) {
+    return null;
+  }
+  return previousLayerSnapshots.get(preserveKey) ?? null;
+}
+
+function rememberLayerSnapshot(
+  preserveKey: string | undefined,
+  snapshot: VibePlayerBackgroundLayerSnapshot
+): void {
+  if (preserveKey) {
+    previousLayerSnapshots.set(preserveKey, snapshot);
+  }
 }
 
 function getLayerId(

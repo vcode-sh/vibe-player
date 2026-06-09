@@ -2,8 +2,10 @@
 @import "./vibe-player-timeline.css";
 @import "./vibe-player-modal.css";
 @import "./vibe-player-preview.css";
+@import "./vibe-player-youtube-external.css";
 
-:root {
+:root,
+.vibe-player-skin--cinematic-default {
   --vibe-player-backdrop: rgba(5, 5, 6, 0.86);
   --vibe-player-border: rgba(133, 140, 255, 0.45);
   --vibe-player-ease-emphasized: cubic-bezier(0.23, 1, 0.32, 1);

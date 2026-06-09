@@ -10,10 +10,11 @@
     "./src/styles/*.css"
   ],
   "files": [
-    "dist",
-    "src/styles/*.css",
+    "CHANGELOG.md",
     "README.md",
-    "CHANGELOG.md"
+    "dist",
+    "docs/integration.md",
+    "src/styles/*.css"
   ],
   "exports": {
     ".": {
@@ -46,12 +47,21 @@
     "build": "tsdown src/index.ts --format esm --dts --clean --sourcemap --out-dir dist --platform neutral --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js",
     "check": "biome check .",
     "check-types": "tsc --noEmit",
-    "ci": "bun run check && bun run check-types && bun run test && bun run build && bun run package:publint && bun run package:attw",
-    "demo:vite": "vite --host 127.0.0.1",
+    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run check-types && bun run test && bun run build && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw",
+    "demo:vite": "vite --config demo/vite/vite.config.ts --host localhost",
+    "demo:vite:build": "vite build --config demo/vite/vite.config.ts",
+    "demo:vite:check": "tsc -p demo/vite/tsconfig.json --noEmit",
+    "demo:vite:packaged": "bun run build && vite --config demo/vite/vite.config.ts --mode packaged --host localhost",
+    "demo:vite:packaged:build": "bun run build && vite build --config demo/vite/vite.config.ts --mode packaged",
     "lint": "biome lint .",
     "lint:fix": "ultracite fix .",
     "package:attw": "attw . --pack --profile esm-only --exclude-entrypoints ./styles.css",
+    "package:boundaries": "bun scripts/assert-package-boundaries.mjs",
+    "package:dependencies": "bun scripts/assert-package-dependencies.mjs",
     "package:publint": "publint run --strict --pack npm",
+    "package:rules": "bun scripts/assert-coding-rules.mjs",
+    "package:surface": "bun scripts/assert-public-surface.mjs",
+    "package:tarball": "bun scripts/assert-package-tarball.mjs",
     "release:publish": "changeset publish",
     "release:version": "changeset version && bun install",
     "test": "vitest run",
@@ -62,13 +72,14 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.0",
     "@arethetypeswrong/cli": "^0.18.3",
     "@biomejs/biome": "^2.4.16",
+    "@changesets/cli": "^2.31.0",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
     "happy-dom": "20.10.2",
     "publint": "0.3.21",
     "react": "^19.2.7",

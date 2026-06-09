@@ -1,115 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type {
-  VibePlayerAdapterEvent,
-  VibePlayerFileSource,
-  VibePlayerYouTubeSource,
-} from "../core/vibe-player-types";
+import type { VibePlayerFileSource } from "../core/vibe-player-types";
 import { createVibePlayerAdapter } from "./create-vibe-player-adapter";
 import { createYouTubeAdapter } from "./create-youtube-adapter";
-import type {
-  YouTubeAdapterRuntime,
-  YouTubePlayerHandle,
-  YouTubePlayerSession,
-} from "./youtube-iframe-types";
+import {
+  collectYouTubeAdapterEvents,
+  createStalledYouTubeRuntime,
+  createYouTubeRuntime,
+  getYouTubeSession,
+  youtubeSource,
+} from "./youtube-adapter-test-helpers";
 import { youtubePlayerStates } from "./youtube-iframe-types";
-
-const youtubeSource: VibePlayerYouTubeSource = {
-  id: "youtube-video",
-  startSeconds: 12,
-  title: "YouTube video",
-  type: "youtube",
-  youtubeVideoId: "dQw4w9WgXcQ",
-};
-
-interface RuntimeProbe {
-  actions: string[];
-  currentTime: number;
-  destroyed: boolean;
-  duration: number;
-  iframe: HTMLIFrameElement;
-  loadedFraction: number;
-  muted: boolean;
-  playbackRate: number;
-  session: YouTubePlayerSession | null;
-  volume: number;
-}
-
-function createRuntime(): {
-  handle: YouTubePlayerHandle;
-  probe: RuntimeProbe;
-  runtime: YouTubeAdapterRuntime;
-} {
-  const iframe = document.createElement("iframe");
-  iframe.requestFullscreen = () => Promise.resolve();
-  const probe: RuntimeProbe = {
-    actions: [],
-    currentTime: 0,
-    destroyed: false,
-    duration: 180,
-    iframe,
-    loadedFraction: 0.5,
-    muted: false,
-    playbackRate: 1,
-    session: null,
-    volume: 75,
-  };
-  const handle: YouTubePlayerHandle = {
-    destroy: () => {
-      probe.destroyed = true;
-    },
-    getCurrentTime: () => probe.currentTime,
-    getDuration: () => probe.duration,
-    getIframe: () => probe.iframe,
-    getPlaybackRate: () => probe.playbackRate,
-    getVideoLoadedFraction: () => probe.loadedFraction,
-    getVolume: () => probe.volume,
-    isMuted: () => probe.muted,
-    mute: () => {
-      probe.muted = true;
-      probe.actions.push("mute");
-    },
-    pauseVideo: () => {
-      probe.actions.push("pause");
-    },
-    playVideo: () => {
-      probe.actions.push("play");
-    },
-    seekTo: (seconds) => {
-      probe.currentTime = seconds;
-      probe.actions.push(`seek:${seconds}`);
-    },
-    setPlaybackRate: (value) => {
-      probe.playbackRate = value;
-      probe.actions.push(`rate:${value}`);
-    },
-    setVolume: (value) => {
-      probe.volume = value;
-      probe.actions.push(`volume:${value}`);
-    },
-    unMute: () => {
-      probe.muted = false;
-      probe.actions.push("unmute");
-    },
-  };
-  return {
-    handle,
-    probe,
-    runtime: {
-      createPlayer(session) {
-        probe.session = session;
-        session.element.replaceWith(probe.iframe);
-        return handle;
-      },
-    },
-  };
-}
-
-function getSession(probe: RuntimeProbe): YouTubePlayerSession {
-  if (!probe.session) {
-    throw new Error("Expected YouTube session.");
-  }
-  return probe.session;
-}
 
 describe("createYouTubeAdapter", () => {
   afterEach(() => {
@@ -118,63 +18,98 @@ describe("createYouTubeAdapter", () => {
   });
 
   it("loads YouTube videos through an iframe runtime bridge", async () => {
-    const { probe, runtime } = createRuntime();
+    const { probe, runtime } = createYouTubeRuntime();
     const adapter = createYouTubeAdapter(runtime);
     const target = document.createElement("div");
-    const events: VibePlayerAdapterEvent[] = [];
-    adapter.subscribe((event) => {
-      events.push(event);
-    });
 
     await adapter.mount(target);
     await adapter.load(youtubeSource);
-    getSession(probe).onReady();
+    getYouTubeSession(probe).onReady();
 
-    expect(getSession(probe).videoId).toBe(youtubeSource.youtubeVideoId);
-    expect(getSession(probe).startSeconds).toBe(12);
+    expect(getYouTubeSession(probe).videoId).toBe(youtubeSource.youtubeVideoId);
+    expect(getYouTubeSession(probe).startSeconds).toBe(12);
     expect(target.querySelector("iframe")).toBe(probe.iframe);
+    expect(adapter.getSnapshot().readyState).toBe("ready");
     expect(adapter.kind).toBe("youtube");
     expect(adapter.capabilities.canShowCaptions).toBe(false);
     expect(adapter.capabilities.hasNativeCaptionsMenu).toBe(true);
     expect(adapter.capabilities.canFullscreen).toBe(true);
-    expect(events.at(-1)?.type).toBe("ready");
+    expect(adapter.capabilities.supportsPlayback).toBe(true);
   });
 
   it("normalizes state changes and sampled time updates", async () => {
     vi.useFakeTimers();
-    const { probe, runtime } = createRuntime();
+    const { probe, runtime } = createYouTubeRuntime();
     const adapter = createYouTubeAdapter(runtime);
     const target = document.createElement("div");
-    const events: VibePlayerAdapterEvent[] = [];
-    adapter.subscribe((event) => {
-      events.push(event);
-    });
+    const events = collectYouTubeAdapterEvents(adapter);
 
     await adapter.mount(target);
     await adapter.load(youtubeSource);
+    await adapter.play();
     probe.currentTime = 25;
-    getSession(probe).onStateChange(youtubePlayerStates.playing);
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.playing);
+    probe.currentTime = 26;
     vi.advanceTimersByTime(500);
 
     expect(events.map((event) => event.type)).toContain("play");
     expect(events.at(-1)?.type).toBe("timeupdate");
     expect(events.at(-1)?.snapshot).toMatchObject({
       bufferedPct: 50,
-      currentTime: 25,
+      currentTime: 26,
       duration: 180,
       paused: false,
       readyState: "playing",
       volume: 0.75,
     });
 
-    getSession(probe).onStateChange(youtubePlayerStates.paused);
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.buffering);
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(events.at(-1)?.type).toBe("buffering");
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.paused);
     expect(events.at(-1)?.type).toBe("pause");
-    getSession(probe).onStateChange(youtubePlayerStates.ended);
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.ended);
     expect(events.at(-1)?.type).toBe("ended");
   });
 
+  it("does not emit playblocked after quick playback progress", async () => {
+    vi.useFakeTimers();
+    const { probe, runtime } = createYouTubeRuntime();
+    const adapter = createYouTubeAdapter(runtime);
+    const target = document.createElement("div");
+    const events = collectYouTubeAdapterEvents(adapter);
+
+    await adapter.mount(target);
+    await adapter.load(youtubeSource);
+    await adapter.play();
+    probe.currentTime = 12.2;
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.paused);
+    await vi.advanceTimersByTimeAsync(2500);
+
+    expect(events.at(-1)?.type).toBe("pause");
+  });
+
+  it("emits playblocked when YouTube stalls after a play command", async () => {
+    vi.useFakeTimers();
+    const { probe, runtime } = createYouTubeRuntime();
+    const adapter = createYouTubeAdapter(runtime);
+    const target = document.createElement("div");
+    const events = collectYouTubeAdapterEvents(adapter);
+
+    await adapter.mount(target);
+    await adapter.load(youtubeSource);
+    await adapter.play();
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.playing);
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.paused);
+    getYouTubeSession(probe).onStateChange(youtubePlayerStates.buffering);
+    await vi.advanceTimersByTimeAsync(2500);
+
+    expect(events.at(-1)?.type).toBe("playblocked");
+    expect(events.at(-1)?.snapshot.readyState).toBe("buffering");
+  });
+
   it("forwards commands and clamps seek and volume values", async () => {
-    const { probe, runtime } = createRuntime();
+    const { probe, runtime } = createYouTubeRuntime();
     const adapter = createYouTubeAdapter(runtime);
     const target = document.createElement("div");
     await adapter.mount(target);
@@ -202,8 +137,25 @@ describe("createYouTubeAdapter", () => {
     expect(probe.destroyed).toBe(true);
   });
 
+  it("returns idle state and capabilities after unmount", async () => {
+    const { probe, runtime } = createYouTubeRuntime();
+    const adapter = createYouTubeAdapter(runtime);
+    const target = document.createElement("div");
+
+    await adapter.mount(target);
+    await adapter.load(youtubeSource);
+    expect(adapter.capabilities.canSeek).toBe(true);
+
+    await adapter.unmount();
+
+    expect(probe.destroyed).toBe(true);
+    expect(adapter.getSnapshot().readyState).toBe("idle");
+    expect(adapter.capabilities.canSeek).toBe(false);
+    expect(adapter.capabilities.supportsVolumeControl).toBe(false);
+  });
+
   it("rejects unsupported sources", async () => {
-    const { runtime } = createRuntime();
+    const { runtime } = createYouTubeRuntime();
     const adapter = createYouTubeAdapter(runtime);
     const fileSource: VibePlayerFileSource = {
       id: "file",
@@ -214,6 +166,24 @@ describe("createYouTubeAdapter", () => {
     await expect(adapter.load(fileSource)).rejects.toThrow(
       "YouTube adapter cannot load file sources."
     );
+  });
+
+  it("rejects stalled player creation instead of hanging", async () => {
+    vi.useFakeTimers();
+    const adapter = createYouTubeAdapter(createStalledYouTubeRuntime());
+    const target = document.createElement("div");
+
+    await adapter.mount(target);
+    const pending = adapter.load(youtubeSource);
+    const assertion = expect(pending).rejects.toThrow(
+      "Timed out creating YouTube player."
+    );
+    await vi.advanceTimersByTimeAsync(8000);
+
+    await assertion;
+    expect(adapter.getSnapshot().readyState).toBe("idle");
+    expect(adapter.capabilities.canSeek).toBe(false);
+    expect(target.childElementCount).toBe(0);
   });
 
   it("is selected by the default adapter factory", () => {

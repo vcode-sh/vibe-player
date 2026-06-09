@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { VibePlayerBackgroundLayerState } from "./vibe-player-preview-types";
+import type { VibePlayerBackgroundLayerState } from "./vibe-player-background-layer-types";
 
 export interface VibePlayerBackgroundLayerProps
   extends VibePlayerBackgroundLayerState {

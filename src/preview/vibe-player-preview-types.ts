@@ -9,6 +9,7 @@ export interface VibePlayerAmbientPreviewSource {
 
 export interface VibePlayerBackgroundPreviewProps {
   paused?: boolean | undefined;
+  preserveKey?: string | undefined;
   preservePreviousLayer?: boolean | undefined;
   source: VibePlayerAmbientPreviewSource;
 }
@@ -20,16 +21,4 @@ export interface VibePlayerAmbientPreviewProps
   className?: string | undefined;
   onActivate?: (() => void) | undefined;
   title?: string | undefined;
-}
-
-export interface VibePlayerBackgroundLayerSnapshot {
-  fallbackPosterUrl?: string | undefined;
-  id: string;
-  posterUrl: string;
-  previewVideoUrl?: string | undefined;
-}
-
-export interface VibePlayerBackgroundLayerState
-  extends VibePlayerBackgroundLayerSnapshot {
-  visible: boolean;
 }

@@ -1,7 +1,10 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { VibePlayerFileSource } from "../core/vibe-player-types";
-import { useVibePlayerCaptions } from "./use-vibe-player-captions";
+import {
+  useVibePlayerCaptions,
+  type VibePlayerCaptionTextLoader,
+} from "./use-vibe-player-captions";
 
 const fileSource: VibePlayerFileSource = {
   captions: [
@@ -36,7 +39,9 @@ Second line`;
 
 describe("useVibePlayerCaptions", () => {
   it("loads the default caption track and returns active lines", async () => {
-    const loadCaptionText = vi.fn(() => Promise.resolve(webVtt));
+    const loadCaptionText = vi.fn<VibePlayerCaptionTextLoader>(() =>
+      Promise.resolve(webVtt)
+    );
     const { result, rerender } = renderHook(
       ({ currentTime }) =>
         useVibePlayerCaptions({
@@ -49,10 +54,12 @@ describe("useVibePlayerCaptions", () => {
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(loadCaptionText).toHaveBeenCalledWith(
-      fileSource.captions?.[1],
-      expect.any(AbortSignal)
-    );
+    const firstCall = loadCaptionText.mock.calls[0];
+    if (!firstCall) {
+      throw new Error("Expected caption loader to be called.");
+    }
+    expect(firstCall[0]).toBe(fileSource.captions?.[1]);
+    expect(firstCall[1]).toBeInstanceOf(AbortSignal);
     expect(result.current.track?.id).toBe("primary");
     expect(result.current.activeLines).toEqual(["First line"]);
 

@@ -1,0 +1,121 @@
+.vp-source-rail {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+.vp-source-rail__intro {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  background: rgba(14, 14, 15, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.vp-source-rail__intro span {
+  font-size: 12px;
+  font-weight: 780;
+  color: #f7f1e8;
+  text-transform: uppercase;
+}
+
+.vp-source-rail__intro p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.vp-source-list {
+  display: grid;
+  gap: 10px;
+}
+
+.vp-source-card {
+  position: relative;
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  min-height: 116px;
+  padding: 16px;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(14, 14, 15, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.vp-source-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  content: "";
+  background: var(--source-accent);
+  opacity: 0.7;
+}
+
+.vp-source-card:hover,
+.vp-source-card[data-active="true"],
+.vp-source-card[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.075);
+  border-color: color-mix(in srgb, var(--source-accent), white 28%);
+}
+
+.vp-source-card:hover {
+  transform: translateY(-1px);
+}
+
+.vp-source-card:focus-visible {
+  outline: 2px solid var(--source-accent);
+  outline-offset: 3px;
+}
+
+.vp-source-card span {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--source-accent);
+  text-transform: uppercase;
+}
+
+.vp-source-card strong {
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.1;
+}
+
+.vp-source-card small {
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+@media (max-width: 760px) {
+  .vp-source-rail__intro {
+    display: none;
+  }
+
+  .vp-source-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .vp-source-card {
+    min-height: 86px;
+    padding: 12px;
+  }
+
+  .vp-source-card strong {
+    font-size: 14px;
+  }
+
+  .vp-source-card small {
+    display: none;
+  }
+}

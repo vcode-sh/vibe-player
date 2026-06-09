@@ -1,76 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type {
-  VibePlayerAdapterEvent,
-  VibePlayerFileSource,
-  VibePlayerHlsSource,
-} from "../core/vibe-player-types";
+import type { VibePlayerAdapterEvent } from "../core/vibe-player-types";
 import { createFileAdapter } from "./create-file-adapter";
-
-const fileSource: VibePlayerFileSource = {
-  captions: [
-    {
-      default: true,
-      id: "en",
-      kind: "captions",
-      label: "English",
-      language: "en",
-      url: "https://example.com/captions.vtt",
-    },
-  ],
-  id: "file-video",
-  posterUrl: "https://example.com/poster.jpg",
-  sources: [
-    {
-      mimeType: "video/mp4",
-      url: "https://example.com/video.mp4",
-    },
-    {
-      mimeType: "video/webm",
-      url: "https://example.com/video.webm",
-    },
-  ],
-  title: "File video",
-  type: "file",
-};
-
-function getMountedVideo(target: HTMLElement): HTMLVideoElement {
-  const video = target.querySelector("video");
-  if (!(video instanceof HTMLVideoElement)) {
-    throw new Error("Expected mounted video element.");
-  }
-  return video;
-}
-function defineNumberProperty(
-  element: HTMLVideoElement,
-  key: "duration" | "readyState",
-  value: number
-): void {
-  Object.defineProperty(element, key, {
-    configurable: true,
-    value,
-  });
-}
-
-interface DeferredPlayback {
-  promise: Promise<void>;
-  resolve: () => void;
-}
-
-function createDeferredPlayback(): DeferredPlayback {
-  let resolvePlayback: (() => void) | null = null;
-  const promise = new Promise<void>((resolve) => {
-    resolvePlayback = resolve;
-  });
-  return {
-    promise,
-    resolve: () => {
-      if (!resolvePlayback) {
-        throw new Error("Playback resolver was not initialized.");
-      }
-      resolvePlayback();
-    },
-  };
-}
+import {
+  createLoadedFileAdapter,
+  createSingleFileSource,
+  emptyFileSource,
+  fileSource,
+  hlsSource,
+} from "./file-adapter-test-helpers";
+import {
+  createDeferredPlayback,
+  defineNativeVideoNumberProperty,
+} from "./native-video-test-helpers";
 
 describe("createFileAdapter", () => {
   afterEach(() => {
@@ -78,16 +19,7 @@ describe("createFileAdapter", () => {
   });
 
   it("mounts a native video element with sources, poster, and captions", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
-
-    await adapter.mount(target);
-    await adapter.load(fileSource);
-
-    const video = getMountedVideo(target);
+    const { adapter, video } = await createLoadedFileAdapter();
     const sources = Array.from(video.querySelectorAll("source"));
     const tracks = Array.from(video.querySelectorAll("track"));
     expect(video.poster).toBe(fileSource.posterUrl);
@@ -110,59 +42,28 @@ describe("createFileAdapter", () => {
   });
 
   it("uses the native video src for a single file source", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
-    const singleFileSource: VibePlayerFileSource = {
-      ...fileSource,
-      autoPlay: true,
-      sources: [
-        {
-          mimeType: "video/mp4",
-          url: "https://example.com/video.mp4",
-        },
-      ],
-    };
-
-    await adapter.mount(target);
-    await adapter.load(singleFileSource);
-
-    const video = getMountedVideo(target);
+    const { video } = await createLoadedFileAdapter(createSingleFileSource());
     expect(video.autoplay).toBe(false);
     expect(video.src).toBe("https://example.com/video.mp4");
     expect(video.querySelector("source")).toBeNull();
   });
 
   it("keeps cross-origin configurable for file sources", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
-
-    await adapter.mount(target);
-    await adapter.load({ ...fileSource, crossOrigin: "anonymous" });
-
-    expect(getMountedVideo(target).crossOrigin).toBe("anonymous");
+    const { video } = await createLoadedFileAdapter({
+      ...fileSource,
+      crossOrigin: "anonymous",
+    });
+    expect(video.crossOrigin).toBe("anonymous");
   });
 
   it("normalizes native media events into adapter events", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
+    const { adapter, video } = await createLoadedFileAdapter();
     const events: VibePlayerAdapterEvent[] = [];
     adapter.subscribe((event) => {
       events.push(event);
     });
 
-    await adapter.mount(target);
-    await adapter.load(fileSource);
-    const video = getMountedVideo(target);
-    defineNumberProperty(video, "duration", 120);
+    defineNativeVideoNumberProperty(video, "duration", 120);
     video.currentTime = 30;
     video.dispatchEvent(new Event("timeupdate"));
 
@@ -173,16 +74,8 @@ describe("createFileAdapter", () => {
   });
 
   it("forwards playback commands and clamps seek and volume values", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
-    await adapter.mount(target);
-    await adapter.load(fileSource);
-
-    const video = getMountedVideo(target);
-    defineNumberProperty(video, "duration", 100);
+    const { adapter, video } = await createLoadedFileAdapter();
+    defineNativeVideoNumberProperty(video, "duration", 100);
     video.play = () => Promise.resolve();
     video.pause = () => undefined;
 
@@ -200,15 +93,7 @@ describe("createFileAdapter", () => {
   });
 
   it("stops a pending playback request after unmount", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
-    await adapter.mount(target);
-    await adapter.load(fileSource);
-
-    const video = getMountedVideo(target);
+    const { adapter, video } = await createLoadedFileAdapter();
     const playback = createDeferredPlayback();
     const pauseSpy = vi.fn(() => undefined);
     video.play = () => playback.promise;
@@ -222,18 +107,13 @@ describe("createFileAdapter", () => {
     expect(pauseSpy).toHaveBeenCalledTimes(2);
     expect(video.isConnected).toBe(false);
     expect(video.getAttribute("src")).toBeNull();
+    expect(adapter.getSnapshot().readyState).toBe("idle");
+    expect(adapter.capabilities.canSeek).toBe(false);
+    expect(adapter.capabilities.supportsVolumeControl).toBe(false);
   });
 
   it("stops a pending playback request after pause", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
-    await adapter.mount(target);
-    await adapter.load(fileSource);
-
-    const video = getMountedVideo(target);
+    const { adapter, video } = await createLoadedFileAdapter();
     const playback = createDeferredPlayback();
     const pauseSpy = vi.fn(() => undefined);
     video.play = () => playback.promise;
@@ -248,15 +128,7 @@ describe("createFileAdapter", () => {
   });
 
   it("uses fullscreen only when the mounted video supports it", async () => {
-    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
-      () => undefined
-    );
-    const adapter = createFileAdapter();
-    const target = document.createElement("div");
-    await adapter.mount(target);
-    await adapter.load(fileSource);
-
-    const video = getMountedVideo(target);
+    const { adapter, video } = await createLoadedFileAdapter();
     video.requestFullscreen = () => Promise.resolve();
     expect(adapter.capabilities.canFullscreen).toBe(true);
     await adapter.enterFullscreen?.();
@@ -264,17 +136,12 @@ describe("createFileAdapter", () => {
 
   it("rejects unsupported and empty file sources", async () => {
     const adapter = createFileAdapter();
-    const hlsSource: VibePlayerHlsSource = {
-      id: "hls",
-      manifestUrl: "https://example.com/stream.m3u8",
-      type: "hls",
-    };
 
     await expect(adapter.load(hlsSource)).rejects.toThrow(
       "File adapter cannot load hls sources."
     );
-    await expect(
-      adapter.load({ id: "empty", sources: [], type: "file" })
-    ).rejects.toThrow("File source must include at least one media source.");
+    await expect(adapter.load(emptyFileSource)).rejects.toThrow(
+      "File source must include at least one media source."
+    );
   });
 });

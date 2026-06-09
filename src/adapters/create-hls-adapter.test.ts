@@ -2,109 +2,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   VibePlayerAdapterEvent,
   VibePlayerFileSource,
-  VibePlayerHlsSource,
 } from "../core/vibe-player-types";
-import {
-  createHlsAdapter,
-  type HlsAdapterRuntime,
-  type ManagedHlsSession,
-} from "./create-hls-adapter";
+import { createHlsAdapter } from "./create-hls-adapter";
 import { createVibePlayerAdapter } from "./create-vibe-player-adapter";
-
-const hlsSource: VibePlayerHlsSource = {
-  captions: [
-    {
-      default: true,
-      id: "en",
-      kind: "captions",
-      label: "English",
-      language: "en",
-      url: "https://example.com/captions.vtt",
-    },
-  ],
-  id: "hls-video",
-  manifestUrl: "https://example.com/stream.m3u8",
-  posterUrl: "https://example.com/poster.jpg",
-  title: "HLS video",
-  type: "hls",
-};
-
-interface RuntimeProbe {
-  attachCount: number;
-  session: ManagedHlsSession | null;
-  teardownCount: number;
-}
-
-interface DeferredPlayback {
-  promise: Promise<void>;
-  resolve: () => void;
-}
-
-function createRuntime(canUseManagedHls = true): {
-  probe: RuntimeProbe;
-  runtime: HlsAdapterRuntime;
-} {
-  const probe: RuntimeProbe = {
-    attachCount: 0,
-    session: null,
-    teardownCount: 0,
-  };
-  return {
-    probe,
-    runtime: {
-      attachManagedHls(session) {
-        probe.attachCount += 1;
-        probe.session = session;
-        return () => {
-          probe.teardownCount += 1;
-        };
-      },
-      canUseManagedHls: () => canUseManagedHls,
-    },
-  };
-}
-
-function defineNumberProperty(
-  element: HTMLVideoElement,
-  key: "duration" | "readyState",
-  value: number
-): void {
-  Object.defineProperty(element, key, {
-    configurable: true,
-    value,
-  });
-}
-
-function getMountedVideo(target: HTMLElement): HTMLVideoElement {
-  const video = target.querySelector("video");
-  if (!(video instanceof HTMLVideoElement)) {
-    throw new Error("Expected mounted video element.");
-  }
-  return video;
-}
-
-function getManagedSession(probe: RuntimeProbe): ManagedHlsSession {
-  if (!probe.session) {
-    throw new Error("Expected managed HLS session.");
-  }
-  return probe.session;
-}
-
-function createDeferredPlayback(): DeferredPlayback {
-  let resolvePlayback: (() => void) | null = null;
-  const promise = new Promise<void>((resolve) => {
-    resolvePlayback = resolve;
-  });
-  return {
-    promise,
-    resolve: () => {
-      if (!resolvePlayback) {
-        throw new Error("Playback resolver was not initialized.");
-      }
-      resolvePlayback();
-    },
-  };
-}
+import {
+  createHlsRuntime,
+  getManagedSession,
+  hlsSource,
+} from "./hls-adapter-test-helpers";
+import {
+  createDeferredPlayback,
+  defineNativeVideoNumberProperty,
+  getMountedNativeVideo,
+} from "./native-video-test-helpers";
 
 describe("createHlsAdapter", () => {
   afterEach(() => {
@@ -116,7 +26,7 @@ describe("createHlsAdapter", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { probe, runtime } = createRuntime();
+    const { probe, runtime } = createHlsRuntime();
     const adapter = createHlsAdapter(runtime);
     const target = document.createElement("div");
     const events: VibePlayerAdapterEvent[] = [];
@@ -127,7 +37,7 @@ describe("createHlsAdapter", () => {
     await adapter.mount(target);
     await adapter.load(hlsSource);
 
-    const video = getMountedVideo(target);
+    const video = getMountedNativeVideo(target);
     const tracks = Array.from(video.querySelectorAll("track"));
     const session = getManagedSession(probe);
     expect(session.manifestUrl).toBe(hlsSource.manifestUrl);
@@ -149,14 +59,14 @@ describe("createHlsAdapter", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { probe, runtime } = createRuntime(false);
+    const { probe, runtime } = createHlsRuntime(false);
     const adapter = createHlsAdapter(runtime);
     const target = document.createElement("div");
 
     await adapter.mount(target);
     await adapter.load(hlsSource);
 
-    const video = getMountedVideo(target);
+    const video = getMountedNativeVideo(target);
     expect(video.src).toBe(hlsSource.manifestUrl);
     expect(probe.attachCount).toBe(0);
     expect(adapter.capabilities.canSeek).toBe(true);
@@ -167,14 +77,14 @@ describe("createHlsAdapter", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { probe, runtime } = createRuntime();
+    const { probe, runtime } = createHlsRuntime();
     const adapter = createHlsAdapter(runtime);
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load({ ...hlsSource, live: true });
 
-    const video = getMountedVideo(target);
-    defineNumberProperty(video, "duration", 120);
+    const video = getMountedNativeVideo(target);
+    defineNativeVideoNumberProperty(video, "duration", 120);
     await adapter.seekTo(30);
     expect(video.currentTime).toBe(0);
     expect(adapter.capabilities.canSeek).toBe(false);
@@ -192,7 +102,7 @@ describe("createHlsAdapter", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { probe, runtime } = createRuntime();
+    const { probe, runtime } = createHlsRuntime();
     const adapter = createHlsAdapter(runtime);
     const target = document.createElement("div");
     const events: VibePlayerAdapterEvent[] = [];
@@ -217,6 +127,9 @@ describe("createHlsAdapter", () => {
       type: "networkError",
     });
     expect(probe.teardownCount).toBe(1);
+    expect(adapter.getSnapshot().readyState).toBe("idle");
+    expect(adapter.capabilities.canSeek).toBe(false);
+    expect(adapter.capabilities.supportsVolumeControl).toBe(false);
   });
 
   it("stops a pending playback request after pause", async () => {
@@ -224,13 +137,13 @@ describe("createHlsAdapter", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { runtime } = createRuntime();
+    const { runtime } = createHlsRuntime();
     const adapter = createHlsAdapter(runtime);
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load(hlsSource);
 
-    const video = getMountedVideo(target);
+    const video = getMountedNativeVideo(target);
     const playback = createDeferredPlayback();
     const pauseSpy = vi.fn(() => undefined);
     video.play = () => playback.promise;
@@ -246,7 +159,7 @@ describe("createHlsAdapter", () => {
 
   it("rejects unsupported sources and unavailable HLS runtimes", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("");
-    const { runtime } = createRuntime(false);
+    const { runtime } = createHlsRuntime(false);
     const adapter = createHlsAdapter(runtime);
     const fileSource: VibePlayerFileSource = {
       id: "file",

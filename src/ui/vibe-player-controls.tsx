@@ -11,6 +11,7 @@ export interface VibePlayerControlsProps {
   onClose?: (() => void) | undefined;
   onSeek: (seconds: number) => void;
   onSetPlaybackRate: (rate: number) => void;
+  onSetQuality?: ((qualityId: string) => void) | undefined;
   onToggleCaptions?: () => void;
   onToggleFullscreen?: () => void;
   onToggleMute: () => void;
@@ -69,6 +70,7 @@ export function VibePlayerControls({
   onClose,
   onSeek,
   onSetPlaybackRate,
+  onSetQuality,
   onToggleCaptions,
   onToggleFullscreen,
   onToggleMute,
@@ -78,6 +80,7 @@ export function VibePlayerControls({
   title,
   topActions,
 }: VibePlayerControlsProps) {
+  const shouldShowPlaybackControls = capabilities.supportsPlayback;
   return (
     <>
       <VibePlayerTopControls
@@ -86,25 +89,30 @@ export function VibePlayerControls({
         title={title}
         topActions={topActions}
       />
-      <div
-        aria-hidden
-        className={`vibe-player-controls__scrim ${
-          chromeHidden ? "vibe-player-controls__scrim--hidden" : ""
-        }`}
-      />
-      <VibePlayerBottomControls
-        capabilities={capabilities}
-        captionsEnabled={captionsEnabled}
-        chromeHidden={chromeHidden}
-        onSeek={onSeek}
-        onSetPlaybackRate={onSetPlaybackRate}
-        onToggleCaptions={onToggleCaptions}
-        onToggleFullscreen={onToggleFullscreen}
-        onToggleMute={onToggleMute}
-        onTogglePictureInPicture={onTogglePictureInPicture}
-        onTogglePlay={onTogglePlay}
-        snapshot={snapshot}
-      />
+      {shouldShowPlaybackControls ? (
+        <>
+          <div
+            aria-hidden
+            className={`vibe-player-controls__scrim ${
+              chromeHidden ? "vibe-player-controls__scrim--hidden" : ""
+            }`}
+          />
+          <VibePlayerBottomControls
+            capabilities={capabilities}
+            captionsEnabled={captionsEnabled}
+            chromeHidden={chromeHidden}
+            onSeek={onSeek}
+            onSetPlaybackRate={onSetPlaybackRate}
+            onSetQuality={onSetQuality}
+            onToggleCaptions={onToggleCaptions}
+            onToggleFullscreen={onToggleFullscreen}
+            onToggleMute={onToggleMute}
+            onTogglePictureInPicture={onTogglePictureInPicture}
+            onTogglePlay={onTogglePlay}
+            snapshot={snapshot}
+          />
+        </>
+      ) : null}
     </>
   );
 }

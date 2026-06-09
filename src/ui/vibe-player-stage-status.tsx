@@ -21,6 +21,18 @@ export function VibePlayerStageStatus({
     );
   }
 
+  if (readyState === "error") {
+    return (
+      <div
+        aria-live="polite"
+        className="vibe-player-stage__status"
+        role="status"
+      >
+        Playback unavailable
+      </div>
+    );
+  }
+
   if (!(readyState === "buffering" || readyState === "loading")) {
     return null;
   }
