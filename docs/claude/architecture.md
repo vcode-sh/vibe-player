@@ -5,7 +5,10 @@
 ```text
 .
 ├── .github/workflows/
+├── demo/vite/
 ├── docs/claude/
+├── docs/
+├── scripts/
 ├── src/
 │   ├── adapters/
 │   ├── captions/
@@ -14,8 +17,7 @@
 │   ├── skins/
 │   ├── styles/
 │   └── ui/
-├── test/
-└── todo/
+└── test/
 ```
 
 ## Ownership model
@@ -72,7 +74,7 @@ Owns:
 Owns:
 
 - default cinematic preset
-- future Discovery-parity preset
+- future visual presets
 
 ### `src/captions`
 

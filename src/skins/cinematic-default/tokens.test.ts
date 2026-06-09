@@ -7,7 +7,7 @@ import {
 } from ".";
 
 describe("cinematic default skin tokens", () => {
-  it("freezes Discovery overlay motion and chrome timing", () => {
+  it("freezes overlay motion and chrome timing", () => {
     expect(cinematicDefaultSkinTokens.motion.easeEmphasized).toBe(
       "cubic-bezier(.23,1,.32,1)"
     );
@@ -20,7 +20,7 @@ describe("cinematic default skin tokens", () => {
     expect(cinematicDefaultSkinTokens.chrome.transitionDurationMs).toBe(240);
   });
 
-  it("keeps the Discover shell and backdrop recipe explicit", () => {
+  it("keeps the cinematic shell and backdrop recipe explicit", () => {
     expect(cinematicDefaultSkinTokens.shell.radiusPx).toBe(8);
     expect(cinematicDefaultSkinTokens.shell.border).toBe(
       "rgba(133, 140, 255, 0.45)"
@@ -32,7 +32,7 @@ describe("cinematic default skin tokens", () => {
     );
   });
 
-  it("keeps timeline and caption geometry aligned with Discovery", () => {
+  it("keeps timeline and caption geometry aligned", () => {
     expect(cinematicDefaultSkinTokens.caption.bottomMobileRem).toBe(5.75);
     expect(cinematicDefaultSkinTokens.caption.maxWidth).toBe("min(82%, 48rem)");
     expect(cinematicDefaultSkinTokens.timeline.hitAreaRem).toBe(2);

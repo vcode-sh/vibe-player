@@ -10,16 +10,16 @@ player.
 
 ## Current repo stance
 
-- Private repository
-- Author: Vibe Code
-- Initial implementation scaffold only
-- Later public/open-source target
+- Public-ready package repository
+- Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
+- License: Apache-2.0
+- npm package: `@vibe-code/vibe-player`
 
 ## Repo goals
 
-1. Ship a gold-standard package codebase before public release.
+1. Ship a gold-standard package codebase.
 2. Keep the runtime provider-agnostic from the start.
-3. Preserve Discovery-level motion and polish without coupling to Discovery.
+3. Preserve product-reference motion and polish without coupling to an app.
 4. Maintain strict modularity and small-file architecture.
 
 ## Commands

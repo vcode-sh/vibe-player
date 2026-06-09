@@ -24,7 +24,7 @@ export const cinematicDefaultSkinClassNames = {
   shell: "vibe-player-shell",
 } as const;
 
-/** First exported skin preset: neutral package chrome with Discovery-grade motion. */
+/** First exported skin preset: neutral package chrome with product-grade motion. */
 export const cinematicDefaultSkin: VibePlayerSkinPreset<
   typeof cinematicDefaultSkinTokens
 > = {

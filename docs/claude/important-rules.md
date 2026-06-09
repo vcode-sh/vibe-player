@@ -7,7 +7,7 @@
 
 ## Architecture truth rules
 
-- Discovery is a reference surface, not the package owner.
+- Product apps are reference surfaces, not package owners.
 - The package must stay provider-agnostic.
 - Shared UI may branch on normalized capabilities, not provider internals.
 - Adapters may know providers; shared components may not.
@@ -18,7 +18,8 @@
 - Keep `exports` explicit.
 - Treat the package as ESM-only unless there is a concrete public need for dual-package output.
 - Keep `dist` buildable at all times once implementation starts.
-- Keep the repo private until the API surface is intentional and stable.
+- Keep public release metadata intentional: license, funding, provenance, and
+  package files are guarded contracts.
 - Treat publint and ATTW as release gates, not optional extras.
 
 ## Repo hygiene

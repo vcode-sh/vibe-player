@@ -63,5 +63,6 @@ Each folder should have a local `index.ts`, but barrel files should stay thin.
 ## Documentation guidance
 
 - Use TSDoc on exported package APIs as implementation becomes real
+- Keep user-facing docs in `docs/*`
 - Keep cross-cutting process docs in `docs/claude/*`
-- Keep roadmap and architecture execution plans in `todo/*`
+- Do not publish local workspace notes

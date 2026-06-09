@@ -1,79 +1,84 @@
-# Release and Open-Source Transition
+# Release
 
 ## Current state
 
-- Repo is private
-- Package name is scoped for internal work: `@vibe-code/vibe-player`
-- License is `UNLICENSED`
-- Changesets is the intended versioning and npm release mechanism
-- Package output is intentionally ESM-only
-- `bun run package:release-state` guards the current private-release stance in
-  CI. Update that guard intentionally when the package is ready to become a
-  versioned internal or public release.
+- Package: `@vibe-code/vibe-player`
+- License: `Apache-2.0`
+- Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
+- Output: ESM-only, built into `dist`
+- Versioning: Changesets
+- Publishing: public npm package with Trusted Publishing/provenance
+- Guard: `bun run package:release-state`
 
-## Consumer dependency policy
+## Release policy
 
-Use local `file:` dependencies only for active package/product co-development.
-They are useful while a consumer and this package are changing together, but
-they are not a release or staging strategy.
-
-Before a consumer branch is stabilized, cut over to one of these modes:
-
-1. Versioned internal release: publish or otherwise pin an exact internal
-   package version and consume the package through its `exports` surface.
-2. Workspace policy: keep the package in a shared workspace with one lockfile
-   and one CI boundary that builds the package before the consumer.
-3. Public npm release: only after the public-release checklist below is done.
-
-Do not let product apps import `src/*`, split CSS source files, or copied
-package code. Consumers must use `@vibe-code/vibe-player` and
+Publish only built package output and consumer docs. Do not publish plans,
+workspace notes, app-specific source, demos, tests, or split source CSS files.
+Consumers must use `@vibe-code/vibe-player` and
 `@vibe-code/vibe-player/styles.css`.
 
-For every consumer cutover, verify:
+Local `file:` dependencies are for active package work only. Stable consumers
+should use the npm package or a real workspace boundary.
 
-- the consumer lockfile points to the intended package version or workspace;
-- `@vibe-code/vibe-player/styles.css` resolves to the built stylesheet;
-- the package build, tarball, public-surface, publint, and ATTW checks pass;
-- the product route has a runtime smoke for file, HLS, and any YouTube surface
-  it uses.
+## GitHub release workflow
 
-## Before the first public release
+The release workflow is gated by `vars.ENABLE_NPM_PUBLISH`.
 
-1. Decide the final package name and npm scope.
-2. Decide whether the public package should remain scoped or become unscoped.
-3. Replace `UNLICENSED` with the intended open-source license.
-4. Review all docs and comments for private/internal-only references.
-5. Ensure `bun run ci`, `publint`, and `ATTW` all pass.
-6. Ensure exports and CSS entrypoints are intentional and documented.
-7. Update or remove `package:release-state` so the new release stance is
-   explicit.
-8. Set `vars.ENABLE_NPM_PUBLISH=true` in GitHub repository settings.
-9. Add `NPM_TOKEN` and confirm the package is no longer `private`.
+Before `changesets/action` can create a version PR or publish, it runs
+`bun run ci`, including package rules, boundaries, dependency guard,
+release-state guard, TypeScript, tests, build, styles, size, public surface,
+tarball, publint, and ATTW.
 
-## Release quality bar
+The workflow uses npm Trusted Publishing through GitHub Actions OIDC. It does
+not require a long-lived `NPM_TOKEN`. Keep `id-token: write` in workflow
+permissions and keep `publishConfig.provenance: true` for public releases.
 
-Before any publish:
+## Before enabling npm publish
 
-- `bun run check`
-- `bun run check-types`
-- `bun run test`
-- `bun run build`
-- `bun run package:release-state`
-- `bun run package:styles`
-- `bun run package:size`
-- `bun run package:publint`
-- `bun run package:attw`
-- `bun run release:version` when cutting a version PR locally
+1. Confirm the GitHub repository is public.
+2. Confirm the npm package is public and owned by the expected npm account/org.
+3. Configure npm Trusted Publishing for `.github/workflows/release.yml`.
+4. Add a changeset for the release.
+5. Run `bun run ci`.
+6. Run `npm publish --dry-run --tag alpha --json`.
+7. Install the generated tarball in a temporary consumer and verify import,
+   stylesheet resolution, and `vibe-player-media-audit --help`.
+8. Set `vars.ENABLE_NPM_PUBLISH=true` only when publish should run.
 
-## Changesets flow
+## Prereleases
 
-- Create a new changeset for user-facing changes
-- Merge changesets into `main`
-- Let GitHub Actions manage version PRs and publish when enabled
-- Keep manual `npm version` and ad hoc publish flows out of the repo
+Use Changesets pre-mode for prereleases:
+
+```bash
+bunx changeset pre enter alpha
+```
+
+Do not hard-code prerelease versions in docs or consumer branches before
+`changeset version` generates them. Let Changesets decide the exact version and
+dist tag.
+
+## Manual checks
+
+Run these before any publish:
+
+```bash
+bun run check
+bun run check-types
+bun run test
+bun run build
+bun run package:release-state
+bun run package:styles
+bun run package:size
+bun run package:surface
+bun run package:tarball
+bun run package:publint
+bun run package:attw
+```
 
 ## Changelog rules
 
-- Keep all new work under `[Unreleased]`
-- Cut a versioned heading only when a real release is prepared
-- Write changelog entries in plain English
+- Keep new work under `[Unreleased]` until a release is prepared.
+- Cut a versioned heading only for real releases.
+- Write changelog entries in plain English.
+- Keep customer-facing changes concrete: behavior, API, CLI, docs, or release
+  metadata.

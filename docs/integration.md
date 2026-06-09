@@ -7,11 +7,11 @@ telemetry, storage, SEO, watched state, and media asset policy.
 
 Use one of these modes intentionally:
 
-- `file:../../../vibe-player`: active private integration only, useful while
-  package and consumer code move together.
-- versioned internal package: preferred for stable app branches once the API
-  surface stops changing daily.
-- public npm package: only after the repository release checklist is complete.
+- npm package: preferred for app work and stable branches.
+- workspace dependency: useful when the app and package share one lockfile and
+  one CI boundary.
+- local `file:` dependency: useful only for active package development with a
+  specific consumer.
 
 Do not silently copy package source into a product app. Product apps should
 import the package API and adapt their own data into `VibePlayerSource`.
@@ -70,7 +70,7 @@ metadata atom at the beginning of the file, for example via `ffmpeg -movflags
 Before rollout, audit large direct-file assets:
 
 ```bash
-bun run media:audit -- https://cdn.example.com/video.mp4 --origin https://app.example.com
+npx --package @vibe-code/vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
 ```
 
 The audit checks range delivery, optional CORS headers for supplied origins, MP4
@@ -85,7 +85,6 @@ the direct-file rollout decision:
 bun --silent run media:audit -- https://cdn.example.com/video.mp4 --origin https://app.example.com --max-size-mb 500 --json --strict --require-direct-file-ready
 ```
 
-Packaged installations expose the same checker as `vibe-player-media-audit`.
 See [media-delivery.md](./media-delivery.md) for JSON fields, stable findings,
 `nextActions`, rollout decisions, credentials-mode CORS, and human output.
 
@@ -116,7 +115,7 @@ not expect audible autoplay without a real user gesture.
 
 Use `autoPlayMutedBootstrap={false}` only when opening the player from an
 explicit user gesture and audible playback is intended. This preserves
-native-video modal handoff behavior for hosts such as Discovery, while leaving
+native-video modal handoff behavior for gesture-opened hosts, while leaving
 muted bootstrap as the safer default for inline, background, and non-gesture
 starts.
 

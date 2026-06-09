@@ -95,7 +95,7 @@ describe("media delivery audit runner", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(stdout.read()).toContain("Usage: bun run media:audit");
+    expect(stdout.read()).toContain("Usage: vibe-player-media-audit");
     expect(createReportMock).not.toHaveBeenCalled();
   });
 
@@ -186,7 +186,7 @@ describe("media delivery audit runner", () => {
     });
 
     expect(exitCode).toBe(1);
-    expect(stderr.read()).toContain("Usage: bun run media:audit");
+    expect(stderr.read()).toContain("Usage: vibe-player-media-audit");
     expect(createReportMock).not.toHaveBeenCalled();
   });
 });

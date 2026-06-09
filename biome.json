@@ -2,13 +2,13 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["ultracite/biome/core", "ultracite/biome/react"],
   "formatter": {
-    "includes": ["**", "!dist/**", "!coverage/**", "!todo/**"]
+    "includes": ["**", "!dist/**", "!coverage/**"]
   },
   "assist": {
-    "includes": ["**", "!dist/**", "!coverage/**", "!todo/**"]
+    "includes": ["**", "!dist/**", "!coverage/**"]
   },
   "linter": {
-    "includes": ["**", "!dist/**", "!coverage/**", "!todo/**"],
+    "includes": ["**", "!dist/**", "!coverage/**"],
     "rules": {
       "correctness": {
         "noUnresolvedImports": "off",

@@ -30,7 +30,7 @@ All repo rules live in `CLAUDE.md` and `docs/claude/*`.
 
 ## Package Direction
 
-- Private repo now
-- Publishable-quality package architecture from day one
-- Discovery-grade motion quality is a hard requirement
-- Discovery itself is a future consumer, not the architectural owner
+- Public-ready package architecture from day one
+- Apache-2.0 public release stance
+- Product-grade motion quality is a hard requirement
+- Product apps are consumers, not architectural owners

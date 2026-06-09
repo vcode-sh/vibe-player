@@ -31,10 +31,10 @@ describe("package tarball rules", () => {
   it("flags missing expected files and unexpected archive leaks", () => {
     const actualFiles = expectedPackageFiles
       .filter((filePath) => filePath !== "dist/styles.css")
-      .concat("todo/vibe-player.md");
+      .concat("scratch/local-note.md");
 
     expect(collectPackageArchiveIssues(actualFiles)).toEqual({
-      extraFiles: ["todo/vibe-player.md"],
+      extraFiles: ["scratch/local-note.md"],
       missingFiles: ["dist/styles.css"],
     });
   });

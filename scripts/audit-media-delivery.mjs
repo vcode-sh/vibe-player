@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import { runMediaDeliveryAuditCli } from "./media-delivery-audit-runner.mjs";
 

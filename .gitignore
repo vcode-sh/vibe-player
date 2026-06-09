@@ -7,16 +7,27 @@ build/
 build-packaged/
 coverage/
 *.tsbuildinfo
+*.tgz
 
 # Tooling caches
 .turbo/
 .vite/
+.next/
+blob-report/
+playwright-report/
 test-results/
 
 # Environment files
 .env
 .env.*
 !.env.example
+.npmrc
+
+# Package manager logs
+bun-debug.log*
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
 
 # Editor and OS noise
 .DS_Store

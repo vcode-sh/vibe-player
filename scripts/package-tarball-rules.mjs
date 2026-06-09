@@ -3,13 +3,14 @@ const lineBreakPattern = /\r\n|\r|\n/;
 
 export const expectedPackageFiles = [
   "CHANGELOG.md",
+  "LICENSE",
   "README.md",
   "dist/index.d.ts",
   "dist/index.js",
-  "dist/index.js.map",
   "dist/styles.css",
   "docs/integration.md",
   "docs/media-delivery.md",
+  "docs/usage.md",
   "package.json",
   "scripts/audit-media-delivery.mjs",
   "scripts/media-delivery-audit-args.mjs",

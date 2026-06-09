@@ -1,5 +1,5 @@
 export const mediaDeliveryAuditUsage =
-  "Usage: bun run media:audit -- <url> [--origin <origin>] [--max-size-mb <mb>] [--credentials] [--json] [--strict] [--require-direct-file-ready]";
+  "Usage: vibe-player-media-audit <url> [--origin <origin>] [--max-size-mb <mb>] [--credentials] [--json] [--strict] [--require-direct-file-ready]";
 
 const booleanOptionKeys = {
   "--credentials": "credentials",

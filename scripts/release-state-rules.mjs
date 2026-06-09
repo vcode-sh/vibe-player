@@ -1,20 +1,75 @@
-export function collectReleaseStateIssues(manifest, changesetConfig) {
+const expectedRepositoryUrl = "git+https://github.com/vcode-sh/vibe-player.git";
+const expectedIssuesUrl = "https://github.com/vcode-sh/vibe-player/issues";
+const expectedHomepage = "https://github.com/vcode-sh/vibe-player#readme";
+const expectedMediaAuditBin = "scripts/audit-media-delivery.mjs";
+const expectedAuthor = {
+  email: "hello@vcode.sh",
+  name: "Vibe Code",
+  url: "https://x.com/vcode_sh",
+};
+
+function collectMediaAuditBinIssues(manifest, packageFiles) {
+  const issues = [];
+  if (manifest.bin?.["vibe-player-media-audit"] !== expectedMediaAuditBin) {
+    issues.push("media audit bin must point to the packaged CLI entrypoint.");
+  }
+  if (!packageFiles.mediaAuditBinSource?.startsWith("#!/usr/bin/env node\n")) {
+    issues.push("media audit bin must use a Node shebang for npm publishing.");
+  }
+  return issues;
+}
+
+function collectManifestIdentityIssues(manifest) {
   const issues = [];
   if (manifest.name !== "@vibe-code/vibe-player") {
     issues.push('package name must remain "@vibe-code/vibe-player".');
   }
-  if (manifest.private !== true) {
-    issues.push("package must stay private until the release stance changes.");
+  if ("private" in manifest) {
+    issues.push("package manifest must not set private for public release.");
   }
-  if (manifest.license !== "UNLICENSED") {
-    issues.push('license must stay "UNLICENSED" before a public release.');
+  if (manifest.license !== "Apache-2.0") {
+    issues.push('license must stay "Apache-2.0" for public release.');
   }
-  if (manifest.publishConfig?.access !== "restricted") {
-    issues.push('publishConfig.access must stay "restricted".');
+  if (manifest.author?.name !== expectedAuthor.name) {
+    issues.push("author.name must identify Vibe Code.");
+  }
+  if (manifest.author?.email !== expectedAuthor.email) {
+    issues.push("author.email must point to hello@vcode.sh.");
+  }
+  if (manifest.author?.url !== expectedAuthor.url) {
+    issues.push("author.url must point to the Vibe Code profile.");
+  }
+  if (manifest.funding?.url !== "https://github.com/sponsors/vcode-sh") {
+    issues.push("funding.url must point to the Vibe Code sponsor profile.");
+  }
+  return issues;
+}
+
+function collectPackageMetadataIssues(manifest) {
+  const issues = [];
+  if (manifest.repository?.type !== "git") {
+    issues.push('repository.type must stay "git".');
+  }
+  if (manifest.repository?.url !== expectedRepositoryUrl) {
+    issues.push("repository.url must match the package GitHub repository.");
+  }
+  if (manifest.bugs?.url !== expectedIssuesUrl) {
+    issues.push("bugs.url must point to the package issue tracker.");
+  }
+  if (manifest.homepage !== expectedHomepage) {
+    issues.push("homepage must point to the package README.");
+  }
+  if (manifest.publishConfig?.access !== "public") {
+    issues.push('publishConfig.access must stay "public".');
   }
   if (manifest.publishConfig?.provenance !== true) {
-    issues.push("publishConfig.provenance must stay true.");
+    issues.push("publishConfig.provenance must stay true for public release.");
   }
+  return issues;
+}
+
+function collectEntrypointIssues(manifest) {
+  const issues = [];
   if (manifest.type !== "module") {
     issues.push('package type must stay "module" for the ESM-only package.');
   }
@@ -39,11 +94,30 @@ export function collectReleaseStateIssues(manifest, changesetConfig) {
   if (manifest.packageManager !== "bun@1.3.14") {
     issues.push('packageManager must stay "bun@1.3.14".');
   }
-  if (changesetConfig.access !== "restricted") {
-    issues.push('Changesets access must stay "restricted".');
+  return issues;
+}
+
+function collectChangesetIssues(changesetConfig) {
+  const issues = [];
+  if (changesetConfig.access !== "public") {
+    issues.push('Changesets access must stay "public".');
   }
   if (changesetConfig.commit !== false) {
     issues.push("Changesets commit must stay false.");
   }
   return issues;
+}
+
+export function collectReleaseStateIssues(
+  manifest,
+  changesetConfig,
+  packageFiles = {}
+) {
+  return [
+    ...collectManifestIdentityIssues(manifest),
+    ...collectPackageMetadataIssues(manifest),
+    ...collectEntrypointIssues(manifest),
+    ...collectMediaAuditBinIssues(manifest, packageFiles),
+    ...collectChangesetIssues(changesetConfig),
+  ];
 }

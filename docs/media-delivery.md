@@ -20,6 +20,12 @@ Packaged installations expose the same checker as:
 vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
 ```
 
+For one-off use without adding the package first:
+
+```bash
+npx --package @vibe-code/vibe-player vibe-player-media-audit https://cdn.example.com/video.mp4 --origin https://app.example.com
+```
+
 ## CI Mode
 
 For CI or asset ingestion jobs in this repo, use silent JSON mode:

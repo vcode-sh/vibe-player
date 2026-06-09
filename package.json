@@ -1,10 +1,21 @@
 {
   "name": "@vibe-code/vibe-player",
   "version": "0.1.0",
-  "private": true,
   "description": "Cinematic, provider-agnostic React video player primitives and skins.",
-  "author": "Vibe Code",
-  "license": "UNLICENSED",
+  "author": {
+    "name": "Vibe Code",
+    "email": "hello@vcode.sh",
+    "url": "https://x.com/vcode_sh"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/vcode-sh/vibe-player#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vcode-sh/vibe-player.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vcode-sh/vibe-player/issues"
+  },
   "type": "module",
   "sideEffects": [
     "./dist/styles.css"
@@ -15,6 +26,7 @@
     "dist",
     "docs/integration.md",
     "docs/media-delivery.md",
+    "docs/usage.md",
     "scripts/audit-media-delivery.mjs",
     "scripts/media-delivery-audit-args.mjs",
     "scripts/media-delivery-audit-cors.mjs",
@@ -36,10 +48,10 @@
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
   "bin": {
-    "vibe-player-media-audit": "./scripts/audit-media-delivery.mjs"
+    "vibe-player-media-audit": "scripts/audit-media-delivery.mjs"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "provenance": true
   },
   "engines": {
@@ -55,8 +67,12 @@
     "design-system",
     "cinematic-ui"
   ],
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/vcode-sh"
+  },
   "scripts": {
-    "build": "tsdown src/index.ts --format esm --dts --clean --sourcemap --out-dir dist --platform neutral --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
+    "build": "tsdown src/index.ts --format esm --dts --clean --out-dir dist --platform neutral --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
     "check": "biome check .",
     "check-types": "tsc --noEmit",
     "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw",

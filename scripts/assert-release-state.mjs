@@ -7,6 +7,10 @@ const changesetConfigPath = resolve(
   import.meta.dirname,
   "../.changeset/config.json"
 );
+const mediaAuditBinPath = resolve(
+  import.meta.dirname,
+  "./audit-media-delivery.mjs"
+);
 
 function reportIssues(issues) {
   if (issues.length === 0) {
@@ -20,7 +24,10 @@ function reportIssues(issues) {
 
 const manifest = JSON.parse(await readFile(packageJsonPath, "utf8"));
 const changesetConfig = JSON.parse(await readFile(changesetConfigPath, "utf8"));
-const issues = collectReleaseStateIssues(manifest, changesetConfig);
+const mediaAuditBinSource = await readFile(mediaAuditBinPath, "utf8");
+const issues = collectReleaseStateIssues(manifest, changesetConfig, {
+  mediaAuditBinSource,
+});
 
 reportIssues(issues);
 

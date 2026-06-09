@@ -2,8 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on Keep a Changelog, adapted for a private package that
-will later become public.
+The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
@@ -22,7 +21,7 @@ will later become public.
 - Vite demo for file, HLS, YouTube iframe, and YouTube external handoff modes
 - Media delivery audit CLI and package bin with range, faststart, CORS,
   direct-file size, rollout readiness, and structured remediation findings
-- Package guards for coding rules, boundaries, dependency shape, private
+- Package guards for coding rules, boundaries, dependency shape, public
   release stance, built stylesheet contract, package size, public surface, and
   tarball contents
 - Biome + Ultracite linting baseline
@@ -32,18 +31,18 @@ will later become public.
 - Changesets versioning scaffold
 - GitHub Actions CI
 - Root repo rules via `AGENTS.md`, `CLAUDE.md`, and `docs/claude/*`
-- Copied implementation plan in `todo/vibe-player.md`
+- Apache-2.0 license, public npm metadata, funding metadata, and contribution
+  guide
 
 ### Changed
 
 - Package stylesheet consumption now resolves through built `dist/styles.css`
   instead of split source CSS files.
-- Local consumer documentation now treats `file:` dependencies as active
-  integration only and requires versioned internal release or workspace policy
-  before stabilization.
+- README is now a short npm-facing front page, with detailed usage moved into
+  `docs/usage.md` and `docs/integration.md`.
 
 ## [0.1.0] - 2026-06-08
 
 ### Added
 
-- Initial private scaffold created by Vibe Code for implementation kickoff
+- Initial package scaffold created by Vibe Code for implementation kickoff

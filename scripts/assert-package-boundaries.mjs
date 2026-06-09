@@ -18,13 +18,8 @@ const forbiddenSpecifierRules = [
       specifier.startsWith("@/") || specifier.startsWith("~/"),
   },
   {
-    label: "app source path",
-    test: (specifier) =>
-      specifier.includes("apps/web") || specifier.includes("spreadoo"),
-  },
-  {
-    label: "Discover import",
-    test: (specifier) => specifier.toLowerCase().includes("discover"),
+    label: "product app import",
+    test: (specifier) => specifier.includes("apps/web"),
   },
   {
     label: "Next.js import",
@@ -32,7 +27,7 @@ const forbiddenSpecifierRules = [
   },
 ];
 
-const forbiddenRuntimeLiterals = ["apps/web", "_projects_/spreadoo"];
+const forbiddenRuntimeLiterals = ["apps/web"];
 
 async function collectFilesFromDir(dirPath) {
   const entries = await readdir(dirPath, { withFileTypes: true });
