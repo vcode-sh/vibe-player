@@ -64,6 +64,7 @@ export class TestAdapter implements VibePlayerAdapter {
 
   pause(): Promise<void> {
     this.calls.push("pause");
+    this.snapshot = { ...this.snapshot, paused: true, readyState: "ready" };
     return Promise.resolve();
   }
 

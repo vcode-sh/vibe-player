@@ -81,6 +81,20 @@ describe("VibePlayerController", () => {
     expect(controller.getState().snapshot.readyState).toBe("ready");
   });
 
+  it("syncs the paused snapshot immediately after pause commands", async () => {
+    const { adapters, controller } = createControllerHarness();
+    await controller.load(fileSource);
+    const adapter = getAdapter(adapters, 0);
+    adapter.emit("play", { paused: false, readyState: "playing" });
+
+    await controller.pause();
+
+    expect(controller.getState().snapshot).toMatchObject({
+      paused: true,
+      readyState: "ready",
+    });
+  });
+
   it("tracks browser-blocked playback attempts", async () => {
     const { adapters, controller } = createControllerHarness();
     await controller.load(fileSource);

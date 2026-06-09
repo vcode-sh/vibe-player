@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import type { VibePlayerController } from "../core/vibe-player-controller";
+
+const useVibePlayerMediaTargetEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function useVibePlayerMediaTarget(controller: VibePlayerController) {
   const [mediaElement, setMediaElement] = useState<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  useVibePlayerMediaTargetEffect(() => {
     if (!mediaElement) {
       return;
     }

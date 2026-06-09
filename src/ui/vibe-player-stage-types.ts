@@ -13,9 +13,12 @@ export interface VibePlayerStageProps {
   adapterFactory?:
     | ((source: VibePlayerSource) => VibePlayerAdapter)
     | undefined;
-  /** Starts playback after the selected source loads. */
+  /** Requests package playback after the selected source loads. */
   autoPlay?: boolean;
-  /** Temporarily mutes during autoplay bootstrap to satisfy browser policy. */
+  /**
+   * Temporarily mutes the package autoplay command to satisfy browser policy.
+   * Disable only for player opens that are directly tied to a user gesture.
+   */
   autoPlayMutedBootstrap?: boolean;
   /** Host-provided caption text loader; defaults to `fetch`. */
   loadCaptionText?: VibePlayerCaptionTextLoader | undefined;

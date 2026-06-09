@@ -10,6 +10,7 @@ import {
 } from "./file-adapter-test-helpers";
 import {
   createDeferredPlayback,
+  defineNativeVideoBooleanProperty,
   defineNativeVideoNumberProperty,
 } from "./native-video-test-helpers";
 
@@ -43,7 +44,7 @@ describe("createFileAdapter", () => {
 
   it("uses the native video src for a single file source", async () => {
     const { video } = await createLoadedFileAdapter(createSingleFileSource());
-    expect(video.autoplay).toBe(false);
+    expect(video.autoplay).toBe(true);
     expect(video.src).toBe("https://example.com/video.mp4");
     expect(video.querySelector("source")).toBeNull();
   });
@@ -71,6 +72,25 @@ describe("createFileAdapter", () => {
     expect(lastEvent?.type).toBe("timeupdate");
     expect(lastEvent?.snapshot.currentTime).toBe(30);
     expect(lastEvent?.snapshot.duration).toBe(120);
+  });
+
+  it("does not show buffering chrome for ordinary seek starts", async () => {
+    const { adapter, video } = await createLoadedFileAdapter();
+    const events: VibePlayerAdapterEvent[] = [];
+    adapter.subscribe((event) => {
+      events.push(event);
+    });
+
+    video.dispatchEvent(new Event("seeking"));
+    expect(events.map((event) => event.type)).not.toContain("buffering");
+
+    defineNativeVideoBooleanProperty(video, "paused", true);
+    video.dispatchEvent(new Event("waiting"));
+    expect(events.map((event) => event.type)).not.toContain("buffering");
+
+    defineNativeVideoBooleanProperty(video, "paused", false);
+    video.dispatchEvent(new Event("waiting"));
+    expect(events.at(-1)?.type).toBe("buffering");
   });
 
   it("forwards playback commands and clamps seek and volume values", async () => {

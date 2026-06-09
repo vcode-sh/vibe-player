@@ -50,6 +50,34 @@ browser range requests. Long progressive MP4 files should be encoded with the
 metadata atom at the beginning of the file, for example via `ffmpeg -movflags
 +faststart`.
 
+Before rollout, audit large direct-file assets:
+
+```bash
+bun run media:audit -- https://cdn.example.com/video.mp4 --origin https://app.example.com
+```
+
+The audit checks range delivery, optional CORS headers for supplied origins, and
+MP4 `moov`/`mdat` ordering. Treat failed faststart or range checks as an asset
+delivery issue, not as a player-control bug.
+
+For CI or asset ingestion jobs in this repo, use silent JSON mode:
+
+```bash
+bun --silent run media:audit -- https://cdn.example.com/video.mp4 --origin https://app.example.com --json --strict
+```
+
+That emits a stable JSON payload with `passed`, `failures`, CORS results, and
+MP4 box offsets while returning a non-zero exit code when delivery checks fail.
+The same payload includes `recommendations` with remediation guidance for range,
+faststart, and requested-origin CORS failures.
+
+Add `--credentials` only for sources that will use
+`crossOrigin="use-credentials"`. Credentialed media requires an exact
+`Access-Control-Allow-Origin` origin match and
+`Access-Control-Allow-Credentials: true`; wildcard `*` is not enough.
+
+Packaged installations expose the same checker as `vibe-player-media-audit`.
+
 Use HLS for long videos, adaptive delivery, or assets where progressive MP4
 startup is unreliable. HLS sources can expose package quality selection when
 managed `hls.js` playback is available.
@@ -70,9 +98,21 @@ handoff mode, not hidden/background/raw-stream playback.
 
 ## Autoplay And Audio
 
-`VibePlayerStage autoPlay` uses muted bootstrap by default. When the bootstrap
-start succeeds, the package keeps the media muted and exposes the `Unmute`
-control. Hosts should not expect audible autoplay without a real user gesture.
+`VibePlayerStage autoPlay` requests package playback after the selected source
+loads. It uses muted bootstrap by default. When the bootstrap start succeeds,
+the package keeps the media muted and exposes the `Unmute` control. Hosts should
+not expect audible autoplay without a real user gesture.
+
+Use `autoPlayMutedBootstrap={false}` only when opening the player from an
+explicit user gesture and audible playback is intended. This preserves
+native-video modal handoff behavior for hosts such as Discovery, while leaving
+muted bootstrap as the safer default for inline, background, and non-gesture
+starts.
+
+For direct file sources, `VibePlayerFileSource.autoPlay` mirrors the native
+`video.autoplay` attribute. It is useful for native-video parity, but it does
+not replace `VibePlayerStage autoPlay` and does not override the Stage muted
+bootstrap setting.
 
 When a user unmutes a playing source, the package retries playback in the same
 control path. Browser automation may still block or pause audible playback, so
@@ -88,6 +128,8 @@ metadata and playback for otherwise valid same-path media URLs.
 When a host enables `crossOrigin`, verify:
 
 - the media response includes `Access-Control-Allow-Origin` for the app origin;
+- `use-credentials` sources also include `Access-Control-Allow-Credentials:
+  true` and do not use wildcard `Access-Control-Allow-Origin`;
 - range requests still work;
 - captions are accessible from the same browser context;
 - local, staging, and production origins behave the same way.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   createIdleCapabilities,
   shouldRevealVibePlayerChromeForKey,
@@ -21,6 +21,9 @@ import { VibePlayerStageStatus } from "./vibe-player-stage-status";
 import type { VibePlayerStageProps } from "./vibe-player-stage-types";
 
 export type { VibePlayerStageProps } from "./vibe-player-stage-types";
+
+const useVibePlayerStageEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function VibePlayerStage({
   adapterFactory,
@@ -67,7 +70,7 @@ export function VibePlayerStage({
     snapshot: state.snapshot,
   });
 
-  useEffect(() => {
+  useVibePlayerStageEffect(() => {
     let cancelled = false;
 
     if (!open) {
@@ -167,7 +170,7 @@ export function VibePlayerStage({
       <VibePlayerMediaSlot onTarget={setMediaElement} />
       <VibePlayerStageStatus
         playbackBlocked={state.playbackBlocked}
-        readyState={state.snapshot.readyState}
+        snapshot={state.snapshot}
       />
       <VibePlayerCaptionOverlay lines={captions.activeLines} />
       <VibePlayerControls

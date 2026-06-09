@@ -118,6 +118,7 @@ export class VibePlayerController {
   }
   async pause(): Promise<void> {
     await this.adapter?.pause();
+    this.syncFromAdapter();
   }
   async seekTo(seconds: number): Promise<void> {
     await handleVibePlayerControllerSeek({

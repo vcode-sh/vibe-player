@@ -2,7 +2,7 @@
 
 Status: in progress; Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 9 complete; Phase 8 Discovery integration in runtime hardening pass; standalone Vite demo complete with YouTube iframe and external handoff modes
 Created: 2026-06-08 19:52 CEST
-Last verified: 2026-06-09 08:50 CEST
+Last verified: 2026-06-09 11:14 CEST
 Target: standalone reusable video-player package with Discovery-grade UI, motion, and multi-provider playback
 Primary implementation location: `/Users/tomrobak/_projects_/vibe-player`
 Reference source location: `/Users/tomrobak/_projects_/spreadoo/apps/web/src/features/discover`
@@ -47,7 +47,7 @@ The package must preserve the **cinematic feel, motion quality, chrome behavior,
 
 ### Current implementation snapshot
 
-Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-09 08:14 CEST:
+Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-09 10:33 CEST:
 
 - package scaffold exists in `package.json` for ESM build, typecheck, lint, Vitest, publint, and ATTW
 - source union, capability model, normalized event names, adapter contract, resume seam, and analytics seam exist in `src/core/vibe-player-types.ts`
@@ -67,6 +67,8 @@ Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-09 08:14 CEST:
 - native file adapter exists in `src/adapters/create-file-adapter.ts`
 - shared adapter listener contract exists in internal `src/adapters/adapter-listener.ts`
 - file adapter DOM helpers exist in `src/adapters/file-adapter-dom.ts`
+- file adapter now respects `VibePlayerFileSource.autoPlay` by setting the native `video.autoplay` flag, preserving the explicit-click Discover handoff path without making muted bootstrap the only autoplay mode
+- `VibePlayerFileSource.autoPlay` public TSDoc now documents that it mirrors the native file-adapter `video.autoplay` attribute and that hosts should normally use `VibePlayerStage autoPlay` for startup
 - native file adapter keeps native caption tracks disabled so the custom caption overlay is the single caption renderer
 - HLS adapter exists in `src/adapters/create-hls-adapter.ts`
 - HLS adapter DOM helpers exist in `src/adapters/hls-adapter-dom.ts`
@@ -78,6 +80,8 @@ Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-09 08:14 CEST:
 - managed HLS runtime bridge exists in `src/adapters/hls-managed-runtime.ts`
 - HLS runtime contract types exist in `src/adapters/hls-runtime-types.ts`
 - shared native video DOM helpers exist in `src/adapters/native-video-dom.ts`
+- native media events no longer map ordinary `seeking` to package `buffering`, so a normal timeline seek does not flash the full-stage `Loading` overlay; real `waiting` and `stalled` events surface `buffering` only while the native video is not paused
+- controller `pause()` now syncs the adapter snapshot immediately after the pause command, closing the small UI window where stale active-buffering state could survive until a later browser event
 - shared native guarded-play, playback command, volume, fullscreen, Picture-in-Picture, and cleanup helpers exist in `src/adapters/native-video-playback.ts`
 - native file and HLS adapters now reset source/video state on unmount, and their capability helpers return idle capabilities when no source is active
 - shared native adapter test helpers exist in `src/adapters/native-video-test-helpers.ts`
@@ -100,7 +104,10 @@ Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-09 08:14 CEST:
 - shared stage unmute action now retries `play()` when unmuting a source that was already playing, so the explicit user gesture can recover from browser-policy pauses
 - shared stage test helpers exist in `src/ui/vibe-player-stage-test-helpers.ts`
 - documented public stage props live in `src/ui/vibe-player-stage-types.ts` and are re-exported from the stage entrypoint
+- `VibePlayerStageProps` public TSDoc now distinguishes package playback startup from muted bootstrap and warns consumers to disable `autoPlayMutedBootstrap` only for gesture-tied audible opens
+- `VibePlayerStageStatus` now uses the full snapshot instead of `readyState` alone, hides passive paused loading after playback has advanced, and renders active loading/buffering as a compact spinner-style status instead of a full-stage dark overlay with visible `Loading` text
 - package-owned timeline exists in `src/ui/vibe-player-timeline.tsx`
+- package timeline pointer seeking now uses the wrapper geometry as the single hit target and keeps the hidden native range passive, so click percent, progress fill, and current thumb point stay aligned at both edges
 - controls CSS lives in `src/styles/vibe-player-controls.css` and is imported from `src/styles/vibe-player.css`
 - timeline CSS lives in `src/styles/vibe-player-timeline.css` and is imported from `src/styles/vibe-player.css`
 - modal overlay/backdrop CSS lives in `src/styles/vibe-player-modal.css` and is imported from `src/styles/vibe-player.css`
@@ -135,18 +142,20 @@ Verified in `/Users/tomrobak/_projects_/vibe-player` on 2026-06-09 08:14 CEST:
 - YouTube iframe runtime now passes `origin` into `playerVars` by default from the current browser origin and allows source-level `origin` / `widgetReferrer` overrides for wrapper or WebView integrations
 - no package source import currently references Discover, `apps/web`, Next.js routing, app telemetry, browser storage, or app aliases
 
-Spreadoo integration snapshot verified in `/Users/tomrobak/_projects_/spreadoo` on 2026-06-09 00:37 CEST:
+Spreadoo integration snapshot verified in `/Users/tomrobak/_projects_/spreadoo` on 2026-06-09 10:00 CEST:
 
 - `apps/web` depends on `@vibe-code/vibe-player` through a local `file:../../../vibe-player` dependency for the current private integration pass
 - `apps/web/next.config.ts` transpiles `@vibe-code/vibe-player`
 - `apps/web/src/app/layout.tsx` imports `@vibe-code/vibe-player/styles.css` as global package CSS
 - `apps/web/src/features/discover/discover-vibe-player-source.ts` maps `DiscoverVideo` to package `VibePlayerSource` without importing package internals into the package
+- Discover file sources set `autoPlay: true`, which now reaches the native file adapter as `video.autoplay = true`
 - `apps/web/src/features/discover/discover-vibe-player-resume.ts` adapts existing Discover resume memory to `VibePlayerResumeStore`
 - `apps/web/src/features/discover/discover-video-player.tsx` is now a thin wrapper around `VibePlayerStage`
+- `apps/web/src/features/discover/discover-video-player.tsx` disables `autoPlayMutedBootstrap` for the explicit user-click modal path, so the full-video element no longer starts muted
 - `apps/web/src/features/discover/use-discover-playback-telemetry.ts` maps package analytics events back into Discover-owned telemetry
 - `apps/web/src/features/discover/discover-player-overlay.tsx` still owns dialog shell, rail, navigation, close behavior, and route choreography
 - live browser QA on the user-managed `http://localhost:3001/discover/jeff-weinstein?vibePlayerCleanup=1` confirms the package stage now mounts a real full-video element and close cleanup removes it, leaving only the muted background loop
-- browser automation still cannot prove audible autoplay because user activation differs from a human click, but the full-video element reaches `readyState=4` with the correct `1449.834s` duration and no duplicate stage video remains after close
+- browser automation still cannot prove audible autoplay because Chrome blocks unmuted media starts in the automated session, but the full-video element now reaches `readyState=4`, `muted=false`, `autoPlay=true`, and the correct `1449.834s` duration with no duplicate stage video
 - standalone Vite demo now exists in `demo/vite` and uses the package through source aliases, not a Discover mimic
 - `demo/vite` is the canonical local package demo for direct file, HLS, and YouTube provider surfaces
 - `README.md` and `docs/integration.md` now document the muted-autoplay contract: `autoPlay` starts through muted bootstrap by default, successful bootstrap playback stays muted, and audible playback must be verified through a real user gesture on the target origin
@@ -160,7 +169,7 @@ Spreadoo integration snapshot verified in `/Users/tomrobak/_projects_/spreadoo` 
 - Browser QA on the same Vite demo confirms the original YouTube source still renders exactly one official iframe, includes `origin=http://localhost:5174`, and keeps package playback controls visible
 - mobile Browser QA at `390x844` confirms the `YT Headless` external handoff has no horizontal overflow, keeps the CTA visible, and still mounts zero iframes
 - Spreadoo local `file:` dependency cache was refreshed with `bun install --force`, then the `web` dev server on `localhost:3001` was restarted so Turbopack stopped serving the stale missing-CSS transform
-- Browser QA on `http://localhost:3001/discover/jeff-weinstein?youtubeExternalCacheCheck=3` confirms the first consumer loads without the new CSS import error, opens the package full-video dialog, plays one muted full-player video at `readyState=4`, pauses the background video while the dialog is open, and cleans up back to one background video after `Escape`
+- Browser QA on `http://localhost:3001/discover/jeff-weinstein?youtubeExternalCacheCheck=3` confirms the first consumer loads without the CSS import error, opens the package full-video dialog, creates one unmuted full-player video with `autoPlay=true` and `readyState=4`, keeps the background video paused while the dialog is open, and exposes only the expected automation-only `Play to start` recovery status when Chrome blocks audible autoplay
 - YouTube iframe API loading now has a watchdog/polling path and the YouTube adapter has a player-creation timeout, so provider startup cannot leave the package stuck forever on a pending promise
 - YouTube adapter failed-load and unmount cleanup now return snapshot/capabilities to idle and remove stale mount elements, so failed provider startup cannot leave an active-looking package surface behind
 - YouTube adapter now keeps a playback-start watchdog after package `play()` intent, including stuck `paused`/`buffering` iframe states, and emits normalized `playblocked` when the provider does not reach stable playback
@@ -1557,11 +1566,13 @@ Current progress:
 - `DiscoverVideoPlayer` passes package `topActions` for the Discover YouTube link instead of hardcoding Discover-specific UI inside the package
 - `useDiscoverPlaybackTelemetry` maps package analytics events to Discover playback events and keeps the oRPC telemetry sink outside the package
 - `DiscoverPlayerOverlay` still owns modal shell, backdrop, rail arrows, thumbnail rail, Escape close behavior, and overlay presence
+- old Discover player-internal modules and tests for captions, controls, keyboard shortcuts, seek control, playback rate, native-video state, and native-video resume are retired from the current `spreadoo` worktree; no current Discover source imports those old module names
 - package code still has no imports from Discover, `apps/web`, Next.js routing, app telemetry, browser storage, or app aliases
-- package file playback now uses native `video.src` for single-file sources, keeps `crossOrigin` opt-in instead of forced, and leaves native `video.autoplay` disabled so Stage owns autoplay lifecycle
+- package file playback now uses native `video.src` for single-file sources, keeps `crossOrigin` opt-in instead of forced, and sets native `video.autoplay` from `VibePlayerFileSource.autoPlay` so Discover can preserve its old explicit-click autoplay contract
 - file and HLS adapters now hard-stop pending playback after `pause()` or `unmount()`, clear media on unmount, and guard against stale play promises
 - `VibePlayerStage` now closes the active source on `open=false`, waits for a real media mount target before loading, and re-mounts the media target idempotently so React/Turbopack re-renders cannot leave a detached audio-playing video
-- native media events now surface `buffering` for `waiting`, `stalled`, and `seeking`, and Stage shows a package-owned loading status for `loading`/`buffering`
+- `VibePlayerStage` and the media-target hook now use an isomorphic layout effect in the browser so the native media target is mounted before the source load/autoplay pass runs
+- native media events now surface `buffering` for real `waiting` and `stalled` stalls, while ordinary `seeking` no longer triggers the package full-stage loading overlay
 - controller state now tracks browser-blocked playback attempts as `playbackBlocked` with a normalized `playblocked` event, so autoplay policy failures are not confused with ordinary paused playback
 - Stage now shows a package-owned `Play to start` status after a browser `NotAllowedError` blocks playback, while preserving the same controller/adapter contract for file, HLS, and YouTube sources
 - controller event handling now also accepts adapter-emitted `playblocked` events, so iframe providers without rejected `play()` promises can surface the same package-owned blocked state
@@ -1579,25 +1590,31 @@ Current progress:
 - package muted-autoplay bootstrap now keeps playback muted after a successful bootstrap start; it no longer calls `setMuted(false)` immediately after `play()`, which could leave Discover full-video playback paused by browser policy
 - package unmute action retries `play()` when unmuting an already-playing source, preserving the explicit user gesture path for browsers that pause media on programmatic unmute
 - package play intent now surfaces a buffering state immediately after `controller.play()` before slow native/provider playback events arrive, so large progressive assets do not leave the UI looking idle while the browser starts playback
+- package timeline seeking now keeps pointer handling on the wrapper and makes the hidden native range passive, aligning click percent, progress fill, and thumb point at the left and right edges
+- package timeline seek clicks no longer darken the video through a transient full-stage `Loading` status; the adapter regression proves `seeking` does not emit `buffering`, paused native `waiting/stalled` does not emit `buffering`, and active decode/buffer stalls render only the compact package busy status
 - package `supportsPlayback` capability now prevents external/handoff sources from showing playback chrome or surfacing fake play intent states
 - YouTube `presentation: "external"` is available to future Discover or other product surfaces that need a headless-style YouTube handoff without embedding the YouTube player
 - live Discover browser QA now proves package controls, captions toggle, close/reopen cleanup, and rail route navigation on `http://localhost:3001/discover/jeff-weinstein?vibePlayerCleanup=1`
-- live Discover browser QA on the exact `http://localhost:3001/discover/jeff-weinstein` origin now proves opening the overlay starts the full video muted with package controls showing `Pause` and `Unmute`
-- automation clicks on the full-video audible-start controls still trigger browser-blocked playback or browser-policy pause and show the package-owned recovery controls, so actual audible human-click start remains the main manual QA item
+- live Discover browser QA on the exact `http://localhost:3001/discover/jeff-weinstein?youtubeExternalCacheCheck=3` origin now proves opening the overlay creates one full-player video with `autoPlay=true`, `muted=false`, `readyState=4`, and the expected full MP4 duration; Chrome automation can still block audible autoplay and show `Play to start`
+- automation can prove the full-player video is no longer initialized muted, but actual audible human-click start remains the main manual QA item because Chrome blocks unmuted playback in automated sessions
 - Discover playback telemetry now has a mocked hook test proving package `started`, `progress_*`, `completed`, and `closed` events map to Discover oRPC telemetry while duplicate package events stay deduped
 - `useDiscoverPlaybackTelemetry` now dedupes the `onCompleted` callback itself, not only the `completed` telemetry event
 - package resume restore now preserves the old Discover near-end guard: saved positions within the final second of a finite video are not restored
 - Discover's `discoverVibePlayerResumeStore` adapter is now covered by a unit test proving `set`, `get`, and `clear` use the existing Discover resume memory
 - `docs/integration.md` now documents the consumer setup contract for CSS imports, Next/package transpilation, host-owned telemetry/resume, muted autoplay/audio policy, CORS, faststart MP4 requirements, HLS preference for long assets, and the private `file:` dependency policy
+- README and `docs/integration.md` now document the same three-part autoplay contract: Stage `autoPlay` owns package startup, muted bootstrap is the safe default, and `VibePlayerFileSource.autoPlay` is native-video parity only
+- package media-delivery audit tooling now ships as `bun run media:audit` and package bin `vibe-player-media-audit`, checking byte ranges, optional CORS origins, and MP4 `moov`/`mdat` ordering before a direct-file asset reaches a consumer integration; the bin entrypoint is split from reusable audit core so both script files stay inside the preferred LOC range
+- media-delivery audit now supports `--json --strict` for CI and asset-ingestion jobs, emitting `passed`, `failures`, CORS results, MP4 box offsets, and remediation recommendations while returning a non-zero exit code when requested delivery checks fail; repo docs use `bun --silent run media:audit` for JSON mode so stdout remains parseable
+- `scripts/media-delivery-audit-core.test.mjs` now covers non-faststart MP4 detection, mixed allowed/missing CORS origins, remediation recommendations, and the stable JSON payload shape; Vitest includes `scripts/**/*.test.mjs`
 - `docs/integration.md` now documents YouTube iframe vs external presentation modes and explicitly states that external is a handoff, not hidden/background/raw-stream playback
 
 Remaining:
 
-- continue live visual QA on the user-managed `http://localhost:3001/discover/jeff-weinstein` route until actual human-click audible start and human-playback resume after unmute are proven; muted automated long-playback and cleanup are now proven, but audible human-gesture playback remains manual QA
-- fix the Jeff Weinstein full-video asset/CDN path: the MP4 is about 670 MiB and has `moov` after `mdat`, so it should be remuxed with `ffmpeg -movflags +faststart` or replaced with HLS/renditions; Cloudflare range probes for the large full video are dynamic/bypass rather than a reliable edge hit
-- align production CORS before using `crossOrigin` for full-video playback; localhost returned CORS headers, but `https://spreadu.com` and `https://www.spreadu.com` did not during this pass
+- continue live visual QA on the user-managed `http://localhost:3001/discover/jeff-weinstein` route until actual audible human-click start is proven; automation now proves the full-player video is unmuted and ready, but Chrome policy still prevents automated proof of audible playback
+- fix the current Jeff Weinstein full-video asset/CDN path: the active `file.albumdesigner.co` MP4 is about 670 MiB, has `mdat` before `moov`, and should be remuxed with `ffmpeg -movflags +faststart` or replaced with HLS/renditions
+- align production CORS before using `crossOrigin` for full-video playback; the media audit now confirms `http://localhost:3001` receives CORS headers, but `https://spreadu.com` and `https://www.spreadu.com` do not
 - the local `file:../../../vibe-player` dependency is documented as active private integration only and should be converted to a versioned internal release or workspace policy before externalization
-- old Discover player-internal files such as `use-discover-video-player-state.ts`, `discover-video-controls.tsx`, and `discover-caption-overlay.tsx` remain in the tree for now; remove them only after live QA confirms no rollback path is needed and their tests are retired intentionally
+- keep the retired Discover player-internal files out of the integration unless a rollback is explicitly requested; current import audit shows no remaining references to the old native-video player modules
 
 Verification:
 
@@ -1670,6 +1687,42 @@ Verification:
 - 2026-06-09 02:28 CEST: Spreadoo scoped validation passed for resume/telemetry touched files: target Discover test set passed with 5 files, 10 tests, and 35 assertions; `bun run --cwd apps/web check-types`, `npx ultracite check ...`, and `git diff --check -- ...` passed
 - 2026-06-09 02:32 CEST: consumer integration guide added at `docs/integration.md` and linked from `README.md`, covering CSS import, package transpilation, host-owned seams, CORS, faststart MP4, HLS preference, and pre-rollout verification
 - 2026-06-09 02:38 CEST: post-documentation package validation passed: `bun run check`, `bun run check-types`, and `git diff --check`
+- 2026-06-09 09:54 CEST: package file adapter now sets native `video.autoplay = source.autoPlay === true`, and `apps/web/src/features/discover/discover-video-player.tsx` passes `autoPlayMutedBootstrap={false}` so the first Discover consumer is not forced through muted bootstrap
+- 2026-06-09 09:54 CEST: package timeline regression test proves a wrapper-geometry seek at `50px` into a `200px` track with `duration=100` seeks to `25` and focuses the hidden range; the native range now has `pointer-events: none`
+- 2026-06-09 09:54 CEST: focused package Vitest passed for file adapter, timeline, Stage autoplay, and Stage behavior with 4 files and 21 tests; full package `bun run ci` passed with 33 files and 124 tests, followed by `git diff --check`
+- 2026-06-09 09:54 CEST: after `bun run build` and `bun install --force`, the active Spreadoo package cache contains `video.autoplay = source.autoPlay === true`, and Discover passes `autoPlayMutedBootstrap={false}`
+- 2026-06-09 09:54 CEST: Browser QA on `http://localhost:3001/discover/jeff-weinstein?youtubeExternalCacheCheck=3` confirmed the full-player video opens with `autoPlay=true`, `muted=false`, `readyState=4`, duration `1449.834`, and only the expected automation-only `Play to start` status when Chrome blocks audible autoplay
+- 2026-06-09 09:54 CEST: Browser timeline QA confirmed left and right edge seeks align: expected `4.967%` / `95.033%`, and both the progress fill width and thumb point left matched those percentages after clicks
+- 2026-06-09 09:54 CEST: Spreadoo validation passed for focused Discover tests with 8 tests and 27 assertions, mocked Discover suite with 6 files, root `bun run check`, `bun run --cwd apps/web check-types`, and `git diff --check`
+- 2026-06-09 10:00 CEST: Discover cleanup audit found no imports of the retired old player modules (`discover-video-controls`, `discover-seek-control`, `discover-caption-overlay`, `use-discover-video-player-state`, shortcut/chrome/caption hooks, playback-rate, or native-video resume); the active `features/discover` file list contains the package-backed source/resume/telemetry modules instead
+- 2026-06-09 10:03 CEST: autoplay DX pass updated public TSDoc in `VibePlayerFileSource` and `VibePlayerStageProps`, plus README and `docs/integration.md`, so consumers can distinguish Stage startup, muted bootstrap, and native file `autoplay` parity
+- 2026-06-09 10:03 CEST: post-DX validation passed `bun run check`, `bun run check-types`, `bun run package:rules`, `bun run build`, and `git diff --check`
+- 2026-06-09 10:15 CEST: added `scripts/audit-media-delivery.mjs`, `scripts/media-delivery-audit-core.mjs`, `media:audit`, and package bin `vibe-player-media-audit`; README and `docs/integration.md` now show the audit command for large direct-file assets
+- 2026-06-09 10:15 CEST: media audit on the current Discover full-video URL `https://file.albumdesigner.co/app/discover/cmpsvo3a1000rdtvak8443f2m/full_video/ffe00343ec784f6593983e1f38e3ec84.mp4` confirmed `HTTP range: ok (206)`, content length `702511504`, boxes `ftyp@0`, `free@32`, `mdat@40`, `moov offset: 701507755`, `MP4 faststart: no`, CORS OK for `http://localhost:3001`, and CORS missing for `https://spreadu.com` plus `https://www.spreadu.com`
+- 2026-06-09 10:15 CEST: media audit on the older demo-catalog storage URL confirmed a healthy contrast case: `HTTP range: ok (206)`, content length `185483070`, `moov@24`, `mdat@117084`, `MP4 faststart: ok`, and CORS OK for localhost plus both production Spreadu origins
+- 2026-06-09 10:21 CEST: media audit CLI was split into a 55 LOC bin runner and 191 LOC reusable core helper, keeping both files inside the preferred source-size range while preserving the same command output for the current Discover full-video audit
+- 2026-06-09 10:21 CEST: release-level validation after the media audit split passed full `bun run ci` with Biome, package rules, boundaries, dependencies, TypeScript, 33 Vitest files and 124 tests, build, public-surface audit, tarball audit with 15 files, publint, and ATTW
+- 2026-06-09 10:33 CEST: removed the native `seeking -> buffering` event mapping from `src/adapters/native-video-dom.ts`; `create-file-adapter.test.ts` now proves ordinary `seeking` does not emit `buffering`, while `waiting` still emits `buffering`
+- 2026-06-09 10:33 CEST: after `bun run build`, `bun install --force` in Spreadoo, and restart of `next dev --port=3001`, active `apps/web/node_modules/@vibe-code/vibe-player` contains no `seeking` native-event binding
+- 2026-06-09 10:33 CEST: Browser QA on `http://localhost:3001/discover/jeff-weinstein?youtubeExternalCacheCheck=3` opened the package player, started muted playback through package controls, clicked the timeline at about `62%`, and confirmed `.vibe-player-stage__status` stayed absent immediately and after 250ms while the video continued playing at the seeked time
+- 2026-06-09 10:33 CEST: focused package Vitest passed for file adapter, timeline, and Stage with 3 files and 19 tests; full package `bun run ci` passed with 33 files and 125 tests
+- 2026-06-09 10:33 CEST: Spreadoo validation passed focused Discover tests with 8 tests and 27 assertions, `bun run --cwd apps/web check-types`, and `git diff --check`
+- 2026-06-09 10:57 CEST: loading-overlay hardening changed native event handling so paused `waiting/stalled` does not emit `buffering`, changed `controller.pause()` to sync the adapter snapshot immediately, and changed Stage status UI from visible full-stage `Loading` text to a compact busy indicator for active playback buffering only
+- 2026-06-09 10:57 CEST: new package regressions cover passive paused loading hidden in `VibePlayerStageStatus`, compact busy chrome during active buffering, immediate paused snapshot sync after controller pause, paused native `waiting` ignored by the file adapter, and media audit core CORS/non-faststart detection
+- 2026-06-09 10:57 CEST: focused package Vitest passed for file adapter, controller, Stage status, Stage, and media audit core with 5 files and 31 tests; full package `bun run ci` passed with 35 files and 130 tests, including build, tarball, publint, and ATTW
+- 2026-06-09 10:57 CEST: after `bun install --force` in Spreadoo and restart of `next dev --port=3001`, active `apps/web/node_modules/@vibe-code/vibe-player/dist/index.js` contains the paused-buffering guard and the new `Loading video` accessible busy label
+- 2026-06-09 10:57 CEST: Browser QA on `http://localhost:3001/discover/jeff-weinstein?youtubeExternalCacheCheck=3` confirmed opening the player still creates an unmuted full-video element with `autoplay=true`, `readyState=4`, duration `1449.834`, and expected automation-only `Play to start`; after muting and pressing Play, muted playback started with no status overlay
+- 2026-06-09 10:57 CEST: Browser timeline QA clicked about `62%`; the current MP4 briefly dropped to `readyState=1` and rendered only `vibe-player-stage__status--busy` with no visible `Loading` text, then cleared the status after about 300ms at `readyState=4`; pausing immediately after seek kept status absent immediately and after 700ms
+- 2026-06-09 10:57 CEST: post-refresh Spreadoo validation passed focused Discover tests with 8 tests and 27 assertions, `bun run --cwd apps/web check-types`, and `git diff --check`; Browser console showed only the known external Meta Pixel permissions warning
+- 2026-06-09 11:05 CEST: media audit CLI now supports `--json --strict` for CI and asset-ingestion jobs; README and `docs/integration.md` document the machine-readable payload and strict exit behavior for long direct-file asset rollout checks
+- 2026-06-09 11:05 CEST: `media-delivery-audit-core.test.mjs` regression now parses `formatMediaDeliveryAuditJson(report)` and proves `passed:false`, failures, MP4 offsets, and CORS failure status survive in the JSON payload
+- 2026-06-09 11:05 CEST: real CLI smoke `bun run media:audit -- https://media.w3.org/2010/05/sintel/trailer_hd.mp4 --json` emitted valid JSON with `rangeOk:true`, `status:206`, `passed:false`, and `MP4 is not faststart`
+- 2026-06-09 11:05 CEST: focused media audit Vitest passed with 1 file and 1 test; full package `bun run ci` passed with 35 files and 130 tests, including build, public surface, tarball, publint, and ATTW; final `git diff --check` passed
+- 2026-06-09 11:09 CEST: README and `docs/integration.md` now document `bun --silent run media:audit -- ... --json --strict` for local CI usage, avoiding Bun's human-readable script prefix before JSON
+- 2026-06-09 11:09 CEST: silent CLI smoke `bun --silent run media:audit -- https://media.w3.org/2010/05/sintel/trailer_hd.mp4 --json` emitted clean JSON only, with `rangeOk:true`, `status:206`, `passed:false`, and `MP4 is not faststart`; validation passed `bun run check`, `bun run check-types`, and `git diff --check`
+- 2026-06-09 11:14 CEST: media audit reports now include `recommendations` for range failures, non-faststart MP4 remediation through `ffmpeg -movflags +faststart` or HLS renditions, and requested-origin CORS setup before enabling `crossOrigin`; human output prints a `Recommendations:` section
+- 2026-06-09 11:14 CEST: `media-delivery-audit-core.test.mjs` now proves recommendations survive both the in-memory report and JSON payload; README and `docs/integration.md` document that JSON includes remediation guidance
+- 2026-06-09 11:14 CEST: silent CLI smoke on `https://media.w3.org/2010/05/sintel/trailer_hd.mp4` emitted clean JSON with `recommendations: ["Remux MP4 with \`ffmpeg -movflags +faststart\` or serve HLS renditions."]`; full package `bun run ci` passed with 35 files and 130 tests
 
 ### Phase 9 — Externalization decision
 

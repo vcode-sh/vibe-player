@@ -34,6 +34,7 @@ export function VibePlayerTimeline({
   onSeek,
 }: VibePlayerTimelineProps) {
   const [hoverPercent, setHoverPercent] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const pointerSeekingRef = useRef(false);
   const hasDuration = duration > 0 && !disabled;
   const progress = hasDuration
@@ -69,6 +70,7 @@ export function VibePlayerTimeline({
   return (
     <div
       className="vibe-player-timeline"
+      data-disabled={!hasDuration}
       data-vibe-player-timeline
       onPointerCancel={stopPointerSeek}
       onPointerDown={(event) => {
@@ -76,6 +78,7 @@ export function VibePlayerTimeline({
           return;
         }
         pointerSeekingRef.current = true;
+        inputRef.current?.focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
         seekFromPointer(event);
       }}
@@ -102,6 +105,7 @@ export function VibePlayerTimeline({
         max={duration || 0}
         min={0}
         onChange={(event) => onSeek(Number(event.currentTarget.value))}
+        ref={inputRef}
         step={0.1}
         type="range"
         value={hasDuration ? currentTime : 0}

@@ -110,9 +110,14 @@ to own YouTube audio/video playback.
   allowlist when using a local `file:` dependency or source package.
 - Leave `crossOrigin` unset unless the media origin sends matching CORS
   headers.
-- Treat `autoPlay` as muted bootstrap by default. The package keeps successful
-  bootstrap playback muted and lets users opt into audio through the `Unmute`
-  control.
+- Use `VibePlayerStage autoPlay` for package-owned startup. It uses muted
+  bootstrap by default and keeps successful bootstrap playback muted until the
+  user chooses audio.
+- Set `autoPlayMutedBootstrap={false}` only when opening the player from an
+  explicit user gesture and audible playback is intended.
+- Treat `VibePlayerFileSource.autoPlay` as native-video parity only: it mirrors
+  the file adapter's `video.autoplay` attribute and does not replace the Stage
+  startup contract.
 - Use HLS for long videos, adaptive delivery, or progressive MP4 assets that
   are not `faststart`.
 - Map `onAnalyticsEvent` into the host telemetry system instead of coupling the
@@ -139,6 +144,36 @@ bun run demo:vite:packaged:build
 demo build first runs `bun run build`, then consumes the package through its
 published `exports` surface.
 
+## Media Delivery Audit
+
+Use the local media audit before wiring large direct-file assets into a product
+surface:
+
+```bash
+bun run media:audit -- https://example.com/video.mp4 --origin https://app.example.com
+```
+
+It checks byte-range delivery, optional CORS headers for supplied origins, and
+MP4 `moov`/`mdat` ordering so slow progressive assets can be remuxed or moved
+to HLS before they reach the player.
+
+Use `--json --strict` in CI to emit a machine-readable report and fail the
+command when range, faststart, or requested-origin CORS checks fail. The JSON
+payload includes failures and remediation recommendations. In this repo, use
+`bun --silent run` for JSON mode so stdout stays parseable:
+
+```bash
+bun --silent run media:audit -- https://example.com/video.mp4 --origin https://app.example.com --json --strict
+```
+
+Add `--credentials` only when the media source will use
+`crossOrigin="use-credentials"`; that mode requires an exact
+`Access-Control-Allow-Origin` match and `Access-Control-Allow-Credentials:
+true`.
+
+The same checker is shipped as `vibe-player-media-audit` for packaged
+installations.
+
 ## Commands
 
 ```bash
@@ -147,6 +182,9 @@ bun run check
 bun run check-types
 bun run test
 bun run build
+bun run media:audit -- <url> --origin <origin>
+bun --silent run media:audit -- <url> --origin <origin> --json --strict
+bun --silent run media:audit -- <url> --origin <origin> --credentials --json --strict
 bun run package:rules
 bun run package:boundaries
 bun run package:dependencies

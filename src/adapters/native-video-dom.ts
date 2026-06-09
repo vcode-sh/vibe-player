@@ -33,7 +33,6 @@ const nativeEventBindings: NativeEventBinding[] = [
   { nativeEvent: "playing", playerEvent: "ready" },
   { nativeEvent: "ratechange", playerEvent: "ratechange" },
   { nativeEvent: "seeked", playerEvent: "ready" },
-  { nativeEvent: "seeking", playerEvent: "buffering" },
   { nativeEvent: "stalled", playerEvent: "buffering" },
   { nativeEvent: "timeupdate", playerEvent: "timeupdate" },
   { nativeEvent: "volumechange", playerEvent: "volumechange" },
@@ -73,9 +72,12 @@ export function createNativeVideo(
   video.className =
     "vibe-player-native-adapter-video vibe-player-file-adapter-video";
   for (const binding of nativeEventBindings) {
-    video.addEventListener(binding.nativeEvent, () =>
-      emit(binding.playerEvent)
-    );
+    video.addEventListener(binding.nativeEvent, () => {
+      if (binding.playerEvent === "buffering" && video.paused) {
+        return;
+      }
+      emit(binding.playerEvent);
+    });
   }
   return video;
 }

@@ -11,6 +11,8 @@ const expectedFiles = [
   "dist/index.js.map",
   "docs/integration.md",
   "package.json",
+  "scripts/audit-media-delivery.mjs",
+  "scripts/media-delivery-audit-core.mjs",
   "src/styles/vibe-player-controls.css",
   "src/styles/vibe-player-modal.css",
   "src/styles/vibe-player-preview.css",

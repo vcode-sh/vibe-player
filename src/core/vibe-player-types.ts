@@ -16,6 +16,11 @@ export interface VibePlayerMediaSource {
 
 /** Direct MP4/WebM source rendered through the native file adapter. */
 export interface VibePlayerFileSource {
+  /**
+   * Mirrors the native video `autoplay` attribute for file sources. Most hosts
+   * should control startup with `VibePlayerStage autoPlay`; this flag exists
+   * for native-video parity when a user gesture opens the player surface.
+   */
   autoPlay?: boolean;
   captions?: VibePlayerCaptionTrack[];
   crossOrigin?: "anonymous" | "use-credentials" | null;

@@ -30,6 +30,17 @@ export function defineNativeVideoNumberProperty(
   });
 }
 
+export function defineNativeVideoBooleanProperty(
+  element: HTMLVideoElement,
+  key: "paused",
+  value: boolean
+): void {
+  Object.defineProperty(element, key, {
+    configurable: true,
+    value,
+  });
+}
+
 export function getMountedNativeVideo(target: HTMLElement): HTMLVideoElement {
   const video = target.querySelector("video");
   if (!(video instanceof HTMLVideoElement)) {

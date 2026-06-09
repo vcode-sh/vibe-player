@@ -4,6 +4,11 @@
   min-width: 0;
   height: 2rem;
   pointer-events: auto;
+  cursor: pointer;
+}
+
+.vibe-player-timeline[data-disabled="true"] {
+  cursor: default;
 }
 
 .vibe-player-timeline__input {
@@ -14,7 +19,7 @@
   z-index: 20;
   height: 2rem;
   appearance: none;
-  cursor: pointer;
+  pointer-events: none;
   background: transparent;
   opacity: 0;
   transform: translateY(-50%);

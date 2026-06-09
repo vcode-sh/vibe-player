@@ -50,7 +50,7 @@ export function setFileVideoSource(
 ): void {
   clearNativeElement(video);
   video.removeAttribute("src");
-  video.autoplay = false;
+  video.autoplay = source.autoPlay === true;
   setNativeVideoMetadata(video, source);
 
   if (source.sources.length === 1) {
