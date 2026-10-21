@@ -16,7 +16,7 @@ const resumeStore = createLocalStorageVibePlayerResumeStore({
 });
 
 function getInitialSourceId() {
-  const firstSource = demoSources[0];
+  const [firstSource] = demoSources;
   if (!firstSource) {
     throw new Error("The Vite demo needs at least one source.");
   }

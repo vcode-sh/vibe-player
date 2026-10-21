@@ -108,8 +108,8 @@ function createCorsNextAction(result) {
         `Set Access-Control-Allow-Origin to ${result.origin} and ` +
         "Access-Control-Allow-Credentials: true.",
       headers: {
-        "Access-Control-Allow-Origin": result.origin,
         "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Origin": result.origin,
       },
       label: "Allow credentialed CORS origin",
       origin: result.origin,

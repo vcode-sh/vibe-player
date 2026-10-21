@@ -12,12 +12,12 @@ const mediaAuditBinPath = resolve(
   "./audit-media-delivery.mjs"
 );
 
-function reportIssues(issues) {
-  if (issues.length === 0) {
+function reportIssues(failures) {
+  if (failures.length === 0) {
     return;
   }
   console.error("Release state audit failed:");
-  for (const issue of issues) {
+  for (const issue of failures) {
     console.error(`- ${issue}`);
   }
 }

@@ -177,7 +177,7 @@ export function getDemoSource(sourceId: string): DemoSourceItem {
   if (source) {
     return source;
   }
-  const fallback = demoSources[0];
+  const [fallback] = demoSources;
   if (!fallback) {
     throw new Error("At least one Vibe Player demo source is required.");
   }

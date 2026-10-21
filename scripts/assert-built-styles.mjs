@@ -37,12 +37,12 @@ function reportList(title, items) {
   }
 }
 
-function collectPackageStyleIssues(packageJson) {
+function collectPackageStyleIssues(manifest) {
   const issues = [];
-  if (packageJson.exports?.["./styles.css"] !== "./dist/styles.css") {
+  if (manifest.exports?.["./styles.css"] !== "./dist/styles.css") {
     issues.push('exports["./styles.css"] must point to "./dist/styles.css".');
   }
-  if (!packageJson.sideEffects?.includes("./dist/styles.css")) {
+  if (!manifest.sideEffects?.includes("./dist/styles.css")) {
     issues.push('sideEffects must include "./dist/styles.css".');
   }
   return issues;

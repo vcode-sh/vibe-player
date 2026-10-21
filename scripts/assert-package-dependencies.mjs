@@ -33,12 +33,12 @@ const forbiddenSections = [
   "optionalDependencies",
 ];
 
-function getObjectKeys(value, sectionName, failures) {
+function getObjectKeys(value, sectionName, issues) {
   if (value === undefined) {
     return [];
   }
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    failures.push(`${sectionName}: must be an object`);
+    issues.push(`${sectionName}: must be an object`);
     return [];
   }
   return Object.keys(value).sort();

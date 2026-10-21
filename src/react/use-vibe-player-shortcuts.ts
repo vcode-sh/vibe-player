@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useEffectEvent } from "react";
 import {
   getVibePlayerShortcutAction,
   type VibePlayerShortcutAction,
@@ -29,46 +29,39 @@ export function useVibePlayerShortcuts({
   supportsMute,
   target,
 }: UseVibePlayerShortcutsOptions): void {
+  const onKeyDown = useEffectEvent((event: Event) => {
+    if (!(event instanceof KeyboardEvent)) {
+      return;
+    }
+    const action = getVibePlayerShortcutAction(
+      {
+        altKey: event.altKey,
+        code: event.code,
+        ctrlKey: event.ctrlKey,
+        key: event.key,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        targetIsContentEditable: getTargetIsContentEditable(event.target),
+        targetTagName: getTargetTagName(event.target),
+      },
+      { canFullscreen, canSeek, canShowCaptions, supportsMute }
+    );
+    if (!action) {
+      return;
+    }
+    event.preventDefault();
+    onShortcut(action);
+  });
+
   useEffect(() => {
     if (!enabled) {
       return;
     }
     const shortcutTarget = target ?? window;
-    const handleKeyDown = (event: Event) => {
-      if (!(event instanceof KeyboardEvent)) {
-        return;
-      }
-      const action = getVibePlayerShortcutAction(
-        {
-          altKey: event.altKey,
-          code: event.code,
-          ctrlKey: event.ctrlKey,
-          key: event.key,
-          metaKey: event.metaKey,
-          shiftKey: event.shiftKey,
-          targetIsContentEditable: getTargetIsContentEditable(event.target),
-          targetTagName: getTargetTagName(event.target),
-        },
-        { canFullscreen, canSeek, canShowCaptions, supportsMute }
-      );
-      if (!action) {
-        return;
-      }
-      event.preventDefault();
-      onShortcut(action);
-    };
-
+    const handleKeyDown = (event: Event) => onKeyDown(event);
     shortcutTarget.addEventListener("keydown", handleKeyDown);
     return () => {
       shortcutTarget.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    canFullscreen,
-    canSeek,
-    canShowCaptions,
-    enabled,
-    onShortcut,
-    supportsMute,
-    target,
-  ]);
+  }, [enabled, target]);
 }

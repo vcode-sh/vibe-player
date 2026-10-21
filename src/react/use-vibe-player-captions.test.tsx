@@ -54,7 +54,7 @@ describe("useVibePlayerCaptions", () => {
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    const firstCall = loadCaptionText.mock.calls[0];
+    const [firstCall] = loadCaptionText.mock.calls;
     if (!firstCall) {
       throw new Error("Expected caption loader to be called.");
     }

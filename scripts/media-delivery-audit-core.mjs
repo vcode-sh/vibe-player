@@ -112,6 +112,7 @@ function resolveMediaDeliveryTotalSize(
 async function collectCorsResults(url, origins, credentialsRequired) {
   const corsResults = [];
   for (const origin of origins) {
+    // biome-ignore lint/performance/noAwaitInLoops: Probe origins sequentially to keep one request in flight per audited server.
     const response = await fetchMediaDeliveryRangeSample({
       end: 0,
       origin,
@@ -175,8 +176,8 @@ export async function createMediaDeliveryAuditReport(input) {
   return {
     corsResults,
     credentialsRequired,
-    findings,
     failures,
+    findings,
     maxSizeBytes,
     mp4,
     nextActions,

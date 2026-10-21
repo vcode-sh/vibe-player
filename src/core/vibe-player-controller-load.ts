@@ -90,8 +90,8 @@ export async function loadVibePlayerControllerSource({
     snapshot: adapter.getSnapshot(),
   });
   analyticsSession.emitOnce({
-    sourceId: source.id,
     provider: source.type,
+    sourceId: source.id,
     type: "opened",
   });
   await restoreVibePlayerResumePosition({

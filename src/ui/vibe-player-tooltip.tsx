@@ -90,7 +90,7 @@ export function VibePlayerTooltip({
   }
 
   function hideTooltip(event: FocusEvent<HTMLSpanElement>): void {
-    const relatedTarget = event.relatedTarget;
+    const { relatedTarget } = event;
     if (
       relatedTarget instanceof Node &&
       event.currentTarget.contains(relatedTarget)

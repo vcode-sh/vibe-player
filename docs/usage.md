@@ -113,7 +113,7 @@ Use `autoPlayMutedBootstrap={false}` only when opening from a real user
 gesture and audible playback is intended:
 
 ```tsx
-<VibePlayerStage autoPlay autoPlayMutedBootstrap={false} source={source} />
+<VibePlayerStage autoPlay autoPlayMutedBootstrap={false} source={source} />;
 ```
 
 ## Host Hooks
@@ -127,7 +127,7 @@ write localStorage by default.
   onAnalyticsEvent={(event) => analytics.track(event.type, event)}
   resumeStore={resumeStore}
   source={source}
-/>
+/>;
 ```
 
 ## Custom And Headless UI

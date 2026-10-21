@@ -14,8 +14,8 @@ async function inspectBudget(budget) {
   return createPackageSizeRow(budget, source);
 }
 
-function reportRows(rows) {
-  for (const row of rows) {
+function reportRows(results) {
+  for (const row of results) {
     const status = row.passed ? "ok" : "over";
     console.log(
       `${status} ${row.label}: ${formatPackageSizeBytes(
@@ -25,10 +25,7 @@ function reportRows(rows) {
   }
 }
 
-const rows = [];
-for (const budget of packageSizeBudgets) {
-  rows.push(await inspectBudget(budget));
-}
+const rows = await Promise.all(packageSizeBudgets.map(inspectBudget));
 
 const failures = collectPackageSizeFailures(rows);
 reportRows(rows);

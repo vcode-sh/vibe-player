@@ -16,11 +16,16 @@
         "useImportExtensions": "off"
       },
       "performance": {
-        "noBarrelFile": "off"
+        "noBarrelFile": "off",
+        "noJsxPropsBind": "off"
+      },
+      "style": {
+        "useConsistentMethodSignatures": "off"
       },
       "suspicious": {
         "noArrayIndexKey": "warn",
-        "noImportCycles": "off"
+        "noImportCycles": "off",
+        "noUnnecessaryConditions": "off"
       }
     }
   },

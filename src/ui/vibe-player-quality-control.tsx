@@ -80,7 +80,7 @@ export function VibePlayerQualityControl({
   }
 
   function handleBlur(event: FocusEvent<HTMLDivElement>): void {
-    const relatedTarget = event.relatedTarget;
+    const { relatedTarget } = event;
     if (
       relatedTarget instanceof Node &&
       event.currentTarget.contains(relatedTarget)

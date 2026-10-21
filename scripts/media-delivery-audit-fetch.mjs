@@ -53,6 +53,7 @@ async function readResponsePrefix(response, limit) {
   const chunks = [];
   let totalLength = 0;
   while (totalLength < limit) {
+    // biome-ignore lint/performance/noAwaitInLoops: Each chunk determines whether the bounded stream needs another read.
     const read = await reader.read();
     if (read.done) {
       break;

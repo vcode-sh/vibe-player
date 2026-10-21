@@ -35,11 +35,7 @@ async function readStyleBlock(target) {
 
 const entrySource = await readFile(inputPath, "utf8");
 const parts = collectStyleParts(entrySource);
-const blocks = [];
-
-for (const target of parts.importTargets) {
-  blocks.push(await readStyleBlock(target));
-}
+const blocks = await Promise.all(parts.importTargets.map(readStyleBlock));
 
 blocks.push(`/* vibe-player.css */\n${parts.entrySource}`);
 

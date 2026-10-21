@@ -1,27 +1,15 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { VibePlayerController } from "../core/vibe-player-controller";
+import { createInitialControllerState } from "../core/vibe-player-controller-state";
 import type {
   VibePlayerControllerOptions,
   VibePlayerControllerState,
 } from "../core/vibe-player-types";
 
+const serverState = createInitialControllerState();
+
 function getServerState(): VibePlayerControllerState {
-  return {
-    capabilities: null,
-    currentSource: null,
-    isMounted: false,
-    lastEvent: null,
-    playbackBlocked: false,
-    snapshot: {
-      currentTime: 0,
-      duration: 0,
-      muted: false,
-      paused: true,
-      playbackRate: 1,
-      readyState: "idle",
-      volume: 1,
-    },
-  };
+  return serverState;
 }
 
 export function useVibePlayerController(options: VibePlayerControllerOptions) {
@@ -37,11 +25,12 @@ export function useVibePlayerController(options: VibePlayerControllerOptions) {
     [controller]
   );
 
-  const state = useSyncExternalStore(
-    (listener) => controller.subscribe(listener),
-    () => controller.getState(),
-    getServerState
+  const subscribe = useCallback(
+    (listener: () => void) => controller.subscribe(listener),
+    [controller]
   );
+  const getSnapshot = useCallback(() => controller.getState(), [controller]);
+  const state = useSyncExternalStore(subscribe, getSnapshot, getServerState);
 
   const setTarget = useCallback(
     (element: HTMLElement | null) => {

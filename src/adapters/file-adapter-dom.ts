@@ -54,7 +54,7 @@ export function setFileVideoSource(
   setNativeVideoMetadata(video, source);
 
   if (source.sources.length === 1) {
-    const sourceOption = source.sources[0];
+    const [sourceOption] = source.sources;
     if (sourceOption) {
       video.src = sourceOption.url;
     }

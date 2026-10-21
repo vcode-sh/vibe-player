@@ -3,7 +3,6 @@
 ## Pre-write checklist
 
 Before editing any source or config file:
-
 1. Estimate whether the file will exceed `200 LOC`.
 2. If it may exceed `200 LOC`, split the design first.
 3. Keep functions under `40 LOC` when practical.
@@ -41,7 +40,6 @@ Before editing any source or config file:
 ### Extension over modification
 
 When a file approaches the limit:
-
 - extract a helper
 - extract a hook
 - extract a sub-component

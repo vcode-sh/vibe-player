@@ -106,8 +106,8 @@ describe("media delivery audit runner", () => {
         corsResults: [
           {
             allowCredentials: null,
-            allowOrigin: null,
             allowed: false,
+            allowOrigin: null,
             credentialsRequired: false,
             origin: "https://app.example.com",
           },

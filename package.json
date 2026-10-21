@@ -1,25 +1,51 @@
 {
   "name": "vibe-player",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cinematic, provider-agnostic React video player primitives and skins.",
+  "keywords": [
+    "video-player",
+    "react",
+    "hls",
+    "youtube",
+    "captions",
+    "design-system",
+    "cinematic-ui"
+  ],
+  "homepage": "https://github.com/vcode-sh/vibe-player#readme",
+  "bugs": {
+    "url": "https://github.com/vcode-sh/vibe-player/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vcode-sh/vibe-player.git"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/vcode-sh"
+  },
+  "license": "Apache-2.0",
   "author": {
     "name": "Vibe Code",
     "email": "hello@vcode.sh",
     "url": "https://x.com/vcode_sh"
   },
-  "license": "Apache-2.0",
-  "homepage": "https://github.com/vcode-sh/vibe-player#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/vcode-sh/vibe-player.git"
-  },
-  "bugs": {
-    "url": "https://github.com/vcode-sh/vibe-player/issues"
-  },
-  "type": "module",
   "sideEffects": [
     "./dist/styles.css"
   ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "vibe-player-media-audit": "scripts/audit-media-delivery.mjs"
+  },
   "files": [
     "CHANGELOG.md",
     "README.md",
@@ -37,50 +63,17 @@
     "scripts/media-delivery-audit-rollout.mjs",
     "scripts/media-delivery-audit-runner.mjs"
   ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./styles.css": "./dist/styles.css",
-    "./package.json": "./package.json"
-  },
-  "types": "./dist/index.d.ts",
-  "module": "./dist/index.js",
-  "bin": {
-    "vibe-player-media-audit": "scripts/audit-media-delivery.mjs"
-  },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "engines": {
-    "bun": ">=1.3.14",
-    "node": ">=22.0.0"
-  },
-  "keywords": [
-    "video-player",
-    "react",
-    "hls",
-    "youtube",
-    "captions",
-    "design-system",
-    "cinematic-ui"
-  ],
-  "funding": {
-    "type": "github",
-    "url": "https://github.com/sponsors/vcode-sh"
-  },
   "scripts": {
-    "build": "tsdown src/index.ts --format esm --dts --clean --out-dir dist --platform neutral --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
+    "build": "tsdown src/index.ts --format esm --dts --clean --out-dir dist --platform neutral --target es2022 --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
     "check": "biome check .",
     "check-types": "tsc --noEmit",
-    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw",
+    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw && bun run demo:vite:verify",
     "demo:vite": "vite --config demo/vite/vite.config.ts --host localhost",
     "demo:vite:build": "vite build --config demo/vite/vite.config.ts",
     "demo:vite:check": "tsc -p demo/vite/tsconfig.json --noEmit",
     "demo:vite:packaged": "bun run build && vite --config demo/vite/vite.config.ts --mode packaged --host localhost",
     "demo:vite:packaged:build": "bun run build && vite build --config demo/vite/vite.config.ts --mode packaged",
+    "demo:vite:verify": "bun run demo:vite:check && bun run demo:vite:build && vite build --config demo/vite/vite.config.ts --mode packaged",
     "lint": "biome lint .",
     "lint:fix": "ultracite fix .",
     "media:audit": "bun scripts/audit-media-delivery.mjs",
@@ -99,31 +92,42 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "hls.js": "1.7.3"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "^2.6.2",
+    "@changesets/cli": "^3.0.3",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "happy-dom": "21.0.4",
+    "publint": "0.3.25",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2",
+    "ultracite": "^8.0.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
   "peerDependencies": {
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
-  "devDependencies": {
-    "@arethetypeswrong/cli": "^0.18.3",
-    "@biomejs/biome": "^2.4.16",
-    "@changesets/cli": "^2.31.0",
-    "@testing-library/jest-dom": "6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "6.0.2",
-    "happy-dom": "20.10.2",
-    "publint": "0.3.21",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "tsdown": "^0.22.2",
-    "typescript": "^6.0.3",
-    "ultracite": "^7.8.2",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+  "packageManager": "bun@1.4.3",
+  "engines": {
+    "bun": ">=1.3.14",
+    "node": ">=22.0.0"
   },
-  "packageManager": "bun@1.3.14",
-  "dependencies": {
-    "hls.js": "1.6.16"
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "patchedDependencies": {
+    "ultracite@8.0.1": "patches/ultracite@8.0.1.patch"
   }
 }

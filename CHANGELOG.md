@@ -36,6 +36,12 @@ The format is based on Keep a Changelog.
 
 ### Changed
 
+- React keyboard handlers now use effect events, and controller subscriptions
+  remain stable across renders with a cached server snapshot for hydration.
+- HLS quality changes preserve the playing fragment instead of forcing an
+  immediate buffer flush.
+- Updated the development toolchain, split Node and DOM test environments,
+  and added both demo builds to CI. Package output targets ES2022 explicitly.
 - Package stylesheet consumption now resolves through built `dist/styles.css`
   instead of split source CSS files.
 - README is now a short npm-facing front page, with detailed usage moved into

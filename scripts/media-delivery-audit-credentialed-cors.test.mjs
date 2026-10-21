@@ -58,8 +58,8 @@ describe("media delivery audit credentialed CORS", () => {
           detail:
             "Set Access-Control-Allow-Origin to https://wildcard.example.com and Access-Control-Allow-Credentials: true.",
           headers: {
-            "Access-Control-Allow-Origin": "https://wildcard.example.com",
             "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Origin": "https://wildcard.example.com",
           },
           label: "Allow credentialed CORS origin",
           origin: "https://wildcard.example.com",
@@ -78,15 +78,15 @@ describe("media delivery audit credentialed CORS", () => {
     expect(report.corsResults).toEqual([
       {
         allowCredentials: "true",
-        allowOrigin: "*",
         allowed: false,
+        allowOrigin: "*",
         credentialsRequired: true,
         origin: "https://wildcard.example.com",
       },
       {
         allowCredentials: "true",
-        allowOrigin: "https://secure.example.com",
         allowed: true,
+        allowOrigin: "https://secure.example.com",
         credentialsRequired: true,
         origin: "https://secure.example.com",
       },

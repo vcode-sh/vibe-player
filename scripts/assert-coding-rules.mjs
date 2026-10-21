@@ -39,25 +39,21 @@ const disallowedPatterns = [
 ];
 
 async function collectFilesFromDir(dirPath) {
-  const entries = await readdir(dirPath, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const entryPath = join(dirPath, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...(await collectFilesFromDir(entryPath)));
-    } else if (scannedExtensions.has(extname(entry.name))) {
-      files.push(entryPath);
-    }
-  }
-  return files;
+  const entries = await readdir(dirPath, {
+    recursive: true,
+    withFileTypes: true,
+  });
+  return entries
+    .filter(
+      (entry) =>
+        !entry.isDirectory() && scannedExtensions.has(extname(entry.name))
+    )
+    .map((entry) => join(entry.parentPath, entry.name));
 }
 
 async function collectFiles() {
-  const files = [...rootFiles, ...demoFiles];
-  for (const root of scanRoots) {
-    files.push(...(await collectFilesFromDir(root)));
-  }
-  return [...new Set(files)].sort();
+  const groups = await Promise.all(scanRoots.map(collectFilesFromDir));
+  return [...new Set([...rootFiles, ...demoFiles, ...groups.flat()])].sort();
 }
 
 function countLines(source) {
@@ -84,12 +80,12 @@ function inspectSource(filePath, source) {
 }
 
 const files = await collectFiles();
-const failures = [];
-
-for (const filePath of files) {
-  const source = await readFile(filePath, "utf8");
-  failures.push(...inspectSource(filePath, source));
-}
+const issuesByFile = await Promise.all(
+  files.map(async (filePath) =>
+    inspectSource(filePath, await readFile(filePath, "utf8"))
+  )
+);
+const failures = issuesByFile.flat();
 
 if (failures.length > 0) {
   console.error("Coding rule audit failed:");

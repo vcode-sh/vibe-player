@@ -31,9 +31,6 @@ export default defineConfig(({ mode }) => ({
   build: {
     chunkSizeWarningLimit: 650,
     outDir: getBuildOutDir(mode),
-    rollupOptions: {
-      input: resolve(demoRoot, "index.html"),
-    },
   },
   plugins: [react({ include: resolve(demoRoot, "src/**/*.{ts,tsx}") })],
   resolve: getResolveConfig(mode),

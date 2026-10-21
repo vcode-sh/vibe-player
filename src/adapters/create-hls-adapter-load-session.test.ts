@@ -24,8 +24,8 @@ describe("createHlsAdapter load sessions", () => {
     const destroySpy = vi.fn(() => undefined);
     const events: VibePlayerAdapterEvent[] = [];
     const { probe, runtime } = createHlsRuntime();
-    runtime.attachManagedHls = (session) => {
-      probe.session = session;
+    runtime.attachManagedHls = (pendingSession) => {
+      probe.session = pendingSession;
       return controller.promise;
     };
     const adapter = createHlsAdapter(runtime);

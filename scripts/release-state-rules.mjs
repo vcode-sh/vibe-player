@@ -2,6 +2,7 @@ const expectedRepositoryUrl = "git+https://github.com/vcode-sh/vibe-player.git";
 const expectedIssuesUrl = "https://github.com/vcode-sh/vibe-player/issues";
 const expectedHomepage = "https://github.com/vcode-sh/vibe-player#readme";
 const expectedMediaAuditBin = "scripts/audit-media-delivery.mjs";
+const bunVersionPattern = /^bun@\d+\.\d+\.\d+$/;
 const expectedAuthor = {
   email: "hello@vcode.sh",
   name: "Vibe Code",
@@ -91,8 +92,8 @@ function collectEntrypointIssues(manifest) {
   if (!manifest.sideEffects?.includes("./dist/styles.css")) {
     issues.push('sideEffects must include "./dist/styles.css".');
   }
-  if (manifest.packageManager !== "bun@1.3.14") {
-    issues.push('packageManager must stay "bun@1.3.14".');
+  if (!bunVersionPattern.test(manifest.packageManager ?? "")) {
+    issues.push("packageManager must pin an exact Bun version.");
   }
   return issues;
 }

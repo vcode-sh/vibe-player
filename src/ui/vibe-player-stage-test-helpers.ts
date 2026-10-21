@@ -155,7 +155,7 @@ export function createStageAdapterFactory(
 export function getStageAdapter(
   adapters: TestStageAdapter[]
 ): TestStageAdapter {
-  const adapter = adapters[0];
+  const [adapter] = adapters;
   if (!adapter) {
     throw new Error("Missing stage test adapter.");
   }

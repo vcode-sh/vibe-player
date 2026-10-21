@@ -30,25 +30,21 @@ const forbiddenSpecifierRules = [
 const forbiddenRuntimeLiterals = ["apps/web"];
 
 async function collectFilesFromDir(dirPath) {
-  const entries = await readdir(dirPath, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const entryPath = join(dirPath, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...(await collectFilesFromDir(entryPath)));
-    } else if (sourceExtensions.has(extname(entry.name))) {
-      files.push(entryPath);
-    }
-  }
-  return files;
+  const entries = await readdir(dirPath, {
+    recursive: true,
+    withFileTypes: true,
+  });
+  return entries
+    .filter(
+      (entry) =>
+        !entry.isDirectory() && sourceExtensions.has(extname(entry.name))
+    )
+    .map((entry) => join(entry.parentPath, entry.name));
 }
 
 async function collectSourceFiles() {
-  const files = [];
-  for (const root of sourceRoots) {
-    files.push(...(await collectFilesFromDir(root)));
-  }
-  return files.sort();
+  const groups = await Promise.all(sourceRoots.map(collectFilesFromDir));
+  return [...new Set(groups.flat())].sort();
 }
 
 function collectImportSpecifiers(source) {
@@ -57,7 +53,7 @@ function collectImportSpecifiers(source) {
     pattern.lastIndex = 0;
     let match = pattern.exec(source);
     while (match) {
-      const specifier = match[1];
+      const [, specifier] = match;
       if (specifier) {
         specifiers.push(specifier);
       }
@@ -97,13 +93,16 @@ function inspectRuntimeLiterals(filePath, source) {
 }
 
 const sourceFiles = await collectSourceFiles();
-const failures = [];
-
-for (const filePath of sourceFiles) {
-  const source = await readFile(filePath, "utf8");
-  failures.push(...inspectSpecifiers(filePath, source));
-  failures.push(...inspectRuntimeLiterals(filePath, source));
-}
+const issuesByFile = await Promise.all(
+  sourceFiles.map(async (filePath) => {
+    const source = await readFile(filePath, "utf8");
+    return [
+      ...inspectSpecifiers(filePath, source),
+      ...inspectRuntimeLiterals(filePath, source),
+    ];
+  })
+);
+const failures = issuesByFile.flat();
 
 if (failures.length > 0) {
   console.error("Package boundary audit failed:");

@@ -74,8 +74,8 @@ describe("media delivery audit format", () => {
         corsResults: [
           {
             allowCredentials: "none",
-            allowOrigin: null,
             allowed: false,
+            allowOrigin: null,
             origin: "https://app.example.com",
           },
         ],

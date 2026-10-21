@@ -8,7 +8,6 @@ interface VibePlayerIconBaseProps extends VibePlayerIconProps {
 
 function VibePlayerIconBase({ children, ...props }: VibePlayerIconBaseProps) {
   return (
-    // biome-ignore lint/a11y/noSvgWithoutTitle: control buttons provide accessible names, icons are decorative.
     <svg
       aria-hidden
       className="vibe-player-controls__icon"

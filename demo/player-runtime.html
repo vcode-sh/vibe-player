@@ -2,15 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
     <title>Vibe Player Demo</title>
-    <link rel="stylesheet" href="/src/styles/vibe-player.css">
+    <link href="/src/styles/vibe-player.css" rel="stylesheet">
     <script type="importmap">
     {
       "imports": {
-        "react": "https://esm.sh/react@19.2.7",
-        "react/jsx-runtime": "https://esm.sh/react@19.2.7/jsx-runtime",
-        "react-dom/client": "https://esm.sh/react-dom@19.2.7/client"
+        "react": "https://esm.sh/react@19.3.1",
+        "react-dom/client": "https://esm.sh/react-dom@19.3.1/client",
+        "react/jsx-runtime": "https://esm.sh/react@19.3.1/jsx-runtime"
       }
     }
     </script>
@@ -101,7 +101,7 @@
     import { createRoot } from "react-dom/client";
     import { VibePlayerStage } from "/dist/index.js";
 
-    const createElement = React.createElement;
+    const { createElement } = React;
     const mediaUrl =
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
     const source = {

@@ -8,8 +8,8 @@ export function inspectMediaDeliveryCors(headers, origin, credentialsRequired) {
   const allowed = originAllowed && credentialsAllowed;
   return {
     allowCredentials,
-    allowOrigin,
     allowed,
+    allowOrigin,
     credentialsRequired,
     origin,
   };

@@ -3,12 +3,12 @@ import { collectReleaseStateIssues } from "./release-state-rules.mjs";
 
 function createManifest(patch = {}) {
   return {
-    bin: { "vibe-player-media-audit": "scripts/audit-media-delivery.mjs" },
     author: {
       email: "hello@vcode.sh",
       name: "Vibe Code",
       url: "https://x.com/vcode_sh",
     },
+    bin: { "vibe-player-media-audit": "scripts/audit-media-delivery.mjs" },
     bugs: { url: "https://github.com/vcode-sh/vibe-player/issues" },
     exports: {
       ".": { import: "./dist/index.js", types: "./dist/index.d.ts" },
@@ -22,7 +22,7 @@ function createManifest(patch = {}) {
     license: "Apache-2.0",
     module: "./dist/index.js",
     name: "vibe-player",
-    packageManager: "bun@1.3.14",
+    packageManager: "bun@1.4.3",
     publishConfig: { access: "public", provenance: true },
     repository: {
       type: "git",
@@ -57,12 +57,12 @@ describe("release state rules", () => {
   it("flags accidental release and consumer-contract drift", () => {
     const issues = collectReleaseStateIssues(
       createManifest({
-        bin: { "vibe-player-media-audit": "./scripts/missing.mjs" },
         author: {
           email: "wrong@example.com",
           name: "Other",
           url: "https://example.com",
         },
+        bin: { "vibe-player-media-audit": "./scripts/missing.mjs" },
         bugs: { url: "https://github.com/vcode-sh/other/issues" },
         exports: {
           ".": { import: "./src/index.ts", types: "./src/index.ts" },
@@ -119,5 +119,6 @@ describe("release state rules", () => {
       "media audit bin must use a Node shebang for npm publishing."
     );
     expect(issues).toContain('Changesets access must stay "public".');
+    expect(issues).toContain("packageManager must pin an exact Bun version.");
   });
 });

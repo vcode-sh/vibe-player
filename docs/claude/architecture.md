@@ -25,7 +25,6 @@
 ### `src/core`
 
 Owns:
-
 - source contracts
 - adapter contracts
 - capabilities
@@ -34,7 +33,6 @@ Owns:
 - time and progress helpers
 
 Must not import from:
-
 - `ui`
 - `skins`
 - product-specific code
@@ -42,7 +40,6 @@ Must not import from:
 ### `src/adapters`
 
 Owns:
-
 - direct file playback bridge
 - HLS playback bridge
 - YouTube playback bridge
@@ -53,7 +50,6 @@ capabilities.
 ### `src/react`
 
 Owns:
-
 - hooks
 - `useSyncExternalStore` bindings
 - mount/unmount helpers
@@ -61,7 +57,6 @@ Owns:
 ### `src/ui`
 
 Owns:
-
 - inline player assembly
 - modal player assembly
 - shell
@@ -72,14 +67,12 @@ Owns:
 ### `src/skins`
 
 Owns:
-
 - default cinematic preset
 - future visual presets
 
 ### `src/captions`
 
 Owns:
-
 - WebVTT parsing
 - cue helpers
 - active-line selection helpers
@@ -91,14 +84,12 @@ Owns package CSS assets only.
 ## Dependency direction
 
 Allowed:
-
 - `react` -> `core`
 - `ui` -> `react`, `core`
 - `skins` -> `ui`, `styles`, `core`
 - `adapters` -> `core`
 
 Disallowed:
-
 - `core` -> `ui`
 - `core` -> `skins`
 - `core` -> provider packages with visual concerns

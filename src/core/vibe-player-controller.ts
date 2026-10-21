@@ -80,9 +80,9 @@ export class VibePlayerController {
         this.adapterUnsubscribe = unsubscribe;
       },
       source,
+      syncFromAdapter: () => this.syncFromAdapter(),
       target: this.target,
       teardownAdapter: () => this.teardownAdapter(),
-      syncFromAdapter: () => this.syncFromAdapter(),
       updateState: (next) => this.updateState(next),
     });
   }
@@ -155,8 +155,8 @@ export class VibePlayerController {
     handleVibePlayerAdapterEvent({
       adapter: this.adapter,
       analyticsSession: this.analyticsSession,
-      currentSource: this.state.currentSource,
       currentSnapshot: this.state.snapshot,
+      currentSource: this.state.currentSource,
       emitAnalytics: (analyticsEvent) =>
         this.onAnalyticsEvent?.(analyticsEvent),
       event,

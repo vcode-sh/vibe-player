@@ -35,7 +35,6 @@ bun --silent run media:audit -- https://cdn.example.com/video.mp4 --origin https
 ```
 
 The JSON payload includes:
-
 - `passed`
 - `failures`
 - `findings`
@@ -60,7 +59,6 @@ Use `rollout.directFileReady` for the direct-MP4 decision. Direct file rollout
 is ready only when it is `true`.
 
 `rollout.recommendedDelivery` names the next action:
-
 - `direct-file`: direct MP4 is ready for the checked origins.
 - `hls-renditions`: publish adaptive HLS/renditions for oversized assets.
 - `faststart-remux-or-hls`: remux the MP4 or use HLS.
@@ -77,7 +75,6 @@ headers for every consuming origin.
 
 Add `--credentials` only for sources that will use
 `crossOrigin="use-credentials"`. Credentialed media requires:
-
 - exact `Access-Control-Allow-Origin` origin match;
 - `Access-Control-Allow-Credentials: true`;
 - no wildcard `Access-Control-Allow-Origin`.

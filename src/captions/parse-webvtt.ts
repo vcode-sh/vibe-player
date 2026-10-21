@@ -43,7 +43,7 @@ function parseCaptionBlock(block: string): VibePlayerCaptionCue | null {
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
-  const firstLine = lines[0];
+  const [firstLine] = lines;
   if (!firstLine || firstLine.startsWith("WEBVTT") || firstLine === "NOTE") {
     return null;
   }

@@ -56,7 +56,7 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
       );
     }
     const fileSource = source;
-    const mediaSource = fileSource.sources[0];
+    const [mediaSource] = fileSource.sources;
     if (!mediaSource) {
       return Promise.reject(
         new Error("File source must include at least one media source.")

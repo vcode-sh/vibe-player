@@ -112,7 +112,7 @@ class TestInlineAdapter implements VibePlayerAdapter {
 }
 
 function getAdapter(adapters: TestInlineAdapter[]): TestInlineAdapter {
-  const adapter = adapters[0];
+  const [adapter] = adapters;
   if (!adapter) {
     throw new Error("Missing inline test adapter.");
   }

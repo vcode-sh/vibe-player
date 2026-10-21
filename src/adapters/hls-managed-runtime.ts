@@ -1,12 +1,6 @@
+import type { Level } from "hls.js";
 import type { ManagedHlsLevel } from "./hls-quality";
 import type { HlsAdapterRuntime } from "./hls-runtime-types";
-
-interface HlsLevelLike {
-  bitrate?: number;
-  height?: number;
-  name?: string;
-  width?: number;
-}
 
 export const defaultHlsAdapterRuntime: HlsAdapterRuntime = {
   async attachManagedHls(session) {
@@ -43,7 +37,7 @@ export const defaultHlsAdapterRuntime: HlsAdapterRuntime = {
     return {
       destroy: () => hls.destroy(),
       setQualityLevel: (levelIndex) => {
-        hls.currentLevel = levelIndex;
+        hls.nextLevel = levelIndex;
         syncLevels(levelIndex);
       },
     };
@@ -52,10 +46,10 @@ export const defaultHlsAdapterRuntime: HlsAdapterRuntime = {
     "ManagedMediaSource" in globalThis || "MediaSource" in globalThis,
 };
 
-function toManagedLevel(level: HlsLevelLike): ManagedHlsLevel {
+function toManagedLevel(level: Level): ManagedHlsLevel {
   return {
-    bitrate: level.bitrate ?? 0,
-    height: level.height ?? 0,
+    bitrate: level.bitrate,
+    height: level.height,
     ...(level.name ? { name: level.name } : {}),
     ...(level.width ? { width: level.width } : {}),
   };

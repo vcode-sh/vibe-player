@@ -55,15 +55,15 @@ describe("media delivery audit core", () => {
     expect(report.corsResults).toEqual([
       {
         allowCredentials: null,
-        allowOrigin: "https://app.example.com",
         allowed: true,
+        allowOrigin: "https://app.example.com",
         credentialsRequired: false,
         origin: "https://app.example.com",
       },
       {
         allowCredentials: null,
-        allowOrigin: null,
         allowed: false,
+        allowOrigin: null,
         credentialsRequired: false,
         origin: "https://missing.example.com",
       },

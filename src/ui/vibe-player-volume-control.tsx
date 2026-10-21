@@ -79,7 +79,7 @@ export function VibePlayerVolumeControl({
   }
 
   function handleBlur(event: FocusEvent<HTMLDivElement>): void {
-    const relatedTarget = event.relatedTarget;
+    const { relatedTarget } = event;
     if (
       relatedTarget instanceof Node &&
       event.currentTarget.contains(relatedTarget)
@@ -97,7 +97,6 @@ export function VibePlayerVolumeControl({
     if (event.key === "Escape") {
       event.preventDefault();
       popover.closePopover(true);
-      return;
     }
   }
 

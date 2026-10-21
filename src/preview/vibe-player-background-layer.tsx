@@ -61,7 +61,7 @@ export function VibePlayerBackgroundLayer({
     }
 
     const observer = new window.IntersectionObserver((entries) => {
-      const entry = entries[0];
+      const [entry] = entries;
       if (entry?.isIntersecting && !paused) {
         playBackgroundVideo(video);
         return;

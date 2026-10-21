@@ -36,11 +36,11 @@ describe("VibePlayerTimeline", () => {
         height: 32,
         left: 10,
         right: 210,
+        toJSON: () => ({}),
         top: 0,
         width: 200,
         x: 10,
         y: 0,
-        toJSON: () => ({}),
       }) satisfies DOMRect;
 
     fireEvent.pointerDown(timeline, {

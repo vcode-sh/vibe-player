@@ -6,7 +6,6 @@ telemetry, storage, SEO, watched state, and media asset policy.
 ## Consumption Policy
 
 Use one of these modes intentionally:
-
 - npm package: preferred for app work and stable branches.
 - workspace dependency: useful when the app and package share one lockfile and
   one CI boundary.
@@ -31,7 +30,6 @@ app transpilation allowlist.
 
 For local `file:` consumers, refresh in this order after package source, export,
 CSS, or build-script changes:
-
 1. Run `bun run build` in this package.
 2. Run the consumer package-manager install to refresh its `file:` cache.
 3. Restart the consumer dev server after stylesheet or export changes.
@@ -148,7 +146,6 @@ the exact consuming origin. A forced `crossOrigin="anonymous"` can block
 metadata and playback for otherwise valid same-path media URLs.
 
 When a host enables `crossOrigin`, verify:
-
 - the media response includes `Access-Control-Allow-Origin` for the app origin;
 - `use-credentials` sources also include `Access-Control-Allow-Credentials:
   true` and do not use wildcard `Access-Control-Allow-Origin`;
@@ -177,7 +174,6 @@ for custom sliders and menus, but the default package entrypoint does not make
 ## Verification Checklist
 
 Before replacing an existing product player, verify:
-
 - file, HLS, and YouTube sources render through the same package shell;
 - CSS is present in the app bundle;
 - opening and closing removes the active media element;

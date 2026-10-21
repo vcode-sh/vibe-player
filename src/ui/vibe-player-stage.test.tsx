@@ -180,7 +180,7 @@ describe("VibePlayerStage", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Unmute" }));
 
-    const calls = getStageAdapter(adapters).calls;
+    const { calls } = getStageAdapter(adapters);
     expect(calls).toContain("muted:false");
     expect(calls.at(-1)).toBe("play");
   });

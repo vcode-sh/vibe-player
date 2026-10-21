@@ -121,6 +121,7 @@ export function useVibePlayerVolumePopover() {
     active,
     closePopover,
     holdPopover,
+    open,
     pointerActiveRef,
     releasePopover,
     rootRef,
@@ -129,6 +130,5 @@ export function useVibePlayerVolumePopover() {
     setActive,
     sliderRef,
     triggerRef,
-    open,
   };
 }
