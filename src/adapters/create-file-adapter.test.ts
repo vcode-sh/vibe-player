@@ -16,6 +16,7 @@ import {
 
 describe("createFileAdapter", () => {
   afterEach(() => {
+    document.body.replaceChildren();
     vi.restoreAllMocks();
   });
 
@@ -94,10 +95,13 @@ describe("createFileAdapter", () => {
   });
 
   it("forwards playback commands and clamps seek and volume values", async () => {
-    const { adapter, video } = await createLoadedFileAdapter();
+    const { adapter, target, video } = await createLoadedFileAdapter();
+    document.body.append(target);
     defineNativeVideoNumberProperty(video, "duration", 100);
-    video.play = () => Promise.resolve();
-    video.pause = () => undefined;
+    const play = vi.fn(() => Promise.resolve());
+    const pause = vi.fn(() => undefined);
+    video.play = play;
+    video.pause = pause;
 
     await adapter.play();
     await adapter.pause();
@@ -106,6 +110,8 @@ describe("createFileAdapter", () => {
     await adapter.setPlaybackRate(1.25);
     await adapter.setVolume(2);
 
+    expect(play).toHaveBeenCalledOnce();
+    expect(pause).toHaveBeenCalledOnce();
     expect(video.currentTime).toBe(100);
     expect(video.muted).toBe(true);
     expect(video.playbackRate).toBe(1.25);
@@ -113,18 +119,21 @@ describe("createFileAdapter", () => {
   });
 
   it("stops a pending playback request after unmount", async () => {
-    const { adapter, video } = await createLoadedFileAdapter();
+    const { adapter, target, video } = await createLoadedFileAdapter();
+    document.body.append(target);
     const playback = createDeferredPlayback();
-    const pauseSpy = vi.fn(() => undefined);
-    video.play = () => playback.promise;
-    video.pause = pauseSpy;
+    video.play = () =>
+      playback.promise.then(() => {
+        defineNativeVideoBooleanProperty(video, "paused", false);
+      });
+    video.pause = () => defineNativeVideoBooleanProperty(video, "paused", true);
 
     const playPromise = adapter.play();
     await adapter.unmount();
     playback.resolve();
     await playPromise;
 
-    expect(pauseSpy).toHaveBeenCalledTimes(2);
+    expect(video.paused).toBe(true);
     expect(video.isConnected).toBe(false);
     expect(video.getAttribute("src")).toBeNull();
     expect(adapter.getSnapshot().readyState).toBe("idle");
@@ -133,25 +142,32 @@ describe("createFileAdapter", () => {
   });
 
   it("stops a pending playback request after pause", async () => {
-    const { adapter, video } = await createLoadedFileAdapter();
+    const { adapter, target, video } = await createLoadedFileAdapter();
+    document.body.append(target);
     const playback = createDeferredPlayback();
-    const pauseSpy = vi.fn(() => undefined);
-    video.play = () => playback.promise;
-    video.pause = pauseSpy;
+    video.play = () =>
+      playback.promise.then(() => {
+        defineNativeVideoBooleanProperty(video, "paused", false);
+      });
+    video.pause = () => defineNativeVideoBooleanProperty(video, "paused", true);
 
     const playPromise = adapter.play();
     await adapter.pause();
     playback.resolve();
     await playPromise;
 
-    expect(pauseSpy).toHaveBeenCalledTimes(2);
+    expect(video.paused).toBe(true);
   });
 
   it("uses fullscreen only when the mounted video supports it", async () => {
     const { adapter, video } = await createLoadedFileAdapter();
-    video.requestFullscreen = () => Promise.resolve();
+    const requestFullscreen = vi.fn(() => Promise.resolve());
+    video.requestFullscreen = requestFullscreen;
     expect(adapter.capabilities.canFullscreen).toBe(true);
     await adapter.enterFullscreen?.();
+    expect(requestFullscreen).toHaveBeenCalledOnce();
+    await adapter.unmount();
+    expect(adapter.capabilities.canFullscreen).toBe(false);
   });
 
   it("rejects unsupported and empty file sources", async () => {

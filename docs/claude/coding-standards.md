@@ -51,12 +51,10 @@ Each folder should have a local `index.ts`, but barrel files should stay thin.
 
 ## Testing guidance
 
-- Use `Vitest` as the test runner
-- Run tests through `bun run test`, but the framework itself is `Vitest`
-- Prefer focused unit tests for core logic
-- Use component tests for accessibility and interaction behavior
-- Add regression tests for motion and chrome behavior when those systems land
-- Keep provider-specific tests near adapters
+Use [testing-patterns](../../.claude/skills/testing-patterns/SKILL.md) whenever
+writing, reviewing, or deleting tests. It defines independent expectations,
+behavior ownership, challenge cases, deletion criteria, isolation, and the
+actual Vitest lanes. Happy-dom tests do not prove browser playback or motion.
 
 ## Documentation guidance
 

@@ -95,6 +95,30 @@ describe("native picture-in-picture", () => {
     expect(requestPictureInPicture).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["document", "video"] as const)(
+    "refuses picture-in-picture when disabled by the %s",
+    async (disabledBy) => {
+      const video = document.createElement("video");
+      const request = vi.fn(() =>
+        Promise.resolve(createPictureInPictureWindow())
+      );
+      definePictureInPictureDocument();
+      definePictureInPictureVideo(video, request);
+      if (disabledBy === "document") {
+        Object.defineProperty(document, "pictureInPictureEnabled", {
+          configurable: true,
+          value: false,
+        });
+      } else {
+        video.disablePictureInPicture = true;
+      }
+
+      expect(canUseNativePictureInPicture(video)).toBe(false);
+      await enterNativePictureInPicture(video);
+      expect(request).not.toHaveBeenCalled();
+    }
+  );
+
   it("exits native picture-in-picture when the same video is active", async () => {
     const video = document.createElement("video");
     const exitPictureInPicture = vi.fn(() => Promise.resolve());

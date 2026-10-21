@@ -35,6 +35,7 @@ describe("VibePlayerStage", () => {
     await waitFor(() =>
       expect(getStageAdapter(adapters).calls).toContain("pause")
     );
+    expect(screen.getByRole("button", { name: "Play" })).toBeVisible();
   });
 
   it("clears the active source when closed", async () => {
@@ -64,27 +65,6 @@ describe("VibePlayerStage", () => {
 
     await waitFor(() =>
       expect(getStageAdapter(adapters).calls).toContain("unmount")
-    );
-  });
-
-  it("shows a blocked playback status after rejected autoplay", async () => {
-    const { adapterFactory } = createStageAdapterFactory({
-      configure: (adapter) => {
-        adapter.playError = createBlockedPlaybackError();
-      },
-    });
-
-    render(
-      <VibePlayerStage
-        adapterFactory={adapterFactory}
-        autoPlay={true}
-        open={true}
-        source={stageFileSource}
-      />
-    );
-
-    await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("Play to start")
     );
   });
 

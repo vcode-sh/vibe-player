@@ -32,30 +32,65 @@ function getVolumeRoot(button: HTMLElement): HTMLElement {
 }
 
 describe("VibePlayerVolumeControl", () => {
-  it("unmutes when volume is raised from muted state", () => {
-    const onSetMuted = vi.fn();
-    const onSetVolume = vi.fn();
-
-    render(
-      <VibePlayerVolumeControl
-        capabilities={capabilities}
-        onSetMuted={onSetMuted}
-        onSetVolume={onSetVolume}
-        onToggleMute={vi.fn()}
-        snapshot={{ ...snapshot, muted: true, volume: 0.2 }}
-      />
-    );
-
-    fireEvent.mouseEnter(
-      screen.getByRole("button", { name: "Unmute, volume 20%" })
-    );
-    fireEvent.keyDown(screen.getByRole("slider", { name: "Volume" }), {
+  it.each([
+    {
+      expected: 0.25,
       key: "ArrowUp",
-    });
+      shiftKey: false,
+      unmute: true,
+      volume: 0.2,
+    },
+    {
+      expected: 1,
+      key: "ArrowUp",
+      shiftKey: false,
+      unmute: true,
+      volume: 0.98,
+    },
+    {
+      expected: 0,
+      key: "ArrowDown",
+      shiftKey: false,
+      unmute: false,
+      volume: 0.02,
+    },
+    {
+      expected: 0.3,
+      key: "ArrowUp",
+      shiftKey: true,
+      unmute: true,
+      volume: 0.2,
+    },
+  ])(
+    "commits $expected for $key from $volume, shift=$shiftKey without unmuting zero",
+    ({ expected, key, shiftKey, unmute, volume }) => {
+      const onSetMuted = vi.fn();
+      const onSetVolume = vi.fn();
 
-    expect(onSetVolume).toHaveBeenCalledWith(0.25);
-    expect(onSetMuted).toHaveBeenCalledWith(false);
-  });
+      render(
+        <VibePlayerVolumeControl
+          capabilities={capabilities}
+          onSetMuted={onSetMuted}
+          onSetVolume={onSetVolume}
+          onToggleMute={vi.fn()}
+          snapshot={{ ...snapshot, muted: true, volume }}
+        />
+      );
+
+      fireEvent.mouseEnter(screen.getByRole("button"));
+      fireEvent.keyDown(screen.getByRole("slider", { name: "Volume" }), {
+        key,
+        shiftKey,
+      });
+
+      expect(onSetVolume.mock.calls).toEqual([[expected]]);
+      if (unmute) {
+        expect(onSetMuted.mock.calls).toEqual([[false]]);
+      } else {
+        expect(onSetMuted).not.toHaveBeenCalled();
+      }
+    }
+  );
 
   it("auto-dismisses the volume popover after inactivity", () => {
     vi.useFakeTimers();
@@ -94,12 +129,12 @@ describe("VibePlayerVolumeControl", () => {
       ).toBeInTheDocument();
 
       fireEvent.mouseLeave(volumeRoot);
-      act(() => vi.advanceTimersByTime(500));
+      act(() => vi.advanceTimersByTime(519));
       expect(
         screen.getByRole("dialog", { name: "Volume" })
       ).toBeInTheDocument();
 
-      act(() => vi.advanceTimersByTime(20));
+      act(() => vi.advanceTimersByTime(1));
       expect(screen.queryByRole("dialog", { name: "Volume" })).toBeNull();
     } finally {
       vi.useRealTimers();

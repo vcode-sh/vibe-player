@@ -32,4 +32,25 @@ describe("vibe player volume helpers", () => {
       valueText: "Muted, volume 100%",
     });
   });
+
+  it("treats rounded zero as silent without falsely reporting mute", () => {
+    expect(
+      createVibePlayerVolumeState({ muted: false, volume: 0.0049 })
+    ).toEqual({
+      muted: false,
+      percent: 0,
+      silent: true,
+      value: 0.0049,
+      valueText: "Volume 0%",
+    });
+    expect(
+      createVibePlayerVolumeState({ muted: false, volume: 0.005 })
+    ).toEqual({
+      muted: false,
+      percent: 1,
+      silent: false,
+      value: 0.005,
+      valueText: "Volume 1%",
+    });
+  });
 });

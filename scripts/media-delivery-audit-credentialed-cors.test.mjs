@@ -92,4 +92,41 @@ describe("media delivery audit credentialed CORS", () => {
       },
     ]);
   });
+
+  it.each([
+    [true, "https://app.example.com", null, false],
+    [true, "https://app.example.com", "false", false],
+    [true, "https://other.example.com", "true", false],
+    [true, "https://app.example.com", "true", true],
+    [false, "*", null, true],
+  ])(
+    "checks the CORS conjunction: credentials=%s origin=%s acac=%s",
+    async (credentials, allowOrigin, allowCredentials, allowed) => {
+      const bytes = createMp4Sample([
+        { size: 8, type: "ftyp" },
+        { size: 8, type: "moov" },
+      ]);
+      globalThis.fetch = vi.fn(() =>
+        createRangeResponse(bytes, 16, allowOrigin, allowCredentials)
+      );
+      const report = await createMediaDeliveryAuditReport({
+        credentials,
+        origins: ["https://app.example.com"],
+        url: "https://cdn.example.com/video.mp4",
+      });
+      expect(report.corsResults).toEqual([
+        {
+          allowCredentials,
+          allowed,
+          allowOrigin,
+          credentialsRequired: credentials,
+          origin: "https://app.example.com",
+        },
+      ]);
+      expect(report.findings.map((finding) => finding.code)).toEqual(
+        allowed ? [] : ["credentialed-cors-missing"]
+      );
+      expect(report.rollout.directFileReady).toBe(allowed);
+    }
+  );
 });

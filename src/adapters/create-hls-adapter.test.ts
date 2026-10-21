@@ -12,12 +12,14 @@ import {
 } from "./hls-adapter-test-helpers";
 import {
   createDeferredPlayback,
+  defineNativeVideoBooleanProperty,
   defineNativeVideoNumberProperty,
   getMountedNativeVideo,
 } from "./native-video-test-helpers";
 
 describe("createHlsAdapter", () => {
   afterEach(() => {
+    document.body.replaceChildren();
     vi.restoreAllMocks();
   });
 
@@ -144,17 +146,20 @@ describe("createHlsAdapter", () => {
     await adapter.load(hlsSource);
 
     const video = getMountedNativeVideo(target);
+    document.body.append(target);
     const playback = createDeferredPlayback();
-    const pauseSpy = vi.fn(() => undefined);
-    video.play = () => playback.promise;
-    video.pause = pauseSpy;
+    video.play = () =>
+      playback.promise.then(() => {
+        defineNativeVideoBooleanProperty(video, "paused", false);
+      });
+    video.pause = () => defineNativeVideoBooleanProperty(video, "paused", true);
 
     const playPromise = adapter.play();
     await adapter.pause();
     playback.resolve();
     await playPromise;
 
-    expect(pauseSpy).toHaveBeenCalledTimes(2);
+    expect(video.paused).toBe(true);
   });
 
   it("rejects unsupported sources and unavailable HLS runtimes", async () => {

@@ -11,7 +11,7 @@ describe("useVibePlayerChrome", () => {
     vi.useRealTimers();
   });
 
-  it("shows chrome on open and hides after the idle delay", () => {
+  it("restarts the full idle delay after activity instead of using the old deadline", () => {
     const { result } = renderHook(() =>
       useVibePlayerChrome({ idleDelayMs: 1000, open: true })
     );
@@ -19,9 +19,14 @@ describe("useVibePlayerChrome", () => {
     expect(result.current.chromeHidden).toBe(false);
 
     act(() => {
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(600);
+      result.current.showChrome();
     });
-
+    act(() => vi.advanceTimersByTime(400));
+    expect(result.current.chromeHidden).toBe(false);
+    act(() => vi.advanceTimersByTime(599));
+    expect(result.current.chromeHidden).toBe(false);
+    act(() => vi.advanceTimersByTime(1));
     expect(result.current.chromeHidden).toBe(true);
   });
 
@@ -45,20 +50,21 @@ describe("useVibePlayerChrome", () => {
     expect(result.current.chromeHidden).toBe(true);
   });
 
-  it("keeps chrome visible when idle hiding is disabled", () => {
-    const { result } = renderHook(() =>
-      useVibePlayerChrome({
-        autoHide: false,
-        idleDelayMs: 1000,
-        open: true,
-      })
+  it("cancels a pending hide when disabled and resumes it when enabled", () => {
+    const { result, rerender } = renderHook(
+      ({ autoHide }) =>
+        useVibePlayerChrome({ autoHide, idleDelayMs: 1000, open: true }),
+      { initialProps: { autoHide: true } }
     );
-
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
+    act(() => vi.advanceTimersByTime(600));
+    rerender({ autoHide: false });
+    act(() => vi.advanceTimersByTime(1000));
     expect(result.current.chromeHidden).toBe(false);
+    rerender({ autoHide: true });
+    act(() => vi.advanceTimersByTime(999));
+    expect(result.current.chromeHidden).toBe(false);
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.chromeHidden).toBe(true);
   });
 
   it("resets chrome and clears timers when closed", () => {
@@ -67,17 +73,18 @@ describe("useVibePlayerChrome", () => {
       { initialProps: { open: true } }
     );
 
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-    expect(result.current.chromeHidden).toBe(true);
-
+    act(() => vi.advanceTimersByTime(600));
     rerender({ open: false });
     expect(result.current.chromeHidden).toBe(false);
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
+    expect(result.current.chromeHidden).toBe(false);
+    rerender({ open: true });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.chromeHidden).toBe(true);
+    rerender({ open: false });
     expect(result.current.chromeHidden).toBe(false);
   });
 });

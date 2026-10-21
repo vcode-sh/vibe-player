@@ -47,7 +47,7 @@ describe("vibe-player-resume-store", () => {
     expect(store.get("valid")).toBeNull();
   });
 
-  it("persists resume values through an injected storage object", () => {
+  it("persists across store instances without colliding encoded source IDs or prefixes", () => {
     const { entries, storage } = createTestStorage();
     const store = createLocalStorageVibePlayerResumeStore({
       keyPrefix: "test:",
@@ -55,12 +55,25 @@ describe("vibe-player-resume-store", () => {
     });
 
     store.set("video/1", 88);
+    store.set("video%2F1", 12.5);
+    const otherStore = createLocalStorageVibePlayerResumeStore({
+      keyPrefix: "other:",
+      storage,
+    });
+    otherStore.set("video/1", 31);
     expect(entries.get("test:video%2F1")).toBe("88");
-    expect(store.get("video/1")).toBe(88);
+    expect(
+      createLocalStorageVibePlayerResumeStore({
+        keyPrefix: "test:",
+        storage,
+      }).get("video/1")
+    ).toBe(88);
 
     store.clear("video/1");
     expect(store.get("video/1")).toBeNull();
     expect(entries.has("test:video%2F1")).toBe(false);
+    expect(store.get("video%2F1")).toBe(12.5);
+    expect(otherStore.get("video/1")).toBe(31);
   });
 
   it("removes invalid local storage values instead of persisting them", () => {

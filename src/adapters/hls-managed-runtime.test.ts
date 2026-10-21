@@ -62,12 +62,24 @@ describe("managed HLS quality switching", () => {
 
     expect(hls.nextLevel).toBe(1);
     expect(hls.currentLevel).toBe(-1);
-    expect(onLevelsChanged).toHaveBeenLastCalledWith(hls.levels, 1);
+    expect(onLevelsChanged).toHaveBeenLastCalledWith(
+      [
+        { bitrate: 1_500_000, height: 720 },
+        { bitrate: 4_500_000, height: 1080 },
+      ],
+      1
+    );
 
     controller.setQualityLevel(-1);
 
     expect(hls.nextLevel).toBe(-1);
-    expect(onLevelsChanged).toHaveBeenLastCalledWith(hls.levels, -1);
+    expect(onLevelsChanged).toHaveBeenLastCalledWith(
+      [
+        { bitrate: 1_500_000, height: 720 },
+        { bitrate: 4_500_000, height: 1080 },
+      ],
+      -1
+    );
     controller.destroy();
   });
 });

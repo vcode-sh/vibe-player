@@ -56,8 +56,8 @@ describe("VibePlayerTooltip", () => {
     ).toBe(0);
   });
 
-  it("keeps an end-aligned tooltip inside the player stage", async () => {
-    render(
+  it("recomputes collision correction on resize and removes it on blur", async () => {
+    const { unmount } = render(
       <div className="vibe-player-stage">
         <VibePlayerTooltip align="end" label="Picture in picture">
           <button type="button">Trigger</button>
@@ -78,5 +78,30 @@ describe("VibePlayerTooltip", () => {
     await waitFor(() => {
       expect(bubble).toHaveStyle({ marginLeft: "-68px" });
     });
+    setRect(stage, createRect({ left: 0, right: 240 }));
+    fireEvent(window, new Event("resize"));
+    expect(bubble.style.marginLeft).toBe("");
+
+    fireEvent.blur(screen.getByRole("button", { name: "Trigger" }));
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    unmount();
+  });
+
+  it("suppresses a visible tooltip when its competing popover disables it", () => {
+    const { rerender } = render(
+      <VibePlayerTooltip label="Mute" shortcut="M">
+        <button type="button">Trigger</button>
+      </VibePlayerTooltip>
+    );
+    fireEvent.focus(screen.getByRole("button", { name: "Trigger" }));
+    expect(screen.getByRole("tooltip", { name: "Mute M" })).toBeInTheDocument();
+
+    rerender(
+      <VibePlayerTooltip disabled={true} label="Mute" shortcut="M">
+        <button type="button">Trigger</button>
+      </VibePlayerTooltip>
+    );
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Trigger" }));
+    expect(screen.queryByRole("tooltip")).toBeNull();
   });
 });

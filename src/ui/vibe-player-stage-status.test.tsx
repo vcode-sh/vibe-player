@@ -75,17 +75,10 @@ describe("VibePlayerStageStatus", () => {
     });
 
     const status = screen.getByRole("status", { name: "Buffering video" });
-    expect(status).toHaveClass("vibe-player-stage__status--busy");
-    expect(status).toHaveTextContent("");
-    expect(
-      status.querySelector(".vibe-player-stage__status-spinner")
-    ).not.toBeNull();
-    expect(
-      status.querySelector(".vibe-player-stage__status-halo")
-    ).not.toBeNull();
+    expect(status).toHaveAttribute("aria-live", "polite");
   });
 
-  it("cancels transient busy chrome when playback pauses before the delay", () => {
+  it("gives a restarted buffer its full delay instead of reusing a cancelled timer", () => {
     vi.useFakeTimers();
     const { rerender } = render(
       <VibePlayerStageStatus
@@ -110,10 +103,21 @@ describe("VibePlayerStageStatus", () => {
       />
     );
     act(() => {
-      vi.advanceTimersByTime(180);
+      vi.advanceTimersByTime(100);
     });
-
     expect(screen.queryByRole("status")).toBeNull();
+    rerender(
+      <VibePlayerStageStatus
+        playbackBlocked={false}
+        snapshot={createSnapshot({ paused: false, readyState: "buffering" })}
+      />
+    );
+    act(() => vi.advanceTimersByTime(319));
+    expect(screen.queryByRole("status")).toBeNull();
+    act(() => vi.advanceTimersByTime(1));
+    expect(
+      screen.getByRole("status", { name: "Buffering video" })
+    ).toBeInTheDocument();
   });
 
   it("clears visible busy chrome as soon as playback pauses", () => {
@@ -131,9 +135,9 @@ describe("VibePlayerStageStatus", () => {
     act(() => {
       vi.advanceTimersByTime(320);
     });
-    expect(screen.getByRole("status")).toHaveClass(
-      "vibe-player-stage__status--busy"
-    );
+    expect(
+      screen.getByRole("status", { name: "Buffering video" })
+    ).toBeInTheDocument();
 
     rerender(
       <VibePlayerStageStatus

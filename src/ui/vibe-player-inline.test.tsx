@@ -120,12 +120,7 @@ function getAdapter(adapters: TestInlineAdapter[]): TestInlineAdapter {
 }
 
 describe("VibePlayerInline", () => {
-  it("renders children when no source is supplied", () => {
-    render(<VibePlayerInline>Empty state</VibePlayerInline>);
-    expect(screen.getByText("Empty state")).toBeInTheDocument();
-  });
-
-  it("loads source, renders controls, captions, and forwards actions", async () => {
+  it("connects caption controls and releases playback when its source is removed", async () => {
     const adapters: TestInlineAdapter[] = [];
     const adapterFactory = () => {
       const adapter = new TestInlineAdapter();
@@ -139,7 +134,7 @@ describe("VibePlayerInline", () => {
 Caption line`)
     );
 
-    render(
+    const { rerender } = render(
       <VibePlayerInline
         adapterFactory={adapterFactory}
         loadCaptionText={loadCaptionText}
@@ -154,6 +149,14 @@ Caption line`)
       expect(screen.getByText("Caption line")).toBeInTheDocument()
     );
 
+    expect(getAdapter(adapters).calls).not.toContain("play");
+    fireEvent.click(screen.getByRole("button", { name: "Hide captions" }));
+    expect(screen.queryByText("Caption line")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show captions" }));
+    await waitFor(() =>
+      expect(screen.getByText("Caption line")).toBeInTheDocument()
+    );
+
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
     fireEvent.click(screen.getByRole("button", { name: "Mute" }));
     fireEvent.click(screen.getByRole("button", { name: "Playback speed 1x" }));
@@ -162,5 +165,17 @@ Caption line`)
     expect(getAdapter(adapters).calls).toEqual(
       expect.arrayContaining(["play", "muted:true", "rate:1.25", "fullscreen"])
     );
+
+    rerender(
+      <VibePlayerInline adapterFactory={adapterFactory}>
+        Choose a video
+      </VibePlayerInline>
+    );
+    await waitFor(() =>
+      expect(getAdapter(adapters).calls).toContain("unmount")
+    );
+    expect(screen.getByText("Choose a video")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Play" })).toBeNull();
+    expect(screen.queryByText("Caption line")).toBeNull();
   });
 });

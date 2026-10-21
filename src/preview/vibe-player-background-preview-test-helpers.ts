@@ -14,19 +14,6 @@ export const previewSource = {
   previewVideoUrl: "/loop.mp4",
 };
 
-export function getPoster(container: HTMLElement, url: string): HTMLElement {
-  const posters = Array.from(
-    container.querySelectorAll(".vibe-player-background-preview__poster")
-  );
-  const poster = posters.find((element) =>
-    element.getAttribute("style")?.includes(url)
-  );
-  if (!(poster instanceof HTMLElement)) {
-    throw new Error(`Expected preview poster for ${url}.`);
-  }
-  return poster;
-}
-
 export function getVideo(
   container: HTMLElement,
   src: string

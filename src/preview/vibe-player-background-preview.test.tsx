@@ -1,15 +1,14 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
-  waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VibePlayerAmbientPreview } from "./vibe-player-ambient-preview";
 import { VibePlayerBackgroundPreview } from "./vibe-player-background-preview";
 import {
-  getPoster,
   getVideo,
   installMatchMedia,
   installPreviewBrowserMocks,
@@ -19,6 +18,12 @@ import {
   restorePreviewBrowserMocks,
 } from "./vibe-player-background-preview-test-helpers";
 
+const nextSource = {
+  id: "preview-two",
+  posterUrl: "/poster-two.webp",
+  previewVideoUrl: "/loop-two.mp4",
+};
+
 describe("VibePlayerBackgroundPreview", () => {
   beforeEach(() => {
     installPreviewBrowserMocks();
@@ -27,72 +32,60 @@ describe("VibePlayerBackgroundPreview", () => {
   afterEach(() => {
     cleanup();
     restorePreviewBrowserMocks();
+    vi.useRealTimers();
   });
 
-  it("plays muted loop previews best-effort when motion is allowed", async () => {
-    render(<VibePlayerBackgroundPreview source={previewSource} />);
-
-    await waitFor(() => expect(playMock).toHaveBeenCalledTimes(1));
-    expect(pauseMock).not.toHaveBeenCalled();
-  });
-
-  it("keeps poster fallback and reveals video after the first frame", async () => {
+  it("requests playback of a muted inline loop without exposing decorative media", () => {
     const { container } = render(
-      <VibePlayerBackgroundPreview
-        source={{
-          ...previewSource,
-          fallbackPosterUrl: "/fallback.webp",
-          posterUrl: "/background.webp",
-        }}
-      />
-    );
-    const poster = container.querySelector(
-      ".vibe-player-background-preview__poster"
+      <VibePlayerBackgroundPreview source={previewSource} />
     );
     const video = getVideo(container, "/loop.mp4");
 
-    expect(poster?.getAttribute("style")).toContain(
-      'url("/background.webp"), url("/fallback.webp")'
-    );
-    expect(poster?.getAttribute("data-visible")).toBe("true");
-    expect(video.dataset.visible).toBe("false");
-
-    fireEvent.loadedData(video);
-
-    await waitFor(() => expect(video.dataset.visible).toBe("true"));
+    expect(video.muted).toBe(true);
+    expect(video.loop).toBe(true);
+    expect(video).toHaveAttribute("playsinline");
+    expect(video).toHaveAttribute("aria-hidden", "true");
+    expect(playMock.mock.contexts).toEqual([video]);
+    expect(pauseMock).not.toHaveBeenCalled();
   });
 
-  it("keeps the previous loop visible until the next loop has a frame", async () => {
+  it("pauses the current loop and resumes it only after the consumer releases pause", () => {
+    const { container, rerender } = render(
+      <VibePlayerBackgroundPreview source={previewSource} />
+    );
+    const video = getVideo(container, "/loop.mp4");
+
+    rerender(<VibePlayerBackgroundPreview paused source={previewSource} />);
+    expect(pauseMock.mock.contexts).toEqual([video]);
+    expect(playMock.mock.contexts).toEqual([video]);
+
+    rerender(<VibePlayerBackgroundPreview source={previewSource} />);
+    expect(playMock.mock.contexts).toEqual([video, video]);
+    expect(pauseMock.mock.contexts).toEqual([video]);
+  });
+
+  it("retains the previous loop until the replacement has a frame, then retires it", () => {
+    vi.useFakeTimers();
     const { container, rerender } = render(
       <VibePlayerBackgroundPreview source={previewSource} />
     );
     const firstVideo = getVideo(container, "/loop.mp4");
     fireEvent.loadedData(firstVideo);
-    await waitFor(() => expect(firstVideo.dataset.visible).toBe("true"));
+    act(() => vi.advanceTimersByTime(500));
 
-    rerender(
-      <VibePlayerBackgroundPreview
-        source={{
-          id: "preview-two",
-          posterUrl: "/poster-two.webp",
-          previewVideoUrl: "/loop-two.mp4",
-        }}
-      />
-    );
-
-    await waitFor(() =>
-      expect(container.querySelectorAll("video")).toHaveLength(2)
-    );
+    rerender(<VibePlayerBackgroundPreview source={nextSource} />);
     const nextVideo = getVideo(container, "/loop-two.mp4");
-    expect(firstVideo.dataset.visible).toBe("true");
-    expect(nextVideo.dataset.visible).toBe("false");
+    act(() => vi.advanceTimersByTime(500));
+    expect(firstVideo).toBeInTheDocument();
+    expect(nextVideo).toBeInTheDocument();
 
     fireEvent.loadedData(nextVideo);
-
-    await waitFor(() => expect(nextVideo.dataset.visible).toBe("true"));
+    act(() => vi.advanceTimersByTime(500));
+    expect(firstVideo).not.toBeInTheDocument();
+    expect(nextVideo).toBeInTheDocument();
   });
 
-  it("does not preserve a separate preview without an explicit preserve key", () => {
+  it("does not inherit another preview when no preserve key is supplied", () => {
     const first = render(
       <VibePlayerBackgroundPreview
         preservePreviousLayer
@@ -102,80 +95,84 @@ describe("VibePlayerBackgroundPreview", () => {
     first.unmount();
 
     const { container } = render(
-      <VibePlayerBackgroundPreview
-        preservePreviousLayer
-        source={{
-          id: "preview-two",
-          posterUrl: "/poster-two.webp",
-          previewVideoUrl: "/loop-two.mp4",
-        }}
-      />
+      <VibePlayerBackgroundPreview preservePreviousLayer source={nextSource} />
     );
 
     expect(container.querySelector('video[src="/loop.mp4"]')).toBeNull();
     expect(getVideo(container, "/loop-two.mp4")).toBeInTheDocument();
   });
 
-  it("preserves a previous preview across remounts with a shared preserve key", () => {
+  it("preserves across matching keys while keeping unrelated previews isolated", () => {
+    const preserveKey = "preview-cache-isolation";
     const first = render(
       <VibePlayerBackgroundPreview
-        preserveKey="hero-preview"
+        preserveKey={preserveKey}
         preservePreviousLayer
         source={previewSource}
       />
     );
     first.unmount();
 
-    const { container } = render(
+    const unrelated = render(
       <VibePlayerBackgroundPreview
-        preserveKey="hero-preview"
+        preserveKey="unrelated-preview"
         preservePreviousLayer
-        source={{
-          id: "preview-two",
-          posterUrl: "/poster-two.webp",
-          previewVideoUrl: "/loop-two.mp4",
-        }}
+        source={nextSource}
       />
     );
+    expect(
+      unrelated.container.querySelector('video[src="/loop.mp4"]')
+    ).toBeNull();
+    unrelated.unmount();
 
-    const previousVideo = getVideo(container, "/loop.mp4");
-    const nextVideo = getVideo(container, "/loop-two.mp4");
-    const previousPoster = getPoster(container, "/poster.webp");
-    expect(previousPoster.dataset.visible).toBe("true");
-    expect(previousVideo).toBeInTheDocument();
-    expect(nextVideo.dataset.visible).toBe("false");
+    const { container } = render(
+      <VibePlayerBackgroundPreview
+        preserveKey={preserveKey}
+        preservePreviousLayer
+        source={nextSource}
+      />
+    );
+    expect(getVideo(container, "/loop.mp4")).toBeInTheDocument();
+    expect(getVideo(container, "/loop-two.mp4")).toBeInTheDocument();
   });
 
-  it("pauses preview video for reduced-motion viewers", async () => {
+  it("never requests playback for reduced-motion viewers, including after pause release", () => {
     installMatchMedia(true);
+    const { container, rerender } = render(
+      <VibePlayerBackgroundPreview paused source={previewSource} />
+    );
+    const video = getVideo(container, "/loop.mp4");
 
-    render(<VibePlayerBackgroundPreview source={previewSource} />);
+    rerender(<VibePlayerBackgroundPreview source={previewSource} />);
 
-    await waitFor(() => expect(pauseMock).toHaveBeenCalledTimes(1));
+    expect(pauseMock.mock.contexts).toEqual([video, video]);
     expect(playMock).not.toHaveBeenCalled();
   });
 });
 
 describe("VibePlayerAmbientPreview", () => {
-  afterEach(() => {
-    cleanup();
-  });
+  afterEach(cleanup);
 
-  it("supports preview-to-player handoff without owning the player", () => {
+  it("exposes an activation button only when the consumer provides an action", () => {
     const onActivate = vi.fn();
-    render(
+    const { rerender } = render(
       <VibePlayerAmbientPreview
         activateLabel="Open preview video"
         onActivate={onActivate}
         source={{ posterUrl: "/poster.webp" }}
-      >
-        <span>Preview copy</span>
-      </VibePlayerAmbientPreview>
+      />
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open preview video" }));
-
     expect(onActivate).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Preview copy")).toBeInTheDocument();
+
+    rerender(
+      <VibePlayerAmbientPreview
+        activateLabel="Open preview video"
+        source={{ posterUrl: "/poster.webp" }}
+      />
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(onActivate).toHaveBeenCalledTimes(1);
   });
 });

@@ -73,4 +73,25 @@ describe("media delivery audit size threshold", () => {
     expect(payload.findings.at(0).code).toBe("direct-file-too-large");
     expect(payload.nextActions.at(0).code).toBe("create-hls-renditions");
   });
+
+  it.each([
+    [524_288_000, []],
+    [524_288_001, ["direct-file-too-large"]],
+  ])(
+    "enforces the direct-file byte boundary at %s",
+    async (totalSize, codes) => {
+      const bytes = createMp4Sample([
+        { size: 8, type: "ftyp" },
+        { size: 8, type: "moov" },
+      ]);
+      globalThis.fetch = vi.fn(() => createRangeResponse(bytes, totalSize));
+      const report = await createMediaDeliveryAuditReport({
+        maxSizeBytes: 524_288_000,
+        origins: [],
+        url: "https://cdn.example.com/video.mp4",
+      });
+      expect(report.totalSize).toBe(totalSize);
+      expect(report.findings.map((finding) => finding.code)).toEqual(codes);
+    }
+  );
 });

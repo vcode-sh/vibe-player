@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { VibePlayerFileSource } from "../core";
-import { createVibePlayerYouTubeWatchUrl } from "../core";
 import { createVibePlayerAdapter } from "./create-vibe-player-adapter";
 import { createYouTubeExternalAdapter } from "./create-youtube-external-adapter";
 import { collectYouTubeAdapterEvents } from "./youtube-adapter-test-helpers";
@@ -28,7 +27,7 @@ describe("createYouTubeExternalAdapter", () => {
     const link = target.querySelector("a");
     expect(link).toBeInstanceOf(HTMLAnchorElement);
     expect(link?.href).toBe(
-      createVibePlayerYouTubeWatchUrl(externalYouTubeSource)
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=12s"
     );
     expect(link?.rel).toBe("noopener");
     expect(link?.target).toBe("_blank");
@@ -41,10 +40,16 @@ describe("createYouTubeExternalAdapter", () => {
     expect(events.at(-1)?.type).toBe("ready");
   });
 
-  it("is selected by the default factory for external YouTube presentation", () => {
+  it("uses the external factory branch without loading an iframe", async () => {
     const adapter = createVibePlayerAdapter(externalYouTubeSource);
 
-    expect(adapter.kind).toBe("youtube");
+    const target = document.createElement("div");
+    await adapter.mount(target);
+    await adapter.load(externalYouTubeSource);
+    expect(target.querySelector("a")?.href).toBe(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=12s"
+    );
+    expect(target.querySelector("iframe")).toBeNull();
     expect(adapter.capabilities.supportsPlayback).toBe(false);
   });
 

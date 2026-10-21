@@ -189,4 +189,40 @@ describe("media delivery audit runner", () => {
     expect(stderr.read()).toContain("Usage: vibe-player-media-audit");
     expect(createReportMock).not.toHaveBeenCalled();
   });
+
+  it("allows healthy reports through both CI gates", async () => {
+    const stdout = createTextSink();
+    const stderr = createTextSink();
+    const exitCode = await runMediaDeliveryAuditCli({
+      argv: [
+        "https://cdn.example.com/video.mp4",
+        "--json",
+        "--strict",
+        "--require-direct-file-ready",
+      ],
+      createReport: async () => createReport(),
+      stderr: stderr.stream,
+      stdout: stdout.stream,
+    });
+    expect(exitCode).toBe(0);
+    expect(JSON.parse(stdout.read())).toMatchObject({
+      passed: true,
+      rollout: { directFileReady: true },
+    });
+    expect(stderr.read()).toBe("");
+  });
+
+  it("reports network failure on stderr without emitting a successful report", async () => {
+    const stdout = createTextSink();
+    const stderr = createTextSink();
+    const exitCode = await runMediaDeliveryAuditCli({
+      argv: ["https://cdn.example.com/video.mp4", "--json"],
+      createReport: () => Promise.reject(new Error("CDN connection refused")),
+      stderr: stderr.stream,
+      stdout: stdout.stream,
+    });
+    expect(exitCode).toBe(1);
+    expect(stderr.read()).toBe("CDN connection refused\n");
+    expect(stdout.read()).toBe("");
+  });
 });

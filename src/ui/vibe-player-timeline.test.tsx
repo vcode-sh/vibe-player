@@ -15,7 +15,7 @@ describe("VibePlayerTimeline", () => {
     expect(onSeek).toHaveBeenCalledWith(42);
   });
 
-  it("seeks from wrapper geometry during pointer interaction", () => {
+  it("clamps a primary drag to media bounds and stops seeking on release", () => {
     const onSeek = vi.fn();
     const { container } = render(
       <VibePlayerTimeline currentTime={0} duration={100} onSeek={onSeek} />
@@ -30,6 +30,8 @@ describe("VibePlayerTimeline", () => {
     }
 
     timeline.setPointerCapture = vi.fn();
+    timeline.hasPointerCapture = () => true;
+    timeline.releasePointerCapture = vi.fn();
     timeline.getBoundingClientRect = () =>
       ({
         bottom: 32,
@@ -45,19 +47,58 @@ describe("VibePlayerTimeline", () => {
 
     fireEvent.pointerDown(timeline, {
       clientX: 60,
+      isPrimary: false,
+      pointerId: 2,
+    });
+    expect(onSeek).not.toHaveBeenCalled();
+    fireEvent.pointerDown(timeline, {
+      clientX: 60,
       isPrimary: true,
       pointerId: 1,
     });
 
     expect(input).toHaveFocus();
-    expect(onSeek).toHaveBeenCalledWith(25);
+    fireEvent.pointerMove(timeline, { clientX: -10, pointerId: 1 });
+    fireEvent.pointerMove(timeline, { clientX: 250, pointerId: 1 });
+    expect(onSeek.mock.calls).toEqual([[25], [0], [100]]);
+    fireEvent.pointerUp(timeline, { pointerId: 1 });
+    fireEvent.pointerMove(timeline, { clientX: 100, pointerId: 1 });
+    expect(onSeek.mock.calls).toEqual([[25], [0], [100]]);
+    expect(timeline.releasePointerCapture).toHaveBeenCalledWith(1);
   });
 
-  it("disables seek when duration is unavailable", () => {
-    render(
-      <VibePlayerTimeline currentTime={0} duration={0} onSeek={vi.fn()} />
-    );
+  it.each([
+    { disabled: false, duration: 0 },
+    { disabled: true, duration: 100 },
+  ])(
+    "refuses pointer seek for $duration seconds, disabled=$disabled",
+    ({ disabled, duration }) => {
+      const onSeek = vi.fn();
+      const { container } = render(
+        <VibePlayerTimeline
+          currentTime={0}
+          disabled={disabled}
+          duration={duration}
+          onSeek={onSeek}
+        />
+      );
+      const timeline = container.querySelector<HTMLElement>(
+        "[data-vibe-player-timeline]"
+      );
+      if (!timeline) {
+        throw new Error("Timeline root missing");
+      }
+      timeline.setPointerCapture = vi.fn();
+      timeline.getBoundingClientRect = () => new DOMRect(10, 0, 200, 32);
 
-    expect(screen.getByRole("slider", { name: "Seek" })).toBeDisabled();
-  });
+      expect(screen.getByRole("slider", { name: "Seek" })).toBeDisabled();
+      fireEvent.pointerDown(timeline, {
+        clientX: 60,
+        isPrimary: true,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(timeline, { clientX: 100, pointerId: 1 });
+      expect(onSeek).not.toHaveBeenCalled();
+    }
+  );
 });

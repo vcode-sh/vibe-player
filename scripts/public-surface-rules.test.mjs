@@ -1,45 +1,35 @@
 import { describe, expect, it } from "vitest";
-import {
-  collectPublicSurfaceIssues,
-  forbiddenPublicSymbols,
-  requiredPublicSymbols,
-} from "./public-surface-rules.mjs";
-
-function createDeclaration(symbols) {
-  return symbols
-    .map((symbol) => `declare const ${symbol}: unknown;`)
-    .join("\n");
-}
+import { collectPublicSurfaceIssues } from "./public-surface-rules.mjs";
 
 describe("public surface rules", () => {
-  it("keeps the public and forbidden symbol lists explicit", () => {
-    expect(requiredPublicSymbols).toContain("VibePlayerStage");
-    expect(requiredPublicSymbols).toContain(
-      "canRenderVibePlayerQualityOptions"
+  it("does not mistake a longer public identifier for the required component", () => {
+    const missing = collectPublicSurfaceIssues(
+      "interface VibePlayerStageProps {}"
     );
-    expect(forbiddenPublicSymbols).toContain("VibePlayerToggleButton");
-    expect(forbiddenPublicSymbols).toContain("loadVibePlayerControllerSource");
-  });
-
-  it("accepts declarations with required public symbols and no leaks", () => {
-    const declaration = createDeclaration(requiredPublicSymbols);
-
-    expect(collectPublicSurfaceIssues(declaration)).toEqual({
-      leakedSymbols: [],
-      missingSymbols: [],
-    });
-  });
-
-  it("flags missing public symbols and leaked internal symbols", () => {
-    const declaration = createDeclaration(
-      requiredPublicSymbols
-        .filter((symbol) => symbol !== "VibePlayerStage")
-        .concat("VibePlayerToggleButton")
+    const present = collectPublicSurfaceIssues(
+      "interface VibePlayerStageProps {}\ndeclare const VibePlayerStage: unknown;"
     );
 
-    expect(collectPublicSurfaceIssues(declaration)).toEqual({
-      leakedSymbols: ["VibePlayerToggleButton"],
-      missingSymbols: ["VibePlayerStage"],
-    });
+    expect(missing.missingSymbols).toContain("VibePlayerStage");
+    expect(missing.missingSymbols).not.toContain("VibePlayerStageProps");
+    expect(present.missingSymbols).not.toContain("VibePlayerStage");
+    expect(present.missingSymbols).toContain("createFileAdapter");
+  });
+
+  it("flags exact internal symbols without rejecting longer consumer names", () => {
+    const safe = collectPublicSurfaceIssues(
+      "declare const MyVibePlayerToggleButton: unknown;\n" +
+        "declare const VibePlayerToggleButtonProps: unknown;"
+    );
+    const leaked = collectPublicSurfaceIssues(
+      "declare const VibePlayerToggleButton: unknown;\n" +
+        "declare const loadVibePlayerControllerSource: unknown;"
+    );
+
+    expect(safe.leakedSymbols).toEqual([]);
+    expect(leaked.leakedSymbols).toEqual([
+      "loadVibePlayerControllerSource",
+      "VibePlayerToggleButton",
+    ]);
   });
 });

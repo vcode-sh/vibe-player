@@ -40,6 +40,14 @@ describe("createHlsAdapter load sessions", () => {
     await adapter.unmount();
     const eventCountAfterUnmount = events.length;
     session.onReady();
+    session.onLevelLoaded(true);
+    session.onLevelsChanged([{ bitrate: 1_500_000, height: 720 }], 0);
+    session.onError({
+      details: "manifestLoadError",
+      fatal: true,
+      message: "stale",
+      type: "networkError",
+    });
     controller.resolve({
       destroy: destroySpy,
       setQualityLevel: () => undefined,
@@ -50,6 +58,7 @@ describe("createHlsAdapter load sessions", () => {
     expect(destroySpy).toHaveBeenCalledTimes(1);
     expect(adapter.getSnapshot().readyState).toBe("idle");
     expect(adapter.capabilities.canSeek).toBe(false);
+    expect(adapter.getSnapshot().qualityOptions ?? []).toEqual([]);
   });
 
   it("does not apply stale native fallback after a newer HLS load", async () => {
@@ -86,6 +95,6 @@ describe("createHlsAdapter load sessions", () => {
     await firstLoad;
 
     expect(getMountedNativeVideo(target).getAttribute("src")).toBeNull();
-    expect(adapter.getSnapshot().readyState).not.toBe("error");
+    expect(adapter.getSnapshot().readyState).toBe("loading");
   });
 });

@@ -109,15 +109,21 @@ describe("youtube iframe runtime", () => {
     );
   });
 
-  it("appends the iframe API script and resolves from the global callback", async () => {
+  it("shares a script across concurrent loads and preserves the host callback", async () => {
     const api = createApi();
+    const previousReady = vi.fn();
+    window.onYouTubeIframeAPIReady = previousReady;
     const appendedScripts = mockScriptAppend();
     const { loadYouTubeIframeApi } = await importRuntime();
     const pending = loadYouTubeIframeApi();
+    const concurrent = loadYouTubeIframeApi();
     window.YT = api;
     window.onYouTubeIframeAPIReady?.();
 
     await expect(pending).resolves.toBe(api);
+    await expect(concurrent).resolves.toBe(api);
+    expect(previousReady).toHaveBeenCalledOnce();
+    expect(window.onYouTubeIframeAPIReady).toBe(previousReady);
     expect(appendedScripts.map((script) => script.src)).toEqual([
       youtubeIframeApiSrc,
     ]);

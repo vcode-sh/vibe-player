@@ -86,6 +86,15 @@ describe("HLS quality selection", () => {
 
     await adapter.setQuality?.("auto");
     expect(probe.qualityLevel).toBe(-1);
+    expect(adapter.getSnapshot().qualityOptions).toMatchObject([
+      { id: "auto", selected: true },
+      { id: "level:0", selected: false },
+      { id: "level:1", selected: false },
+    ]);
+    const eventCount = events.length;
+    await adapter.setQuality?.("unsupported");
+    expect(probe.qualityLevel).toBe(-1);
+    expect(events).toHaveLength(eventCount);
   });
 
   it("prefers managed HLS when native HLS is also available", async () => {

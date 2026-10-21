@@ -40,14 +40,6 @@ const snapshot = {
   volume: 0.42,
 };
 
-function getTooltipRoot(button: HTMLElement): HTMLElement {
-  const root = button.closest("[data-vibe-player-tooltip]");
-  if (!(root instanceof HTMLElement)) {
-    throw new Error("Missing tooltip root");
-  }
-  return root;
-}
-
 describe("VibePlayerControls", () => {
   it("renders capability-aware controls and forwards actions", () => {
     const onTogglePlay = vi.fn();
@@ -93,17 +85,6 @@ describe("VibePlayerControls", () => {
       screen.getByRole("button", { name: "Picture in picture" })
     ).not.toHaveAttribute("title");
     expect(screen.getByText("Picture in picture")).toBeInTheDocument();
-    expect(
-      getTooltipRoot(screen.getByRole("button", { name: "Picture in picture" }))
-    ).toHaveAttribute("data-align", "end");
-    expect(
-      getTooltipRoot(screen.getByRole("button", { name: "Full screen" }))
-    ).toHaveAttribute("data-align", "end");
-    expect(
-      screen
-        .getByRole("button", { name: "Picture in picture" })
-        .querySelector("svg")
-    ).not.toBeNull();
     fireEvent.focus(screen.getByRole("slider", { name: "Seek" }));
     expect(screen.getByText("Seek")).toBeInTheDocument();
     expect(screen.getByText("← / →")).toBeInTheDocument();
@@ -134,19 +115,31 @@ describe("VibePlayerControls", () => {
     expect(onTogglePictureInPicture).toHaveBeenCalledTimes(1);
   });
 
-  it("hides unsupported optional controls", () => {
+  it("hides unsupported optional controls while keeping playback usable", () => {
     render(
       <VibePlayerControls
-        capabilities={createIdleCapabilities()}
+        capabilities={{ ...createIdleCapabilities(), supportsPlayback: true }}
         onSeek={vi.fn()}
+        onSetMuted={vi.fn()}
         onSetPlaybackRate={vi.fn()}
+        onSetQuality={vi.fn()}
+        onSetVolume={vi.fn()}
+        onToggleCaptions={vi.fn()}
+        onToggleFullscreen={vi.fn()}
         onToggleMute={vi.fn()}
+        onTogglePictureInPicture={vi.fn()}
         onTogglePlay={vi.fn()}
         snapshot={snapshot}
       />
     );
 
+    expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();
+    expect(screen.getByRole("slider", { name: "Seek" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Mute" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Quality Auto" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Playback speed 1x" })
+    ).toBeNull();
     expect(screen.queryByRole("button", { name: "Full screen" })).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Picture in picture" })

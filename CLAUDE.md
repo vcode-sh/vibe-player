@@ -45,6 +45,8 @@ bun run ci
 - Keep exports explicit and stable.
 - Prefer additive new files over extending already-large files.
 - Use `Vitest` as the test runner. Bun is the package manager and script runner.
+- When writing, reviewing, or deleting tests, use
+  [testing-patterns](.claude/skills/testing-patterns/SKILL.md).
 
 ## Repo map
 

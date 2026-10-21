@@ -174,6 +174,14 @@ describe("VibePlayerController", () => {
     await controller.mount(target);
     await controller.load(fileSource);
     await controller.closeSource();
+    expect(controller.getState()).toMatchObject({
+      capabilities: null,
+      currentSource: null,
+      isMounted: true,
+      lastEvent: null,
+      playbackBlocked: false,
+      snapshot: { currentTime: 0, paused: true, readyState: "idle" },
+    });
     await controller.load({ ...fileSource, id: "video-2" });
 
     expect(getAdapter(adapters, 0).calls).toContain("unmount");

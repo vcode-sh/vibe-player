@@ -24,23 +24,65 @@ describe("YouTubePlaybackWatchdog", () => {
     vi.useRealTimers();
   });
 
-  it("blocks playback when a start intent never advances time", async () => {
+  it("reports a stalled intent once, only after its full grace period", () => {
     vi.useFakeTimers();
     const { events, watchdog } = createWatchdogProbe();
 
     watchdog.begin(10);
-    await vi.advanceTimersByTimeAsync(2500);
-
+    watchdog.completeIfAdvanced(10);
+    vi.advanceTimersByTime(2499);
+    expect(events).toEqual([]);
+    watchdog.ensureScheduled();
+    vi.advanceTimersByTime(1);
+    expect(events).toEqual(["playblocked"]);
+    vi.advanceTimersByTime(2500);
     expect(events).toEqual(["playblocked"]);
   });
 
-  it("does not block playback after real time advancement", async () => {
+  it("does not block playback after real time advancement", () => {
     vi.useFakeTimers();
     const { events, watchdog } = createWatchdogProbe();
 
     watchdog.begin(10);
     watchdog.completeIfAdvanced(10.2);
-    await vi.advanceTimersByTimeAsync(2500);
+    watchdog.ensureScheduled();
+    vi.advanceTimersByTime(2500);
+
+    expect(events).toEqual([]);
+  });
+
+  it("gives a new play intent a new deadline without firing the old one", () => {
+    vi.useFakeTimers();
+    const { events, watchdog } = createWatchdogProbe();
+
+    watchdog.begin(10);
+    vi.advanceTimersByTime(2000);
+    watchdog.begin(30);
+    vi.advanceTimersByTime(500);
+    expect(events).toEqual([]);
+    vi.advanceTimersByTime(2000);
+    expect(events).toEqual(["playblocked"]);
+  });
+
+  it("cancels a user-abandoned intent even when buffering tries to reschedule", () => {
+    vi.useFakeTimers();
+    const { events, watchdog } = createWatchdogProbe();
+
+    watchdog.begin(10);
+    watchdog.cancelIntent();
+    watchdog.ensureScheduled();
+    vi.advanceTimersByTime(2500);
+
+    expect(events).toEqual([]);
+  });
+
+  it("does not report a playback failure after the provider disappears", () => {
+    vi.useFakeTimers();
+    const { events, setHasPlayer, watchdog } = createWatchdogProbe();
+
+    watchdog.begin(10);
+    setHasPlayer(false);
+    vi.advanceTimersByTime(2500);
 
     expect(events).toEqual([]);
   });

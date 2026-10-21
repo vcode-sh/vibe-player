@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createIdleSnapshot, type VibePlayerControllerState } from "../core";
 import {
   startVibePlayerAutoplay,
@@ -39,6 +39,29 @@ function createAutoplayController(muted = false): {
 }
 
 describe("startVibePlayerAutoplay", () => {
+  it("does not start a source cancelled while muting is pending", async () => {
+    const { controller } = createAutoplayController();
+    let completeMute: (() => void) | undefined;
+    const muting = new Promise<void>((resolve) => {
+      completeMute = resolve;
+    });
+    const play = vi.fn(() => Promise.resolve());
+    let cancelled = false;
+    const setMuted = vi.fn(() => muting);
+    const started = startVibePlayerAutoplay({
+      controller: { ...controller, play, setMuted },
+      isCancelled: () => cancelled,
+      mutedBootstrap: true,
+    });
+
+    expect(setMuted).toHaveBeenCalledWith(true);
+    expect(play).not.toHaveBeenCalled();
+    cancelled = true;
+    completeMute?.();
+    await started;
+    expect(play).not.toHaveBeenCalled();
+  });
+
   it("keeps muted bootstrap playback muted after start", async () => {
     const { calls, controller } = createAutoplayController(false);
 

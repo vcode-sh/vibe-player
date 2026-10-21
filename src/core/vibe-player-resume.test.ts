@@ -1,61 +1,50 @@
 import { describe, expect, it } from "vitest";
 import { shouldRestoreVibePlayerResumePosition } from "./vibe-player-resume";
 
+const eligible = {
+  canSeek: true,
+  duration: 100,
+  isCurrentOperation: true,
+  resumeTime: 12,
+};
+
 describe("shouldRestoreVibePlayerResumePosition", () => {
-  it("restores valid seekable resume positions", () => {
+  it("requires a current seekable source and a positive saved position", () => {
+    expect(shouldRestoreVibePlayerResumePosition(eligible)).toBe(true);
+    expect(
+      shouldRestoreVibePlayerResumePosition({ ...eligible, canSeek: false })
+    ).toBe(false);
     expect(
       shouldRestoreVibePlayerResumePosition({
-        canSeek: true,
-        duration: 100,
-        isCurrentOperation: true,
-        resumeTime: 12,
-      })
-    ).toBe(true);
-  });
-
-  it("skips stale, unseekable, empty, and near-ended resume positions", () => {
-    expect(
-      shouldRestoreVibePlayerResumePosition({
-        canSeek: true,
-        duration: 100,
+        ...eligible,
         isCurrentOperation: false,
-        resumeTime: 12,
       })
     ).toBe(false);
-    expect(
-      shouldRestoreVibePlayerResumePosition({
-        canSeek: false,
-        duration: 100,
-        isCurrentOperation: true,
-        resumeTime: 12,
-      })
-    ).toBe(false);
-    expect(
-      shouldRestoreVibePlayerResumePosition({
-        canSeek: true,
-        duration: 100,
-        isCurrentOperation: true,
-        resumeTime: 0,
-      })
-    ).toBe(false);
-    expect(
-      shouldRestoreVibePlayerResumePosition({
-        canSeek: true,
-        duration: 100,
-        isCurrentOperation: true,
-        resumeTime: 99,
-      })
-    ).toBe(false);
+    for (const resumeTime of [null, undefined, 0, -1, Number.NaN]) {
+      expect(
+        shouldRestoreVibePlayerResumePosition({ ...eligible, resumeTime })
+      ).toBe(false);
+    }
   });
 
-  it("allows resume before duration metadata is useful", () => {
-    expect(
-      shouldRestoreVibePlayerResumePosition({
-        canSeek: true,
-        duration: 0,
-        isCurrentOperation: true,
-        resumeTime: 12,
-      })
-    ).toBe(true);
+  it("does not resume within the final second of a finite video", () => {
+    for (const [resumeTime, expected] of [
+      [98.999, true],
+      [99, false],
+      [99.001, false],
+      [100, false],
+    ] as const) {
+      expect(
+        shouldRestoreVibePlayerResumePosition({ ...eligible, resumeTime })
+      ).toBe(expected);
+    }
+  });
+
+  it("allows a positive position before useful duration metadata arrives", () => {
+    for (const duration of [0, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(
+        shouldRestoreVibePlayerResumePosition({ ...eligible, duration })
+      ).toBe(true);
+    }
   });
 });

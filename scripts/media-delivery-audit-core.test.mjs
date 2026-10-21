@@ -23,7 +23,7 @@ describe("media delivery audit core", () => {
       { size: 96, type: "mdat" },
     ]);
     const tailBytes = createMp4Sample([{ size: 48, type: "moov" }]);
-    const totalSize = 512;
+    const totalSize = 5_242_880;
 
     globalThis.fetch = vi.fn((_url, init) => {
       const origin = getOrigin(init);
@@ -50,7 +50,15 @@ describe("media delivery audit core", () => {
     expect(report.rangeOk).toBe(true);
     expect(report.mp4.faststart).toBe(false);
     expect(report.mp4.mdatBox?.offset).toBe(32);
-    expect(report.mp4.tailMoovOffset).toBe(0);
+    expect(report.mp4.tailMoovOffset).toBe(1_048_576);
+    expect(
+      globalThis.fetch.mock.calls.map(([, init]) => init.headers.get("Range"))
+    ).toEqual([
+      "bytes=0-4194303",
+      "bytes=1048576-5242879",
+      "bytes=0-0",
+      "bytes=0-0",
+    ]);
     expect(report.credentialsRequired).toBe(false);
     expect(report.corsResults).toEqual([
       {

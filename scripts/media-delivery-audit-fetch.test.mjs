@@ -28,12 +28,18 @@ describe("media delivery audit fetch helpers", () => {
   });
 
   it("caps reads when the server ignores range requests", async () => {
-    const body = new Uint8Array(128);
-    body.fill(7);
+    const cancel = vi.fn();
+    const body = new ReadableStream({
+      cancel,
+      start(controller) {
+        controller.enqueue(new Uint8Array([3, 1, 4]));
+        controller.enqueue(new Uint8Array([1, 5, 9, 2, 6, 5, 3, 5, 8]));
+      },
+    });
     globalThis.fetch = vi.fn(
       () =>
         new Response(body, {
-          headers: { "content-length": String(body.length) },
+          headers: { "content-length": "128" },
           status: 200,
         })
     );
@@ -45,12 +51,13 @@ describe("media delivery audit fetch helpers", () => {
     });
 
     expect(sample.status).toBe(200);
-    expect(sample.bytes).toHaveLength(10);
+    expect([...sample.bytes]).toEqual([3, 1, 4, 1, 5, 9, 2, 6, 5, 3]);
+    expect(cancel).toHaveBeenCalledTimes(1);
     expect(sample.headers.get("content-length")).toBe("128");
     expect(sample.resolvedUrl).toBe("https://cdn.example.com/large.mp4");
     const call = globalThis.fetch.mock.calls.at(0);
     expect(call?.[0]).toBe("https://cdn.example.com/large.mp4");
-    expect(call?.[1]?.headers).toBeInstanceOf(Headers);
+    expect(call?.[1]?.headers.get("Range")).toBe("bytes=0-9");
     expect(call?.[1]?.redirect).toBe("follow");
   });
 

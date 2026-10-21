@@ -6,156 +6,88 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  createIdleCapabilities,
-  createIdleSnapshot,
-  type VibePlayerAdapter,
-  type VibePlayerAdapterEvent,
-  type VibePlayerFileSource,
-  type VibePlayerSnapshot,
-  type VibePlayerSource,
-} from "../core";
 import { VibePlayerModal } from "./vibe-player-modal";
-
-const source: VibePlayerFileSource = {
-  id: "modal-video",
-  posterUrl: "https://example.com/poster.jpg",
-  sources: [{ mimeType: "video/mp4", url: "https://example.com/video.mp4" }],
-  title: "Modal demo",
-  type: "file",
-};
-
-class TestModalAdapter implements VibePlayerAdapter {
-  readonly calls: string[] = [];
-  readonly capabilities = {
-    ...createIdleCapabilities(),
-    canSeek: true,
-    supportsDuration: true,
-    supportsMute: true,
-    supportsPlayback: true,
-  };
-  readonly kind = "file";
-  private readonly snapshot: VibePlayerSnapshot = {
-    ...createIdleSnapshot(),
-    duration: 90,
-    readyState: "ready",
-  };
-
-  getSnapshot(): VibePlayerSnapshot {
-    return this.snapshot;
-  }
-
-  load(nextSource: VibePlayerSource): Promise<void> {
-    this.calls.push(`load:${nextSource.id}`);
-    return Promise.resolve();
-  }
-
-  mount(target: HTMLElement): Promise<void> {
-    this.calls.push("mount");
-    target.append(document.createElement("video"));
-    return Promise.resolve();
-  }
-
-  pause(): Promise<void> {
-    this.calls.push("pause");
-    return Promise.resolve();
-  }
-
-  play(): Promise<void> {
-    this.calls.push("play");
-    return Promise.resolve();
-  }
-
-  seekTo(seconds: number): Promise<void> {
-    this.calls.push(`seek:${seconds}`);
-    return Promise.resolve();
-  }
-
-  setMuted(value: boolean): Promise<void> {
-    this.calls.push(`muted:${String(value)}`);
-    return Promise.resolve();
-  }
-
-  setPlaybackRate(value: number): Promise<void> {
-    this.calls.push(`rate:${value}`);
-    return Promise.resolve();
-  }
-
-  setVolume(value: number): Promise<void> {
-    this.calls.push(`volume:${value}`);
-    return Promise.resolve();
-  }
-
-  subscribe(_listener: (event: VibePlayerAdapterEvent) => void): () => void {
-    return () => undefined;
-  }
-
-  unmount(): Promise<void> {
-    this.calls.push("unmount");
-    return Promise.resolve();
-  }
-}
+import {
+  createStageAdapterFactory,
+  getStageAdapter,
+  stageFileSource,
+} from "./vibe-player-stage-test-helpers";
 
 describe("VibePlayerModal", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("keeps rendered during close transition and then unmounts", () => {
+  it("removes a closing dialog from accessibility before its exit completes", () => {
     vi.useFakeTimers();
     const { rerender } = render(
       <VibePlayerModal open={true}>Modal content</VibePlayerModal>
     );
 
-    expect(screen.getByRole("dialog")).toHaveAttribute("data-state", "open");
+    expect(
+      screen.getByRole("dialog", { name: "Video player" })
+    ).toHaveAttribute("aria-modal", "true");
     rerender(<VibePlayerModal open={false}>Modal content</VibePlayerModal>);
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("dialog", { hidden: true })).toHaveAttribute(
-      "data-state",
-      "closing"
+      "inert"
     );
-
-    act(() => {
-      vi.advanceTimersByTime(180);
-    });
+    act(() => vi.advanceTimersByTime(179));
+    expect(screen.getByRole("dialog", { hidden: true })).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
     expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
-    vi.useRealTimers();
   });
 
-  it("calls onClose for outside pointer down", () => {
+  it("dismisses outside pointer presses without dismissing content interaction", () => {
     const onClose = vi.fn();
     render(
       <VibePlayerModal onClose={onClose} open={true}>
-        Modal content
+        <button type="button">Inner action</button>
       </VibePlayerModal>
     );
 
-    fireEvent.pointerDown(
-      screen
-        .getByRole("dialog")
-        .querySelector(".vibe-player-modal__panel") as Element
-    );
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Inner action" }));
+    expect(onClose).not.toHaveBeenCalled();
+    const panel = screen
+      .getByRole("dialog")
+      .querySelector(".vibe-player-modal__panel");
+    if (!panel) {
+      throw new Error("Missing outside pointer surface");
+    }
+    fireEvent.pointerDown(panel);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("loads source through the shared stage", async () => {
-    const adapters: TestModalAdapter[] = [];
-    const adapterFactory = () => {
-      const adapter = new TestModalAdapter();
-      adapters.push(adapter);
-      return adapter;
-    };
-
-    render(
+  it("releases media immediately on close while the modal is still exiting", async () => {
+    const { adapterFactory, adapters } = createStageAdapterFactory();
+    const { rerender } = render(
       <VibePlayerModal
         adapterFactory={adapterFactory}
         open={true}
-        source={source}
+        source={stageFileSource}
       />
     );
-
     await waitFor(() =>
-      expect(adapters[0]?.calls).toContain("load:modal-video")
+      expect(getStageAdapter(adapters).calls).toContain("load:stage-video")
     );
-    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Pause" })).toBeVisible()
+    );
+
+    vi.useFakeTimers();
+    await act(async () => {
+      rerender(
+        <VibePlayerModal
+          adapterFactory={adapterFactory}
+          open={false}
+          source={stageFileSource}
+        />
+      );
+    });
+
+    expect(getStageAdapter(adapters).calls).toContain("unmount");
+    expect(screen.getByRole("dialog", { hidden: true })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
   });
 });

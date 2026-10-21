@@ -31,5 +31,51 @@ describe("VibePlayerController analytics", () => {
       "closed",
     ]);
     expect(resumeCalls).toContain("clear:video-1");
+    expect(analytics.find((event) => event.type === "started")).toEqual({
+      currentTime: 1,
+      duration: 100,
+      provider: "file",
+      sourceId: "video-1",
+      type: "started",
+    });
+    expect(analytics.find((event) => event.type === "progress_50")).toEqual({
+      currentTime: 80,
+      duration: 100,
+      provider: "file",
+      sourceId: "video-1",
+      type: "progress_50",
+    });
+  });
+
+  it("rearms milestones for a new source without attributing them to the old session", async () => {
+    const { adapters, analytics, controller } = createControllerHarness();
+    await controller.load(fileSource);
+    getAdapter(adapters, 0).emit("timeupdate", {
+      currentTime: 25,
+      duration: 100,
+    });
+    await controller.load({ ...fileSource, id: "video-2" });
+    getAdapter(adapters, 1).emit("timeupdate", {
+      currentTime: 50,
+      duration: 200,
+    });
+
+    expect(analytics.filter((event) => event.type === "progress_25")).toEqual([
+      {
+        currentTime: 25,
+        duration: 100,
+        provider: "file",
+        sourceId: "video-1",
+        type: "progress_25",
+      },
+      {
+        currentTime: 50,
+        duration: 200,
+        provider: "file",
+        sourceId: "video-2",
+        type: "progress_25",
+      },
+    ]);
+    await controller.teardown();
   });
 });

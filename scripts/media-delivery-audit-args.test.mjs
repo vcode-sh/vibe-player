@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  mediaDeliveryAuditUsage,
-  parseMediaDeliveryAuditArgs,
-} from "./media-delivery-audit-args.mjs";
+import { parseMediaDeliveryAuditArgs } from "./media-delivery-audit-args.mjs";
 
 describe("media delivery audit args", () => {
   it("parses URL, origins, strict JSON, and credentialed CORS mode", () => {
@@ -32,6 +29,24 @@ describe("media delivery audit args", () => {
     });
   });
 
+  it("keeps unrelated switches off when strict mode alone is selected", () => {
+    expect(
+      parseMediaDeliveryAuditArgs([
+        "https://cdn.example.com/video.mp4",
+        "--strict",
+      ])
+    ).toEqual({
+      credentials: false,
+      help: false,
+      json: false,
+      maxSizeBytes: null,
+      origins: [],
+      requireDirectFileReady: false,
+      strict: true,
+      url: "https://cdn.example.com/video.mp4",
+    });
+  });
+
   it("supports help without a URL", () => {
     expect(parseMediaDeliveryAuditArgs(["--help"])).toEqual({
       credentials: false,
@@ -47,7 +62,7 @@ describe("media delivery audit args", () => {
 
   it("rejects invalid argument shapes before network work starts", () => {
     expect(() => parseMediaDeliveryAuditArgs([])).toThrow(
-      mediaDeliveryAuditUsage
+      "Usage: vibe-player-media-audit <url>"
     );
     expect(() =>
       parseMediaDeliveryAuditArgs([
