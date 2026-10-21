@@ -1,6 +1,88 @@
 # Test quality audit
 
-## Outcome
+## Current outcome
+
+The initial test cleanup and the implementation follow-up are complete.
+The current tree has **280 passing tests across 61 files**, with no failing or
+skipped tests. The original WebVTT regression is fixed. Full `bun run ci` passes,
+including types, architecture/dependency rules, production build, package size,
+public surface, archive validation, publint, ATTW, and both Vite demo builds.
+
+The follow-up added 30 discriminating cases to the initial 250-case suite and
+fixed the existing failing case. Each defect was reproduced with a focused
+failing test before its correction; expectations were not changed to accept the
+broken behavior. Independent delta review exposed two additional weaknesses in
+first corrections: caption references crossing tag boundaries and same-source
+playback/remount races. Both were corrected and challenged again.
+
+### Implemented corrections
+
+| Boundary                        | Correct behavior and regression protection                                                                                                                                                                                                                                                          |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WebVTT text                     | Decode HTML named and numeric references once within each original text span. Escaped tags remain literal text; unknown references remain readable; references cannot be manufactured by joining text across markup. Preserve decoded nonbreaking spaces. Seven literal fixtures cover these cases. |
+| Loaded caption ownership        | A new track never shows the previously loaded track's cues, including the render before its loading effect runs. The replacement request remains independently cancellable.                                                                                                                         |
+| HLS load ownership              | A late obsolete attachment cannot clear the current managed controller. Quality selection and cleanup still reach the active session.                                                                                                                                                               |
+| YouTube load ownership          | Obsolete creation success/failure and callbacks cannot resurrect, replace, or destroy current playback. Late obsolete handles are destroyed.                                                                                                                                                        |
+| Controller cleanup and commands | Detach old adapter ownership before awaiting cleanup. Late close, teardown, unmount, blocked-play, and pause completions cannot overwrite a replacement source. Remounting the same source remains mounted; the newest same-source play/pause intent wins.                                          |
+| Preview asset identity          | Changing video or poster URLs under the same public source id refreshes the preview. Existing readiness and old-layer retirement behavior remains intact.                                                                                                                                           |
+| Volume focus                    | Escape returns focus to the trigger and keeps the panel closed; a subsequent intentional focus can reopen it.                                                                                                                                                                                       |
+| Media audit headers             | Reject reversed, out-of-bounds, and numerically unsafe Content-Range/Content-Length values. A 206 partial-body length is never treated as the full asset size; an unknown total stays unknown and blocks unsupported readiness claims.                                                              |
+
+The caption decoder uses `entities@7.0.1` as an explicit runtime dependency,
+with its lockfile and dependency guard updated. The library was already present
+transitively in development tooling. It implements HTML reference decoding
+without a DOM dependency, avoiding an incomplete hand-maintained entity table.
+The public package API and version remain unchanged at 0.2.0.
+
+### Added and extended regression files
+
+- `src/captions/parse-webvtt-character-references.test.ts`: named/numeric,
+  single-pass, literal markup, whitespace, malformed-reference recovery, and
+  token-boundary text output.
+- `src/core/vibe-player-controller-async-ownership.test.ts`: eight cleanup and
+  command races, including same-source remount and command ordering.
+- `src/adapters/create-youtube-adapter-load-session.test.ts`: three obsolete
+  creation/callback cases, including success and failure after replacement.
+- `src/adapters/create-hls-adapter-load-session.test.ts`: current quality and
+  destruction still work after an obsolete attachment resolves.
+- `src/react/use-vibe-player-captions-lifecycle.test.tsx`: completed old track
+  remains hidden throughout replacement renders and loading.
+- `src/preview/vibe-player-background-preview.test.tsx`: updated asset under the
+  same source id loads and replaces the old media only after readiness.
+- `src/ui/vibe-player-volume-control.test.tsx`: actual slider focus, Escape,
+  restored trigger focus, closed panel, and later intentional reopening.
+- `scripts/media-delivery-audit-fetch.test.mjs` and
+  `scripts/media-delivery-audit-unknown-size.test.mjs`: nine malformed/imprecise
+  header and partial-size cases with findings, readiness, and request effects.
+
+### Verification and limits
+
+- Full `bun run ci`: passed; 280/280 Vitest cases in 61 files.
+- Built ESM import in Node: caption decoding and token boundaries pass with
+  no `document` or browser environment available.
+- Runtime output: 131527 bytes raw, 28256 bytes gzip; both within existing
+  package budgets. Styles, declarations, and archive also pass their budgets
+  and contracts. No budget or lint rule was weakened.
+- TypeScript 7 emits its existing experimental-API build warning. ATTW's
+  CommonJS warning is excluded by the existing ESM-only package policy; supported
+  ESM and bundler resolutions pass.
+- In the running local Vite demo, real MP4 playback and pause worked. Focusing
+  the actual volume slider, pressing Escape, and inspecting browser accessibility
+  state confirmed the panel was collapsed and the trigger retained focus.
+  Screenshot: `/tmp/vibe-player-test-audit/volume-escape.png`.
+- Browser evidence is limited to that file-player/focus flow. Live YouTube/HLS
+  network playback, native PiP/fullscreen, and comprehensive visual motion
+  acceptance were not rerun; controlled adapter tests cover the changed races.
+- No public API, version bump, publishing, staging, or commit was performed by
+  this task. Unrelated existing work was preserved.
+
+## Initial audit checkpoint
+
+The sections below record the earlier test-only checkpoint before implementation
+was authorized. Their 249-pass/1-fail totals, mutation probes, and unchanged-source
+statements describe that checkpoint, not the current corrected tree above.
+
+### Outcome
 
 Applied [testing-patterns](../.claude/skills/testing-patterns/SKILL.md), adapted
 from the current WUN and Spreadoo skills, to every configured test file.
@@ -25,7 +107,7 @@ protection moved to a real adapter test. Other shallow or duplicate cases were
 removed inside retained files. Case count increased mainly because unrelated
 conditions formerly bundled together now have independently discriminating rows.
 
-## Verification scope
+### Verification scope
 
 The configured Vitest projects cover `src/**/*.test.ts(x)` in happy-dom and
 `scripts/**/*.test.mjs` in Node. File discovery, package scripts, CI configuration,
@@ -50,9 +132,9 @@ motion, native fullscreen/PiP, actual provider/CDN responses and publishing were
 not exercised. DOM assertions prove state, protocol, and interaction behavior
 only. No dependency, runtime configuration, commit, push, or release was added.
 
-## Core and captions test audit
+### Core and captions test audit
 
-### Scope and result
+#### Scope and result
 
 Inspected all 13 original test files in `src/core` and `src/captions`, their real
 owners, controller/adapter fixtures, and relevant package usage/integration
@@ -66,7 +148,7 @@ and one active failing regression for a confirmed caption defect. Matrix
 expansion accounts for much of the count increase; counts are not acceptance
 criteria.
 
-### Original-file inventory
+#### Original-file inventory
 
 | File                                                    | Decision                   | Protection and defects caught                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -84,7 +166,7 @@ criteria.
 | `src/core/vibe-player-youtube.test.ts`                  | Rewrite                    | Default iframe must preserve explicit external presentation; positive fractional offset floors, unusable offsets omit `t`. Catches always-iframe and invalid/rounded timestamp URL generation.                                                                                                                                                                                                                                                      |
 | `src/captions/parse-webvtt.test.ts`                     | Rewrite                    | Hand-authored hour/fraction/CRLF/settings/multiline fixture catches conversion or lost text; malformed/reversed/empty cues cannot drop later valid cue. Independent selector fixtures check inclusive starts, exclusive ends, overlap order and deduplication without using parser output as the oracle.                                                                                                                                            |
 
-### New files
+#### New files
 
 - `src/core/vibe-player-controller-load-races.test.ts`: controlled obsolete load
   resolves or rejects after a new source is ready. Catches stale source/error
@@ -95,7 +177,7 @@ criteria.
   `A &amp; B &lt;3 &gt;2` must produce `A & B <3 >2` after markup removal. This is
   actively failing, not skipped or marked expected-failure.
 
-### Confirmed defect and requirement
+#### Confirmed defect and requirement
 
 `parseWebVtt` currently strips tags but leaves character references encoded.
 The overlay renders plain React text, so captions visibly contain `&amp;` and
@@ -110,7 +192,7 @@ checking the standard: authoring forbids arrows in comments, and its parsing
 algorithm can treat that malformed input as a cue. No speculative test or
 finding remains for it.
 
-### Verification
+#### Verification
 
 - `bunx biome check src/core/*.test.ts src/captions/*.test.ts`: 15 files pass.
 - `bun run test --project dom src/core`: 13 files, 56 tests pass.
@@ -126,11 +208,11 @@ finding remains for it.
 - DOM/project evidence cannot establish real browser playback or layout.
 
 
-## Adapter audit
+### Adapter audit
 
 Applied `.claude/skills/testing-patterns/SKILL.md` to all 12 original adapter test files, their provider/native boundaries, helper fixtures, and documented provider behavior. Baseline: 52 expanded cases; final: 59 cases in 12 files. Ten existing files were strengthened, one retained unchanged, one deleted, and one replacement file added. No production file or helper was changed.
 
-### File decisions
+#### File decisions
 
 | Original file                                          | Decision                                             | Contract and reason                                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -147,7 +229,7 @@ Applied `.claude/skills/testing-patterns/SKILL.md` to all 12 original adapter te
 | `src/adapters/youtube-playback-watchdog.test.ts`       | Rewrite stall case, retain progress, add three cases | Assert deadline/once-only semantics, no rescheduling after progress, replacement intent deadline, cancellation and disappeared provider.                                                                                                                                                     |
 | `src/adapters/youtube-time-updates.test.ts`            | Rewrite both cases                                   | Pin sampling edge behavior, repeated-start idempotence, silence after stop and fresh sampling after restart.                                                                                                                                                                                 |
 
-### Added or rewritten cases and defects caught
+#### Added or rewritten cases and defects caught
 
 All cases below ran in the Vitest `dom` project. Retained valid-path cases remain where their outputs discriminate against default/no-op/rejection implementations.
 - File `forwards playback commands and clamps seek and volume values`: catches missing native play/pause forwarding while preserving seek/volume output checks. A connected target avoids an unrelated post-play auto-pause.
@@ -173,7 +255,7 @@ All cases below ran in the Vitest `dom` project. Retained valid-path cases remai
 - Sampling `samples once per interval even when playback repeatedly reports playing`: catches duplicate intervals, immediate ticks and restarting the sampling clock on repeated starts.
 - Sampling `stops sampling and starts a fresh interval when playback resumes`: catches leaked stopped intervals or stop permanently disabling resume.
 
-### Sensitivity and verification
+#### Sensitivity and verification
 
 - `bun run test --project dom src/adapters`: 12 files, 59 tests passed.
 - `bunx biome check src/adapters`: passed, 46 files, no fixes on final check.
@@ -185,7 +267,7 @@ All cases below ran in the Vitest `dom` project. Retained valid-path cases remai
 - Provider/browser doubles prove package translation/lifecycle only. No claim about actual media decoding, native PiP/fullscreen, YouTube network behavior, or visual playback is made.
 
 
-## React hooks audit
+### React hooks audit
 
 All five original hook test files were inspected with their real hook owners,
 controller/adapter boundary, and component callers. Four changed, one retained,
@@ -199,7 +281,7 @@ one lifecycle file added. No production changes.
 | `src/react/use-vibe-player-overlay-presence.test.tsx` | Extend   | Preserve exclusive exit deadline; add rapid close/reopen/close stale-timer challenge                                                          |
 | `src/react/use-vibe-player-shortcuts.test.tsx`        | Extend   | Preserve target cleanup and fresh capability/callback checks; add target migration, cancellation semantics, disabled cleanup                  |
 
-### Changed/new cases and defects
+#### Changed/new cases and defects
 
 - Chrome `restarts the full idle delay after activity instead of using the old deadline`: catches an uncleared old idle timer and early hiding; tests just before and at the new deadline.
 - Chrome `cancels a pending hide when disabled and resumes it when enabled`: catches a stale auto-hide timer after preference change and an always-visible implementation.
@@ -212,7 +294,7 @@ one lifecycle file added. No production changes.
 - Caption disable during load: catches failure to abort and stale completion leaking text when captions are re-enabled before the new request completes.
 - Caption default-loader HTTP error: rejects a 403 even if its response body is syntactically valid WebVTT; catches parsing a failed response as successful captions.
 
-### Evidence
+#### Evidence
 
 The focused React lane passed 20 cases; the centralized full-suite result
 includes the final timing and re-enable refinements. Disposable-copy mutation
@@ -223,7 +305,7 @@ SSR coverage is React hydration in happy-dom, not real-browser hydration/layout
 acceptance. No live caption server or browser playback was tested.
 
 
-## UI and skin test audit
+### UI and skin test audit
 
 Applied `.claude/skills/testing-patterns/SKILL.md` to all 11 original test files
 in `src/ui` and `src/skins`, plus the shared stage adapter fixture. Read the
@@ -231,7 +313,7 @@ corresponding components, immediate composition owners, and public usage/audio
 contracts. Existing uncommitted test edits were preserved and improved in place.
 No production source or shared fixture was changed.
 
-### Inventory decisions
+#### Inventory decisions
 
 | Original file                                 | Decision                                                                            | Independent protection                                                                                                                                                                                                                                                                                    |
 | --------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -247,7 +329,7 @@ No production source or shared fixture was changed.
 | `src/ui/vibe-player-tooltip.test.tsx`         | Strengthen collision integration; add disabled transition                           | Hand-checked collision offsets retained. Resize must remove obsolete correction; blur hides tooltip. Opening competing popover disables an already visible tooltip and prevents hover from reopening it.                                                                                                  |
 | `src/ui/vibe-player-volume-control.test.tsx`  | Replace single unmute case with 4 discriminating keyboard cases; tighten timer edge | Keyboard raises by 5%, Shift raises by 10%, upper bound clamps to 1, lower bound clamps to 0 without unmuting. Inactivity dismissal remains deferred while interacting and fires at 520 ms after leaving following a commit.                                                                              |
 
-### Added or rewritten case defects
+#### Added or rewritten case defects
 
 All cases below ran in the Vitest `dom` lane.
 - `announces literal caption lines and removes expired text`: catches stale/concatenated cues, lost line separation, HTML interpretation, or lost live announcement.
@@ -269,7 +351,7 @@ All cases below ran in the Vitest `dom` lane.
 - Keyboard volume rows (`0.25`, `1`, `0`, `0.3`): catch wrong normal/Shift step, overflow, underflow, and unmuting silence respectively.
 - `auto-dismisses the volume popover after inactivity`: now distinguishes 519 ms from 520 ms instead of using a loose timing window.
 
-### Sensitivity evidence
+#### Sensitivity evidence
 
 Six isolated mutations were tested in a disposable source copy and each failed
 its intended focused assertion; no shared production file was mutated:
@@ -282,7 +364,7 @@ its intended focused assertion; no shared production file was mutated:
 
 Machine-readable probe results: `/tmp/vibe-player-test-audit/ui-mutations.json`.
 
-### Verification and scope
+#### Verification and scope
 
 - Baseline: 11 files, 37 cases. Final: 10 files, 35 passing cases.
 - Changed 10 existing test files; deleted 1 test file; no new test files.
@@ -294,19 +376,19 @@ Machine-readable probe results: `/tmp/vibe-player-test-audit/ui-mutations.json`.
   not rendered layout, animation quality, native media, or actual browser focus.
 
 
-## Preview audit
+### Preview audit
 
 Original inventory: `src/preview/vibe-player-background-preview.test.tsx` (7 cases).
 Decision: rewrite 5 cases, retain no-key isolation behavior, remove the style-string/visibility-only case, add one pause/resume challenge. Final: 7 cases, one edited test file, one edited helper, zero deleted files. No production changes.
 
-### File decision
+#### File decision
 
 | File                                                         | Decision                  | Protection                                                                                                                                              |
 | ------------------------------------------------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/preview/vibe-player-background-preview.test.tsx`        | Rewrite                   | Playback configuration, consumer pause, frame-driven old-video retirement, cache isolation/remount, reduced-motion suppression, activation availability |
 | `src/preview/vibe-player-background-preview-test-helpers.ts` | Remove unused `getPoster` | The deleted helper queried inline CSS; no remaining caller uses it                                                                                      |
 
-### Cases and defects
+#### Cases and defects
 
 - `requests playback of a muted inline loop without exposing decorative media`: detects audible/non-looping media, missing inline playback or accessibility exclusion, and playback directed at the wrong element. The previous case checked only one `play()` call.
 - `pauses the current loop and resumes it only after the consumer releases pause`: detects ignored pause, playback continuing while paused, and failure to resume the same video. New discriminating transition.
@@ -318,7 +400,7 @@ Decision: rewrite 5 cases, retain no-key isolation behavior, remove the style-st
 
 Deleted `keeps poster fallback and reveals video after the first frame`: inline style text and private `data-visible` flags did not prove poster fallback, frame presentation, or visual reveal. Frame-driven lifecycle is now covered by the replacement retirement challenge. Actual poster rendering/crossfade remains browser acceptance work; no browser claim is made here.
 
-### Evidence
+#### Evidence
 
 - `bun run test --project dom src/preview/vibe-player-background-preview.test.tsx`: 7/7 passed.
 - Scoped Biome check of the test and helper: passed.
@@ -327,7 +409,7 @@ Deleted `keeps poster fallback and reveals video after the first frame`: inline 
 - No real decoding, browser autoplay policy, motion rendering, or live-provider acceptance was exercised.
 
 
-## Scripts audit
+### Scripts audit
 
 Inspected all 15 original script test files, the audit/guard implementations,
 `docs/media-delivery.md`, and the release policy. The configured Node lane contains
@@ -335,7 +417,7 @@ all 15 files. Changed 10 test files; retained 5 unchanged; deleted no whole file
 Cases: 39 before, 69 after. Most growth is replacing one combined release-drift
 case with isolated rule cases, not duplicating happy paths.
 
-### File decisions and protection
+#### File decisions and protection
 
 | File                                                      | Decision            | Independent protection / defect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | --------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -355,7 +437,7 @@ case with isolated rule cases, not duplicating happy paths.
 | `scripts/public-surface-rules.test.mjs`                   | Rewrite/delete case | Remove static symbol-list mirror and production-derived declaration fixtures. Test required short identifier versus longer public identifier and exact internal leak versus consumer prefix/suffix. Catches substring matching and missing/leaked-symbol suppression.                                                                                                                                                                                                                                                                                                     |
 | `scripts/release-state-rules.test.mjs`                    | Rewrite             | Replace simultaneous invalid fields plus partial containment assertions with isolated drift and exact diagnostic arrays. Cases cover identity/private marker/license; each author field; repository URL/tracker/homepage/funding; ESM/module/types; stylesheet side effects; public access/provenance; CLI entry; exact Bun version; runtime/type/style exports; Node shebang; Changesets access. Catches checks incorrectly gated on an unrelated invalid field, omitted diagnostics, and spurious diagnostics. Valid manifest remains the always-reject counterexample. |
 
-### Sensitivity evidence
+#### Sensitivity evidence
 
 Ran focused mutations only in a disposable copy at
 `/tmp/vibe-player-test-audit/scripts-probe`; shared production files were untouched.
@@ -367,7 +449,7 @@ Ran focused mutations only in a disposable copy at
 Detailed failure records: `/tmp/vibe-player-test-audit/scripts-probes.json`.
 These probes establish sensitivity; they are not claims of existing product defects.
 
-### Verification
+#### Verification
 
 - `bun run test --project node`: 15 files, 69 tests passed.
 - `bunx biome check scripts/*.test.mjs`: 15 files checked, no fixes/errors.

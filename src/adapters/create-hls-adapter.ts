@@ -87,7 +87,7 @@ class HlsVibePlayerAdapter
     this.destroyManagedHls();
     const loadSession = this.session.beginLoad(source);
 
-    this.managedHlsController = await loadCurrentHlsAdapterSource({
+    const controller = await loadCurrentHlsAdapterSource({
       emit: (type, payload) => this.emit(type, payload),
       isCurrentLoadSession: (session) =>
         this.session.isCurrentLoadSession(session),
@@ -99,6 +99,9 @@ class HlsVibePlayerAdapter
         this.updateQualityOptions(levels, selectedLevelIndex),
       video,
     });
+    if (this.session.isCurrentLoadSession(loadSession)) {
+      this.managedHlsController = controller;
+    }
   }
 
   mount(target: HTMLElement): Promise<void> {

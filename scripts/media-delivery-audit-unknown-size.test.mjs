@@ -10,6 +10,39 @@ describe("media delivery audit unknown size behavior", () => {
     vi.restoreAllMocks();
   });
 
+  it.each([null, "bytes 10-1/20", "bytes 0-16/16"])(
+    "does not mistake a partial response length for total size: %s",
+    async (contentRange) => {
+      const bytes = createMp4Sample([
+        { size: 8, type: "ftyp" },
+        { size: 8, type: "moov" },
+      ]);
+      const headers = new Headers({ "content-length": "16" });
+      if (contentRange) {
+        headers.set("content-range", contentRange);
+      }
+      globalThis.fetch = vi.fn(
+        () => new Response(bytes, { headers, status: 206 })
+      );
+
+      const report = await createMediaDeliveryAuditReport({
+        maxSizeBytes: 524_288_000,
+        origins: [],
+        url: "https://cdn.example.com/partial.mp4",
+      });
+
+      expect(report.rangeOk).toBe(false);
+      expect(report.totalSizeKnown).toBe(false);
+      expect(report.totalSize).toBe(16);
+      expect(report.findings.map((finding) => finding.code)).toEqual([
+        "range-unconfirmed",
+        "direct-file-size-unknown",
+      ]);
+      expect(report.rollout.directFileReady).toBe(false);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    }
+  );
+
   it("fails size-limited direct-file audits when total size is unknown", async () => {
     const firstBytes = createMp4Sample([
       { size: 32, type: "ftyp" },

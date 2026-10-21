@@ -93,6 +93,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "entities": "7.0.1",
     "hls.js": "1.7.3"
   },
   "devDependencies": {

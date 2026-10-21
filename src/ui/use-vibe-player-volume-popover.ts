@@ -25,12 +25,6 @@ export function useVibePlayerVolumePopover() {
 
   const closePopover = useCallback(
     (restoreFocus = false) => {
-      clearDismissTimer();
-      commitDismissPendingRef.current = false;
-      pointerActiveRef.current = false;
-      pointerInsideRef.current = false;
-      setActive(false);
-      setOpen(false);
       const rootElement = rootRef.current;
       if (
         restoreFocus &&
@@ -38,8 +32,15 @@ export function useVibePlayerVolumePopover() {
         document.activeElement &&
         rootElement.contains(document.activeElement)
       ) {
+        // Focus restoration can reopen through the trigger; closing must win.
         triggerRef.current?.focus({ preventScroll: true });
       }
+      clearDismissTimer();
+      commitDismissPendingRef.current = false;
+      pointerActiveRef.current = false;
+      pointerInsideRef.current = false;
+      setActive(false);
+      setOpen(false);
     },
     [clearDismissTimer]
   );

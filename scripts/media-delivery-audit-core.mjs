@@ -137,9 +137,10 @@ export async function createMediaDeliveryAuditReport(input) {
     first.headers.get("content-range")
   );
   const contentLength = parseMediaDeliveryContentLength(first.headers);
+  // A 206 Content-Length describes the partial body, not the complete asset.
   const { totalSize, totalSizeKnown } = resolveMediaDeliveryTotalSize(
     contentRange,
-    contentLength,
+    first.status === 206 ? null : contentLength,
     first.bytes.length
   );
   const rangeOk = first.status === 206 && Boolean(contentRange);

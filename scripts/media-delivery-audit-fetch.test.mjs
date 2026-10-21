@@ -61,6 +61,24 @@ describe("media delivery audit fetch helpers", () => {
     expect(call?.[1]?.redirect).toBe("follow");
   });
 
+  it.each([
+    "bytes 10-1/20",
+    "bytes 0-20/20",
+    "bytes 0-0/0",
+    "bytes 0-1/9007199254740993",
+    "bytes 9007199254740992-9007199254740993/*",
+  ])("rejects impossible or imprecise Content-Range: %s", (value) => {
+    expect(parseMediaDeliveryContentRange(value)).toBeNull();
+  });
+
+  it("does not round an unsafe content length into a plausible size", () => {
+    expect(
+      parseMediaDeliveryContentLength(
+        new Headers({ "content-length": "9007199254740993" })
+      )
+    ).toBeNull();
+  });
+
   it("reports the final URL after redirects", async () => {
     const response = new Response(new Uint8Array([1, 2, 3]), { status: 206 });
     Object.defineProperty(response, "url", {

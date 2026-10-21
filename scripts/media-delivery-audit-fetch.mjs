@@ -28,7 +28,8 @@ export function parseMediaDeliveryContentLength(headers) {
   if (!(value && contentLengthPattern.test(value))) {
     return null;
   }
-  return Number(value);
+  const length = Number(value);
+  return Number.isSafeInteger(length) ? length : null;
 }
 
 export function parseMediaDeliveryContentRange(value) {
@@ -37,7 +38,16 @@ export function parseMediaDeliveryContentRange(value) {
     return null;
   }
   const total = match[3] === "*" ? null : Number(match[3]);
-  return { end: Number(match[2]), start: Number(match[1]), total };
+  const start = Number(match[1]);
+  const end = Number(match[2]);
+  if (
+    !(Number.isSafeInteger(start) && Number.isSafeInteger(end)) ||
+    start > end ||
+    (total !== null && (!Number.isSafeInteger(total) || end >= total))
+  ) {
+    return null;
+  }
+  return { end, start, total };
 }
 
 async function readResponsePrefix(response, limit) {

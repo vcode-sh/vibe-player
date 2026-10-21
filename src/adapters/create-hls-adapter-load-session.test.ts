@@ -61,6 +61,43 @@ describe("createHlsAdapter load sessions", () => {
     expect(adapter.getSnapshot().qualityOptions ?? []).toEqual([]);
   });
 
+  it("keeps the newest managed controller after an obsolete success", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("");
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+      () => undefined
+    );
+    const pending = createDeferredManagedHlsController();
+    const oldDestroy = vi.fn();
+    const { probe, runtime } = createHlsRuntime();
+    const attach = runtime.attachManagedHls;
+    runtime.attachManagedHls = (session) =>
+      session.manifestUrl === hlsSource.manifestUrl
+        ? pending.promise
+        : attach(session);
+    const adapter = createHlsAdapter(runtime);
+    await adapter.mount(document.createElement("div"));
+    const oldLoad = adapter.load(hlsSource);
+    await adapter.load({
+      ...hlsSource,
+      manifestUrl: "https://example.com/new.m3u8",
+    });
+    getManagedSession(probe).onLevelsChanged(
+      [
+        { bitrate: 1_500_000, height: 720 },
+        { bitrate: 4_500_000, height: 1080 },
+      ],
+      -1
+    );
+    pending.resolve({ destroy: oldDestroy, setQualityLevel: vi.fn() });
+    await oldLoad;
+    await adapter.setQuality?.("level:1");
+
+    expect(probe.qualityLevel).toBe(1);
+    expect(oldDestroy).toHaveBeenCalledOnce();
+    await adapter.unmount();
+    expect(probe.teardownCount).toBe(1);
+  });
+
   it("does not apply stale native fallback after a newer HLS load", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue(
       "probably"

@@ -1,3 +1,5 @@
+import { decodeHTML } from "entities/decode";
+
 export interface VibePlayerCaptionCue {
   end: number;
   start: number;
@@ -34,7 +36,11 @@ function parseCaptionTimestamp(value: string): number | null {
 }
 
 function stripCaptionMarkup(text: string): string {
-  return text.replace(CAPTION_TAG, "");
+  // References cannot cross tags, and decoded angle brackets remain text.
+  return text
+    .split(CAPTION_TAG)
+    .map((span) => decodeHTML(span))
+    .join("");
 }
 
 function parseCaptionBlock(block: string): VibePlayerCaptionCue | null {
@@ -65,9 +71,7 @@ function parseCaptionBlock(block: string): VibePlayerCaptionCue | null {
 
   const start = parseCaptionTimestamp(startText);
   const end = parseCaptionTimestamp(endText);
-  const text = stripCaptionMarkup(
-    lines.slice(timingLineIndex + 1).join("\n")
-  ).trim();
+  const text = stripCaptionMarkup(lines.slice(timingLineIndex + 1).join("\n"));
 
   if (start === null || end === null || end <= start || text.length === 0) {
     return null;

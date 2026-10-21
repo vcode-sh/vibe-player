@@ -83,16 +83,32 @@ class YouTubeVibePlayerAdapter
     const mountElement = this.createMountElement();
     this.mountElement = mountElement;
     this.target?.append(mountElement);
+    const isCurrent = () => this.mountElement === mountElement;
     try {
-      this.player = await loadYouTubePlayer({
+      const player = await loadYouTubePlayer({
         element: mountElement,
-        emit: (type, payload) => this.emit(type, payload),
-        handleStateChange: (state) => this.handleStateChange(state),
+        emit: (type, payload) => {
+          if (isCurrent()) {
+            this.emit(type, payload);
+          }
+        },
+        handleStateChange: (state) => {
+          if (isCurrent()) {
+            this.handleStateChange(state);
+          }
+        },
         runtime: this.runtime,
         source,
       });
+      if (isCurrent()) {
+        this.player = player;
+      } else {
+        player.destroy();
+      }
     } catch (error) {
-      this.destroyPlayer();
+      if (isCurrent()) {
+        this.destroyPlayer();
+      }
       throw error;
     }
   }

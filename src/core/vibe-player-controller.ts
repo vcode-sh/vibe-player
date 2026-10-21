@@ -26,6 +26,7 @@ export class VibePlayerController {
   private readonly onAnalyticsEvent: VibePlayerControllerOptions["onAnalyticsEvent"];
   private readonly resumeStore: VibePlayerControllerOptions["resumeStore"];
   private operationGeneration = 0;
+  private playbackCommandGeneration = 0;
   private state = createInitialControllerState();
   private target: HTMLElement | null = null;
   constructor(options: VibePlayerControllerOptions) {
@@ -58,9 +59,12 @@ export class VibePlayerController {
   }
   async unmount(): Promise<void> {
     this.operationGeneration += 1;
+    const { operationGeneration } = this;
     this.target = null;
     await this.adapter?.unmount();
-    this.updateState({ isMounted: false });
+    if (this.isCurrentOperation(operationGeneration) && this.target === null) {
+      this.updateState({ isMounted: false });
+    }
   }
   async load(source: VibePlayerSource): Promise<void> {
     this.operationGeneration += 1;
@@ -88,8 +92,12 @@ export class VibePlayerController {
   }
   async closeSource(): Promise<void> {
     this.operationGeneration += 1;
+    const { operationGeneration } = this;
     this.analyticsSession.close(this.state);
     await this.teardownAdapter();
+    if (!this.isCurrentOperation(operationGeneration)) {
+      return;
+    }
     this.analyticsSession.clear();
     this.updateState({
       capabilities: null,
@@ -100,15 +108,33 @@ export class VibePlayerController {
     });
   }
   async play(): Promise<void> {
+    this.playbackCommandGeneration += 1;
+    const { operationGeneration, playbackCommandGeneration } = this;
     await handleVibePlayerControllerPlay({
       adapter: this.adapter,
-      updateState: (next) => this.updateState(next),
+      updateState: (next) => {
+        if (
+          this.isCurrentOperation(operationGeneration) &&
+          this.playbackCommandGeneration === playbackCommandGeneration
+        ) {
+          this.updateState(next);
+        }
+      },
     });
   }
   async pause(): Promise<void> {
+    this.playbackCommandGeneration += 1;
+    const { operationGeneration, playbackCommandGeneration } = this;
     await handleVibePlayerControllerPause({
       adapter: this.adapter,
-      updateState: (next) => this.updateState(next),
+      updateState: (next) => {
+        if (
+          this.isCurrentOperation(operationGeneration) &&
+          this.playbackCommandGeneration === playbackCommandGeneration
+        ) {
+          this.updateState(next);
+        }
+      },
     });
   }
   async seekTo(seconds: number): Promise<void> {
@@ -144,8 +170,12 @@ export class VibePlayerController {
   }
   async teardown(): Promise<void> {
     this.operationGeneration += 1;
+    const { operationGeneration } = this;
     this.analyticsSession.close(this.state);
     await this.teardownAdapter();
+    if (!this.isCurrentOperation(operationGeneration)) {
+      return;
+    }
     this.analyticsSession.clear();
     this.target = null;
     this.state = createInitialControllerState();
@@ -183,8 +213,9 @@ export class VibePlayerController {
   private async teardownAdapter(): Promise<void> {
     this.adapterUnsubscribe?.();
     this.adapterUnsubscribe = null;
-    await this.adapter?.unmount();
+    const { adapter } = this;
     this.adapter = null;
+    await adapter?.unmount();
   }
   private updateState(
     next: Partial<VibePlayerControllerState>

@@ -155,8 +155,10 @@ function rememberLayerSnapshot(
 function getLayerId(
   source: VibePlayerBackgroundPreviewProps["source"]
 ): string {
-  return (
-    source.id ??
-    `${source.previewVideoUrl ?? "poster-only"}|${source.posterUrl}`
-  );
+  return JSON.stringify([
+    source.id,
+    source.previewVideoUrl,
+    source.posterUrl,
+    source.fallbackPosterUrl,
+  ]);
 }

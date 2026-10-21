@@ -85,6 +85,28 @@ describe("VibePlayerBackgroundPreview", () => {
     expect(nextVideo).toBeInTheDocument();
   });
 
+  it("replaces changed preview assets even when the consumer keeps the source id", () => {
+    vi.useFakeTimers();
+    const { container, rerender } = render(
+      <VibePlayerBackgroundPreview source={previewSource} />
+    );
+    const original = getVideo(container, "/loop.mp4");
+    fireEvent.loadedData(original);
+    act(() => vi.advanceTimersByTime(300));
+
+    rerender(
+      <VibePlayerBackgroundPreview
+        source={{ ...previewSource, previewVideoUrl: "/replacement.mp4" }}
+      />
+    );
+    const replacement = getVideo(container, "/replacement.mp4");
+    expect(original).toBeInTheDocument();
+    fireEvent.loadedData(replacement);
+    act(() => vi.advanceTimersByTime(300));
+    expect(original).not.toBeInTheDocument();
+    expect(replacement).toBeInTheDocument();
+  });
+
   it("does not inherit another preview when no preserve key is supplied", () => {
     const first = render(
       <VibePlayerBackgroundPreview

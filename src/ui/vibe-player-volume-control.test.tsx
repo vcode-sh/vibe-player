@@ -32,6 +32,30 @@ function getVolumeRoot(button: HTMLElement): HTMLElement {
 }
 
 describe("VibePlayerVolumeControl", () => {
+  it("closes on Escape and restores trigger focus without reopening", () => {
+    render(
+      <VibePlayerVolumeControl
+        capabilities={capabilities}
+        onSetMuted={vi.fn()}
+        onSetVolume={vi.fn()}
+        onToggleMute={vi.fn()}
+        snapshot={snapshot}
+      />
+    );
+    const trigger = screen.getByRole("button", { name: "Mute, volume 42%" });
+    act(() => trigger.focus());
+    const slider = screen.getByRole("slider", { name: "Volume" });
+    act(() => slider.focus());
+    expect(slider).toHaveFocus();
+
+    fireEvent.keyDown(slider, { key: "Escape" });
+    expect(trigger).toHaveFocus();
+    expect(screen.queryByRole("dialog", { name: "Volume" })).toBeNull();
+    act(() => trigger.blur());
+    act(() => trigger.focus());
+    expect(screen.getByRole("dialog", { name: "Volume" })).toBeInTheDocument();
+  });
+
   it.each([
     {
       expected: 0.25,

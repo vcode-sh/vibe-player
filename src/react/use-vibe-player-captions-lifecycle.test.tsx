@@ -39,6 +39,40 @@ describe("caption request lifecycle", () => {
     vi.unstubAllGlobals();
   });
 
+  it("clears loaded captions immediately while a replacement track is pending", async () => {
+    const replacement = captionRequest();
+    const replacementRenders: string[][] = [];
+    const loadCaptionText: VibePlayerCaptionTextLoader = (track) =>
+      track.id === "old" ? Promise.resolve(staleCaption) : replacement.promise;
+    const { result, rerender } = renderHook(
+      ({ selectedSource }) => {
+        const captions = useVibePlayerCaptions({
+          currentTime: 1.5,
+          enabled: true,
+          loadCaptionText,
+          source: selectedSource,
+        });
+        if (selectedSource === currentSource) {
+          replacementRenders.push(captions.activeLines);
+        }
+        return captions;
+      },
+      { initialProps: { selectedSource: oldSource } }
+    );
+    await act(async () => undefined);
+    expect(result.current.activeLines).toEqual(["Stale caption"]);
+
+    rerender({ selectedSource: currentSource });
+    expect(result.current).toMatchObject({
+      activeLines: [],
+      error: null,
+      loading: true,
+    });
+    expect(replacementRenders.every((lines) => lines.length === 0)).toBe(true);
+    await act(async () => replacement.resolve(currentCaption));
+    expect(result.current.activeLines).toEqual(["Current caption"]);
+  });
+
   it.each(["resolve", "reject"] as const)(
     "ignores a superseded request that later %ss despite cancellation",
     async (completion) => {

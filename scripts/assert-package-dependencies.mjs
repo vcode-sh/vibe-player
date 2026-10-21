@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 const packagePath = resolve(import.meta.dirname, "../package.json");
 
 const expectedSections = {
-  dependencies: ["hls.js"],
+  dependencies: ["entities", "hls.js"],
   devDependencies: [
     "@arethetypeswrong/cli",
     "@biomejs/biome",

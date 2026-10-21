@@ -7,6 +7,16 @@
 - Strengthened testing guidelines and regression tests for playback, controls,
   captions, and media delivery, replacing checks that did not verify behavior.
 
+### Fixed
+
+- Correctly decode caption text and clear old captions when switching videos.
+- Prevent outdated playback operations from overriding the active source or
+  the latest play/pause action.
+- Refresh ambient previews when their video or poster URLs change.
+- Keep the volume panel closed after Escape restores focus to its button.
+- Reject invalid HTTP byte ranges and avoid mistaking partial downloads for
+  the full video size in media audits.
+
 ## [0.2.0]
 
 ### Added

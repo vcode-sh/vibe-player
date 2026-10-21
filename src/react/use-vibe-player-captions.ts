@@ -53,6 +53,11 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error("Failed to load captions.");
 }
 
+interface LoadedCaptions {
+  cues: VibePlayerCaptionCue[];
+  track: VibePlayerCaptionTrack;
+}
+
 export function useVibePlayerCaptions({
   currentTime,
   enabled,
@@ -60,30 +65,33 @@ export function useVibePlayerCaptions({
   source,
 }: UseVibePlayerCaptionsOptions): VibePlayerCaptionsState {
   const track = useMemo(() => getPreferredCaptionTrack(source), [source]);
-  const [cues, setCues] = useState<VibePlayerCaptionCue[]>([]);
+  const [loadedCaptions, setLoadedCaptions] = useState<LoadedCaptions | null>(
+    null
+  );
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!(enabled && track)) {
-      setCues([]);
+      setLoadedCaptions(null);
       setError(null);
       setLoading(false);
       return;
     }
 
     const abortController = new AbortController();
+    setLoadedCaptions(null);
     setLoading(true);
     setError(null);
     loadCaptionText(track, abortController.signal)
       .then((content) => {
         if (!abortController.signal.aborted) {
-          setCues(parseWebVtt(content));
+          setLoadedCaptions({ cues: parseWebVtt(content), track });
         }
       })
       .catch((captionError: unknown) => {
         if (!abortController.signal.aborted) {
-          setCues([]);
+          setLoadedCaptions(null);
           setError(toError(captionError));
         }
       })
@@ -97,8 +105,11 @@ export function useVibePlayerCaptions({
   }, [enabled, loadCaptionText, track]);
 
   const activeLines = useMemo(
-    () => (enabled ? getActiveVibePlayerCaptionLines(cues, currentTime) : []),
-    [cues, currentTime, enabled]
+    () =>
+      enabled && loadedCaptions?.track === track
+        ? getActiveVibePlayerCaptionLines(loadedCaptions.cues, currentTime)
+        : [],
+    [currentTime, enabled, loadedCaptions, track]
   );
 
   return { activeLines, error, loading, track };
