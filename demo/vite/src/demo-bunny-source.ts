@@ -1,7 +1,9 @@
 import type { VibePlayerSource } from "vibe-player";
+import { createBunnySeekThumbnails } from "./demo-bunny-seek-thumbnails";
 
-const manifestUrl =
-  "https://vz-f36e7fb4-6a5.b-cdn.net/acbf86bc-a6b3-424f-a282-7c16b25ab4eb/playlist.m3u8";
+const videoUrl =
+  "https://vz-f36e7fb4-6a5.b-cdn.net/acbf86bc-a6b3-424f-a282-7c16b25ab4eb";
+const manifestUrl = `${videoUrl}/playlist.m3u8`;
 
 export const bunnyDemoSource = {
   id: "bunny",
@@ -19,6 +21,11 @@ export const bunnyDemoSource = {
     stack: "HLS adapter",
     title: "Bunny Stream demo",
   },
+  seekThumbnails: createBunnySeekThumbnails({
+    duration: 137.366_667,
+    frameHeight: 168,
+    videoUrl,
+  }),
   source: {
     crossOrigin: "anonymous",
     id: "vite-demo-bunny",
