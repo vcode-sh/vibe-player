@@ -38,6 +38,12 @@ The lane checks native modal focus containment/restoration, nested popover
 Escape handling, cleanup on close/provider replacement, HLS quality changes,
 captions and package fullscreen controls. Geometry and pointer reachability run
 at 320/390/768px viewports and 240/280px embedded widths in a wider viewport.
+Seek preview acceptance covers decoded sprite crops and standalone frames,
+hover without seeking, pointer/keyboard seeking, image failure fallback, and
+preview bounds in Chromium and WebKit at 240/320/390/1100px player widths.
+The selector tests own exact-duration frame selection. Browser keyboard checks
+use Home and ArrowRight: during acceptance, Linux WebKit intermittently reported
+zero after an exact-end seek, even after initially reporting the requested end.
 
 Fullscreen coverage uses the package controls, the F shortcut and the browser's
 actual `document.exitFullscreen()` API to verify external state changes.

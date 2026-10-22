@@ -8,6 +8,7 @@ import {
 } from "vibe-player";
 import "vibe-player/styles.css";
 import { HeadlessPlayer } from "./headless-player";
+import { seekThumbnails } from "./seek-thumbnails";
 import { createSource } from "./sources";
 import "./styles.css";
 
@@ -34,6 +35,7 @@ function App() {
       }
     },
     onStateChange: (next: VibePlayerControllerState) => setState(next),
+    seekThumbnails: parameters.has("thumbnails") ? seekThumbnails : undefined,
     source,
     topActions: (
       <button onClick={() => setRevision((value) => value + 1)} type="button">

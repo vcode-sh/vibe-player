@@ -12,6 +12,7 @@ import {
 } from "./vibe-player-bottom-control-buttons";
 import { getVibePlayerChromeClassName } from "./vibe-player-control-chrome";
 import { VibePlayerQualityControl } from "./vibe-player-quality-control";
+import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
 import { VibePlayerTimeline } from "./vibe-player-timeline";
 import { VibePlayerVolumeControl } from "./vibe-player-volume-control";
 
@@ -29,6 +30,7 @@ export interface VibePlayerBottomControlsProps {
   onToggleMute: () => void;
   onTogglePictureInPicture: (() => void) | undefined;
   onTogglePlay: () => void;
+  seekThumbnails?: readonly VibePlayerSeekThumbnail[] | undefined;
   snapshot: VibePlayerSnapshot;
 }
 
@@ -46,6 +48,7 @@ export function VibePlayerBottomControls({
   onToggleMute,
   onTogglePictureInPicture,
   onTogglePlay,
+  seekThumbnails,
   snapshot,
 }: VibePlayerBottomControlsProps) {
   const remaining = Math.max(0, snapshot.duration - snapshot.currentTime);
@@ -77,6 +80,7 @@ export function VibePlayerBottomControls({
           disabled={!(capabilities.canSeek && capabilities.supportsDuration)}
           duration={snapshot.duration}
           onSeek={onSeek}
+          seekThumbnails={seekThumbnails}
         />
         <span className="vibe-player-controls__time">
           -{formatVibePlayerTime(remaining)}

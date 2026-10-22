@@ -9,6 +9,19 @@
 @import "./vibe-player-preview.css";
 @import "./vibe-player-youtube-external.css";
 
+/* Keep control gestures separate from selectable player and host content. */
+.vibe-player-controls__button,
+.vibe-player-controls__rate,
+.vibe-player-controls__time,
+.vibe-player-quality-control,
+.vibe-player-stage__caption-status > button,
+.vibe-player-timeline,
+.vibe-player-tooltip__bubble,
+.vibe-player-volume-control {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 :root,
 .vibe-player-skin--cinematic-default {
   --vibe-player-backdrop: rgba(5, 5, 6, 0.86);

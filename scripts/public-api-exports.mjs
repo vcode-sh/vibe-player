@@ -64,6 +64,8 @@ export const publicApiExports = [
   "VibePlayerQualityOption",
   "VibePlayerResumeStorage",
   "VibePlayerResumeStore",
+  "VibePlayerSeekThumbnail",
+  "VibePlayerSeekThumbnailSprite",
   "VibePlayerShell",
   "VibePlayerShellProps",
   "VibePlayerShortcutAction",

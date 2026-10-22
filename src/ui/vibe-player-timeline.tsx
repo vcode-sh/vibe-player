@@ -6,12 +6,20 @@ import {
   useState,
 } from "react";
 import { formatVibePlayerTime } from "../core";
+import { VibePlayerSeekPreview } from "./vibe-player-seek-preview";
+import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
 
 export interface VibePlayerTimelineProps {
   currentTime: number;
   disabled?: boolean;
   duration: number;
   onSeek: (seconds: number) => void;
+  seekThumbnails?: readonly VibePlayerSeekThumbnail[] | undefined;
+}
+
+interface PointerPosition {
+  x: number;
+  y: number;
 }
 
 function clampPercent(value: number): number {
@@ -38,10 +46,12 @@ export function VibePlayerTimeline({
   disabled = false,
   duration,
   onSeek,
+  seekThumbnails,
 }: VibePlayerTimelineProps) {
   const [hoverPercent, setHoverPercent] = useState<number | null>(null);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const pointerPositionRef = useRef<PointerPosition | null>(null);
   const pointerSeekingRef = useRef(false);
   const hasDuration = duration > 0 && !disabled;
   const progress = hasDuration
@@ -52,14 +62,20 @@ export function VibePlayerTimeline({
   const tooltipTime =
     hoverTime ?? (focused && hasDuration ? currentTime : null);
   const rawTooltipPercent = hoverPercent ?? progress;
-  const tooltipPercent = Math.min(94, Math.max(6, rawTooltipPercent));
 
   const updateHover = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    const previous = pointerPositionRef.current;
+    // A stationary pointer must not replace a keyboard seek preview.
+    if (previous?.x === event.clientX && previous.y === event.clientY) {
+      return;
+    }
+    pointerPositionRef.current = { x: event.clientX, y: event.clientY };
     setHoverPercent(getPointerPercent(event));
   }, []);
 
   const seekFromPointer = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
+      pointerPositionRef.current = { x: event.clientX, y: event.clientY };
       const percent = getPointerPercent(event);
       setHoverPercent(percent);
       if (percent !== null) {
@@ -91,9 +107,10 @@ export function VibePlayerTimeline({
       data-vibe-player-timeline
       onPointerCancel={stopPointerSeek}
       onPointerDown={(event) => {
-        if (!hasDuration || event.isPrimary === false) {
+        if (!hasDuration || event.isPrimary === false || event.button !== 0) {
           return;
         }
+        event.preventDefault();
         pointerSeekingRef.current = true;
         inputRef.current?.focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -102,6 +119,7 @@ export function VibePlayerTimeline({
       onPointerEnter={updateHover}
       onPointerLeave={() => {
         if (!pointerSeekingRef.current) {
+          pointerPositionRef.current = null;
           setHoverPercent(null);
         }
       }}
@@ -122,7 +140,10 @@ export function VibePlayerTimeline({
         max={duration || 0}
         min={0}
         onBlur={handleInputBlur}
-        onChange={(event) => onSeek(Number(event.currentTarget.value))}
+        onChange={(event) => {
+          setHoverPercent(null);
+          onSeek(Number(event.currentTarget.value));
+        }}
         onFocus={() => setFocused(true)}
         ref={inputRef}
         step={0.1}
@@ -150,16 +171,12 @@ export function VibePlayerTimeline({
         )}
       </div>
       {tooltipTime === null || !hasDuration ? null : (
-        <output
-          className="vibe-player-timeline__tooltip"
-          style={{ left: `${tooltipPercent}%` }}
-        >
-          <span className="vibe-player-timeline__tooltip-label">Seek</span>
-          <span className="vibe-player-timeline__tooltip-time">
-            {formatVibePlayerTime(tooltipTime)}
-          </span>
-          <span className="vibe-player-timeline__tooltip-shortcut">← / →</span>
-        </output>
+        <VibePlayerSeekPreview
+          duration={duration}
+          percent={rawTooltipPercent}
+          seekThumbnails={seekThumbnails}
+          time={tooltipTime}
+        />
       )}
     </div>
   );

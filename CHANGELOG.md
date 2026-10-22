@@ -13,6 +13,8 @@ Development version: **0.2.0**. This version has not been released.
 - Shared headless playback hook, source-aware state/error callbacks, and named
   provider runtime contracts.
 - Caption availability callbacks and retry actions for ready-made and custom UI.
+- Optional seek thumbnails from timed images or sprite sheets, with time-only
+  fallback when a frame is unavailable.
 - Interactive demo and integration guides.
 
 ### Improved
@@ -33,6 +35,7 @@ Development version: **0.2.0**. This version has not been released.
 
 ### Fixed
 
+- Prevent accidental text selection while dragging seek and using player controls.
 - Prevent stale media events and outdated operations from overriding the active
   source or latest playback action, including premature autoplay on reopening.
 - Isolate host persistence and observer failures, normalize seek targets, and

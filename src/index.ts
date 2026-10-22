@@ -132,6 +132,8 @@ export {
   type VibePlayerPlaybackOptions,
   VibePlayerQualityControl,
   type VibePlayerQualityControlProps,
+  type VibePlayerSeekThumbnail,
+  type VibePlayerSeekThumbnailSprite,
   VibePlayerShell,
   type VibePlayerShellProps,
   VibePlayerStage,

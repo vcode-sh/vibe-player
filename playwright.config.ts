@@ -11,7 +11,11 @@ export default defineConfig({
     },
     {
       name: "webkit",
-      testMatch: "**/webkit*.browser.ts",
+      testMatch: [
+        "**/webkit*.browser.ts",
+        "**/selection.browser.ts",
+        "**/seek-thumbnails.browser.ts",
+      ],
       use: {
         ...devices["Desktop Safari"],
         launchOptions: {

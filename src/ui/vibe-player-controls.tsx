@@ -3,6 +3,7 @@ import type { VibePlayerCapabilities, VibePlayerSnapshot } from "../core";
 import { VibePlayerBottomControls } from "./vibe-player-bottom-controls";
 import { getVibePlayerChromeClassName } from "./vibe-player-control-chrome";
 import { CloseIcon } from "./vibe-player-icons";
+import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
 import { VibePlayerTooltip } from "./vibe-player-tooltip";
 
 export interface VibePlayerControlsProps {
@@ -20,6 +21,7 @@ export interface VibePlayerControlsProps {
   onToggleMute: () => void;
   onTogglePictureInPicture?: () => void;
   onTogglePlay: () => void;
+  seekThumbnails?: readonly VibePlayerSeekThumbnail[] | undefined;
   snapshot: VibePlayerSnapshot;
   title?: string | undefined;
   topActions?: ReactNode;
@@ -82,6 +84,7 @@ export function VibePlayerControls({
   onToggleMute,
   onTogglePictureInPicture,
   onTogglePlay,
+  seekThumbnails,
   snapshot,
   title,
   topActions,
@@ -117,6 +120,7 @@ export function VibePlayerControls({
             onToggleMute={onToggleMute}
             onTogglePictureInPicture={onTogglePictureInPicture}
             onTogglePlay={onTogglePlay}
+            seekThumbnails={seekThumbnails}
             snapshot={snapshot}
           />
         </>

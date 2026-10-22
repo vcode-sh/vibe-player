@@ -31,6 +31,7 @@ export function VibePlayerStage({
   onStateChange,
   open = true,
   resumeStore,
+  seekThumbnails,
   source,
   title,
   topActions,
@@ -143,6 +144,7 @@ export function VibePlayerStage({
         onToggleMute={actions.toggleMute}
         onTogglePictureInPicture={actions.togglePictureInPicture}
         onTogglePlay={actions.togglePlay}
+        seekThumbnails={seekThumbnails}
         snapshot={state.snapshot}
         title={playerTitle}
         topActions={topActions}

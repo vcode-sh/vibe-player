@@ -38,6 +38,26 @@ execFileSync("ffmpeg", [
   resolve(output, "file.mp4"),
 ]);
 
+// Seek images are extracted from the same local movie as the playback fixture.
+for (const [name, filter] of [
+  ["seek-sprite.jpg", "select=not(mod(n\\,36)),scale=160:90,tile=2x2"],
+  ["seek-frame.jpg", "select=eq(n\\,72),scale=160:90"],
+]) {
+  execFileSync("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    resolve(output, "file.mp4"),
+    "-vf",
+    filter,
+    "-frames:v",
+    "1",
+    resolve(output, name),
+  ]);
+}
+
 for (const [name, width, height] of [
   ["low", "160", "90"],
   ["high", "320", "180"],

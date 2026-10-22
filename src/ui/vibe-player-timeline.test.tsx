@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { VibePlayerTimeline } from "./vibe-player-timeline";
 
@@ -52,11 +52,21 @@ describe("VibePlayerTimeline", () => {
     });
     expect(onSeek).not.toHaveBeenCalled();
     fireEvent.pointerDown(timeline, {
+      button: 2,
       clientX: 60,
       isPrimary: true,
       pointerId: 1,
     });
+    expect(onSeek).not.toHaveBeenCalled();
+    const pointerDown = createEvent.pointerDown(timeline, {
+      cancelable: true,
+      clientX: 60,
+      isPrimary: true,
+      pointerId: 1,
+    });
+    fireEvent(timeline, pointerDown);
 
+    expect(pointerDown.defaultPrevented).toBe(true);
     expect(input).toHaveFocus();
     fireEvent.pointerMove(timeline, { clientX: -10, pointerId: 1 });
     fireEvent.pointerMove(timeline, { clientX: 250, pointerId: 1 });

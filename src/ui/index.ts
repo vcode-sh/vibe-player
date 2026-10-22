@@ -18,6 +18,10 @@ export {
   VibePlayerQualityControl,
   type VibePlayerQualityControlProps,
 } from "./vibe-player-quality-control";
+export type {
+  VibePlayerSeekThumbnail,
+  VibePlayerSeekThumbnailSprite,
+} from "./vibe-player-seek-thumbnail-types";
 export {
   VibePlayerShell,
   type VibePlayerShellProps,

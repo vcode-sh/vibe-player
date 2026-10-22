@@ -95,6 +95,64 @@ values declared with `as const`. The package reads source and caption collection
 without mutating them. Replace the source value when media changes instead of
 mutating an already supplied source in place.
 
+## Seek Thumbnails
+
+Pass `seekThumbnails` to `VibePlayerStage`, `VibePlayerInline`, or
+`VibePlayerModal` to show a frame above the timeline while hovering, dragging,
+or seeking with the keyboard. Custom controls and timelines accept the same
+prop. Supply generated images and their time map from your application:
+
+```tsx
+import { VibePlayerStage, type VibePlayerSeekThumbnail } from "vibe-player";
+
+const thumbnails = [
+  { startTime: 0, endTime: 5, url: "/video/frame-0.jpg" },
+  { startTime: 5, endTime: 10, url: "/video/frame-5.jpg" },
+] as const satisfies readonly VibePlayerSeekThumbnail[];
+
+<VibePlayerStage seekThumbnails={thumbnails} source={source} />;
+```
+
+To use a sprite sheet, give each frame its rectangle in original image pixels.
+For a 320-by-90 sheet containing two 160-by-90 frames:
+
+```tsx
+import { VibePlayerStage, type VibePlayerSeekThumbnail } from "vibe-player";
+
+const thumbnails = [
+  {
+    startTime: 0,
+    endTime: 5,
+    url: "/video/seek-sprite.jpg",
+    sprite: { x: 0, y: 0, width: 160, height: 90 },
+  },
+  {
+    startTime: 5,
+    endTime: 10,
+    url: "/video/seek-sprite.jpg",
+    sprite: { x: 160, y: 0, width: 160, height: 90 },
+  },
+] as const satisfies readonly VibePlayerSeekThumbnail[];
+
+<VibePlayerStage seekThumbnails={thumbnails} source={source} />;
+```
+
+Times are seconds: start is inclusive and end is exclusive. At the exact media
+duration, a frame ending at that duration remains available. The first matching
+valid entry wins; sorting is not required. Use finite, nonnegative times with
+`startTime < endTime`. Sprite coordinates must be finite and nonnegative, with
+positive dimensions, and the rectangle must fit inside the loaded image.
+
+Gaps, invalid entries, loading images, and failed images keep the time-only
+tooltip. Thumbnail preview does not seek the video; moving over the timeline
+leaves playback untouched. Clicking, dragging, and keyboard commands retain
+their normal seek behavior. The package does not generate frames, fetch a
+WebVTT thumbnail map, or obtain thumbnails from provider APIs.
+
+Replace the thumbnail array together with the source when switching videos.
+Thumbnail updates are presentation changes and do not reload playback. Omit
+the prop when the current source has no thumbnails.
+
 ## Captions
 
 File and HLS sources accept WebVTT caption tracks:
