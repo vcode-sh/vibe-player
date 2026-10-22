@@ -1,6 +1,7 @@
 @import "./vibe-player-controls.css";
 @import "./vibe-player-tooltip.css";
 @import "./vibe-player-volume-control.css";
+@import "./vibe-player-volume-horizontal.css";
 @import "./vibe-player-quality-control.css";
 @import "./vibe-player-stage-status.css";
 @import "./vibe-player-caption-overlay.css";
@@ -8,6 +9,7 @@
 @import "./vibe-player-modal.css";
 @import "./vibe-player-preview.css";
 @import "./vibe-player-youtube-external.css";
+@import "./vibe-player-outside-controls.css";
 
 /* Keep control gestures separate from selectable player and host content. */
 .vibe-player-controls__button,

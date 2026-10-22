@@ -17,6 +17,15 @@ export interface VibePlayerCapabilities {
   canSeek: boolean;
   canSetPlaybackRate: boolean;
   canShowCaptions: boolean;
+  /**
+   * Where shared UI places playback controls relative to the media. `overlay`
+   * (default when omitted) draws them over the media; `outside` keeps every
+   * package control, menu and notice outside the media rectangle; `provider`
+   * means the provider renders its own playback controls, so shared UI omits
+   * its playback bar while normalized commands stay available.
+   */
+  controlsPresentation?: "outside" | "overlay" | "provider";
+  /** The provider's own UI owns a caption menu; not proof that tracks exist. */
   hasNativeCaptionsMenu: boolean;
   isLive: boolean;
   /** Keep host controls visible when the provider owns interactive media UI. */

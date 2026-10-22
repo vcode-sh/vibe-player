@@ -17,6 +17,10 @@ export interface YouTubeAdapterErrorPayload
 }
 
 export interface YouTubePlayerSession {
+  /** Startup caption language preference (`cc_lang_pref`). */
+  captionLanguage?: string;
+  /** Native control bar ownership; omitted means package-owned `custom`. */
+  controls?: "custom" | "native";
   element: HTMLElement;
   onAutoplayBlocked?: () => void;
   onError: (payload: YouTubeAdapterErrorPayload) => void;
@@ -24,6 +28,8 @@ export interface YouTubePlayerSession {
   onReady: () => void;
   onStateChange: (state: YouTubePlayerState) => void;
   origin?: string;
+  /** Requests captions at startup (`cc_load_policy=1`) only when true. */
+  showCaptionsByDefault?: boolean;
   /** Cancels pending SDK creation; an already-ready injected handle may return synchronously. */
   signal?: AbortSignal;
   startSeconds?: number;
@@ -69,6 +75,9 @@ export interface YouTubeIframePlayerOptions {
     onStateChange: (event: YouTubeIframeEvent) => void;
   };
   playerVars: {
+    cc_lang_pref?: string;
+    cc_load_policy?: 1;
+    controls: 0 | 1;
     origin: string;
     playsinline: 1;
     rel: 0;

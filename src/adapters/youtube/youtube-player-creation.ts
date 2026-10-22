@@ -106,6 +106,13 @@ class YouTubePlayerCreation {
         },
       },
       playerVars: {
+        ...(session.captionLanguage
+          ? { cc_lang_pref: session.captionLanguage }
+          : {}),
+        ...(session.showCaptionsByDefault
+          ? { cc_load_policy: 1 as const }
+          : {}),
+        controls: session.controls === "native" ? 1 : 0,
         origin: session.origin || window.location.origin,
         playsinline: 1,
         rel: 0,

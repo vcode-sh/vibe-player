@@ -33,7 +33,7 @@ describe("createYouTubeAdapter", () => {
     expect(adapter.getSnapshot().readyState).toBe("ready");
     expect(adapter.kind).toBe("youtube");
     expect(adapter.capabilities.canShowCaptions).toBe(false);
-    expect(adapter.capabilities.hasNativeCaptionsMenu).toBe(true);
+    expect(adapter.capabilities.hasNativeCaptionsMenu).toBe(false);
     expect(adapter.capabilities.keepsControlsVisible).toBe(true);
     expect(adapter.capabilities.canFullscreen).toBe(true);
     expect(adapter.capabilities.supportsPlayback).toBe(true);

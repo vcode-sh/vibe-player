@@ -23,7 +23,7 @@ export function PlayerShell({
   playerState,
   resumeStore,
 }: PlayerShellProps) {
-  const { meta, source } = activeSource;
+  const { meta, seekThumbnails, source } = activeSource;
   const topActions = (
     <a
       className="vp-player-source-link"
@@ -57,6 +57,7 @@ export function PlayerShell({
           onAnalyticsEvent={onAnalyticsEvent}
           onStateChange={onStateChange}
           resumeStore={resumeStore}
+          seekThumbnails={seekThumbnails}
           source={source}
           title={meta.title}
           topActions={topActions}

@@ -124,6 +124,24 @@ package sets the IFrame API `origin` parameter from the current page origin by
 default and lets hosts override `origin` or pass `widgetReferrer` on the source
 when embedding from wrapper or WebView environments.
 
+Embedded YouTube uses package controls by default (`controls: "custom"`). The
+adapter reports `controlsPresentation: "outside"`, and the ready-made UI lays
+out the header, the video and the playback bar as separate rows so no package
+surface overlaps the iframe. `controls: "native"` reports
+`controlsPresentation: "provider"`: YouTube shows its own controls, including
+its caption and quality menus, and `hasNativeCaptionsMenu` is `true`. Commands
+stay available in both modes (`supportsPlayback` is `true`), so host shortcuts
+and buttons keep working. `captionLanguage` and `showCaptionsByDefault` are
+startup requests to YouTube; see the YouTube rules in [usage.md](./usage.md)
+for what they do and do not guarantee.
+
+Custom UIs built on `useVibePlayer` should read
+`state.capabilities.controlsPresentation`: omitted or `"overlay"` allows controls
+over the media; `"outside"` means keep every control, menu and notice outside
+the media rectangle; `"provider"` means the provider draws playback controls,
+so render none of your own. The value is known as soon as a source starts
+loading, before the provider is ready.
+
 Use `presentation: "external"` for a compliant headless-style YouTube surface.
 That mode renders a package-owned handoff card, does not mount a YouTube iframe,
 does not expose playback controls, and opens the YouTube watch URL. It is a

@@ -8,6 +8,7 @@ import type {
   VibePlayerSnapshot,
   VibePlayerYouTubeSource,
 } from "../../core/vibe-player-types";
+import { getYouTubeControlsMode } from "./youtube-controls-mode";
 import type {
   YouTubePlayerHandle,
   YouTubePlayerState,
@@ -22,15 +23,27 @@ export function getYouTubeCapabilities(
   if (!source) {
     return createIdleCapabilities();
   }
+  // Custom mode hides the native bar (`controls=0`), so YouTube's caption and
+  // quality menus are unreachable; the IFrame API offers no supported
+  // replacement for either, so both custom capabilities stay false.
+  const nativeControls = getYouTubeControlsMode(source) === "native";
+  const presentation = {
+    controlsPresentation: nativeControls ? "provider" : "outside",
+    hasNativeCaptionsMenu: nativeControls,
+    keepsControlsVisible: true,
+  } as const;
+  // Layout is known once the source is accepted; commands wait for the SDK.
+  if (!player) {
+    return { ...createIdleCapabilities(), ...presentation };
+  }
   return {
+    ...presentation,
     canFullscreen,
     canPictureInPicture: false,
     canSeek: true,
     canSetPlaybackRate: getYouTubePlaybackRates(player).length > 1,
     canShowCaptions: false,
-    hasNativeCaptionsMenu: true,
     isLive: false,
-    keepsControlsVisible: true,
     supportsDuration: true,
     supportsMute: true,
     supportsPlayback: true,

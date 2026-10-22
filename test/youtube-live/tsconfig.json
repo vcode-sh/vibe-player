@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": { "types": ["node"], "noEmit": true },
-  "include": ["./**/*.ts", "../../playwright.youtube.config.ts"]
+  "include": ["./**/*.ts", "./**/*.tsx", "../../playwright.youtube.config.ts"]
 }

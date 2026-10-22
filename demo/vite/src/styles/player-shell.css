@@ -73,8 +73,18 @@
   width: min(100%, calc((100svh - 220px) * 16 / 9));
   height: auto;
   min-height: 0;
-  aspect-ratio: 16 / 9;
   border-radius: 8px;
+}
+
+/* Only overlay stages are pure 16:9; outside/provider stages add chrome rows. */
+.vp-player-shell__stage
+  .vibe-player-stage[data-controls-presentation="overlay"] {
+  aspect-ratio: 16 / 9;
+}
+
+.vp-player-shell__stage
+  .vibe-player-stage:not([data-controls-presentation="overlay"]) {
+  width: min(100%, calc((100svh - 220px - 10rem) * 16 / 9));
 }
 
 .vp-player-shell__stage .vibe-player-stage:focus {

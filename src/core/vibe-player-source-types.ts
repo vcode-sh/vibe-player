@@ -45,6 +45,20 @@ export interface VibePlayerHlsSource {
 
 /** YouTube iframe source rendered through the YouTube adapter. */
 export interface VibePlayerYouTubeSource {
+  /**
+   * Startup caption language preference passed to the official player as
+   * `cc_lang_pref`, for example `"en"`. It is a preference, not a guarantee
+   * that the video has that track.
+   */
+  captionLanguage?: string;
+  /**
+   * Embedded player control ownership. `custom` (default) hides YouTube's
+   * native control bar and renders package controls outside the video.
+   * `native` shows YouTube's own controls, including its caption and quality
+   * menus, and suppresses package playback controls. Changing it starts a new
+   * source session.
+   */
+  controls?: "custom" | "native";
   /** Label used by external YouTube handoff presentation. */
   externalActionLabel?: string;
   id: string;
@@ -59,6 +73,13 @@ export interface VibePlayerYouTubeSource {
    * handoff surface and opens YouTube instead of creating an iframe.
    */
   presentation?: "external" | "iframe";
+  /**
+   * `true` asks the official player to show captions at startup
+   * (`cc_load_policy=1`). Omitting it or passing `false` leaves the viewer's
+   * and YouTube's own caption preferences in effect; it does not force
+   * captions off.
+   */
+  showCaptionsByDefault?: boolean;
   startSeconds?: number;
   title?: string;
   type: "youtube";

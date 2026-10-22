@@ -1,12 +1,12 @@
-import type { VibePlayerSource } from "vibe-player";
+import type { VibePlayerSeekThumbnail, VibePlayerSource } from "vibe-player";
 import { bunnyDemoSource } from "./demo-bunny-source";
-
-interface PosterOptions {
-  accent: string;
-  base: string;
-  horizon: string;
-  line: string;
-}
+import { createPosterUrl } from "./demo-poster";
+import {
+  createSeekThumbnails,
+  muxSeekSprite,
+  sintelSeekSprite,
+} from "./demo-seek-sprites";
+import { demoYouTubeSources } from "./demo-youtube-sources";
 
 export interface DemoSourceMeta {
   accent: string;
@@ -21,6 +21,7 @@ export interface DemoSourceMeta {
 export interface DemoSourceItem {
   id: string;
   meta: DemoSourceMeta;
+  seekThumbnails?: readonly VibePlayerSeekThumbnail[];
   source: VibePlayerSource;
 }
 
@@ -32,20 +33,6 @@ const captionTrack = {
   language: "en",
   url: "/captions/showcase.vtt",
 };
-
-function createPosterUrl({ accent, base, horizon, line }: PosterOptions) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
-      <rect width="1280" height="720" fill="${base}" />
-      <path d="M0 500h1280v220H0z" fill="${horizon}" />
-      <path d="M120 180h460l-96 360H24z" fill="${accent}" opacity=".86" />
-      <path d="M760 128h360l120 412H640z" fill="${line}" opacity=".78" />
-      <path d="M230 234h234M198 314h244M166 394h256" stroke="#fff" stroke-width="16" stroke-linecap="round" opacity=".62" />
-      <path d="M790 230h250M824 314h250M858 398h250" stroke="#050506" stroke-width="18" stroke-linecap="round" opacity=".52" />
-    </svg>
-  `;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
 
 export const demoSources: DemoSourceItem[] = [
   {
@@ -64,6 +51,7 @@ export const demoSources: DemoSourceItem[] = [
       stack: "HTMLVideoElement adapter",
       title: "Progressive MP4",
     },
+    seekThumbnails: createSeekThumbnails(sintelSeekSprite),
     source: {
       captions: [captionTrack],
       id: "vite-demo-file",
@@ -99,6 +87,7 @@ export const demoSources: DemoSourceItem[] = [
       stack: "HLS adapter",
       title: "Adaptive stream",
     },
+    seekThumbnails: createSeekThumbnails(muxSeekSprite),
     source: {
       captions: [captionTrack],
       crossOrigin: "anonymous",
@@ -115,63 +104,7 @@ export const demoSources: DemoSourceItem[] = [
     },
   },
   bunnyDemoSource,
-  {
-    id: "youtube",
-    meta: {
-      accent: "#ed4a64",
-      capabilities: [
-        "YouTube iframe adapter",
-        "Seek and playback bridge",
-        "Provider-safe controls",
-        "Normalized analytics",
-      ],
-      description: "YouTube iframe playback using the same package shell.",
-      label: "YouTube",
-      sourceUrl: "https://www.youtube.com/watch?v=M7lc1UVf-VE",
-      stack: "YouTube iframe adapter",
-      title: "Embedded provider",
-    },
-    source: {
-      id: "vite-demo-youtube",
-      startSeconds: 2,
-      title: "Embedded provider",
-      type: "youtube",
-      youtubeVideoId: "M7lc1UVf-VE",
-    },
-  },
-  {
-    id: "youtube-headless",
-    meta: {
-      accent: "#ff0033",
-      capabilities: [
-        "No YouTube iframe",
-        "Package-owned preview",
-        "External YouTube handoff",
-        "No fake playback controls",
-      ],
-      description:
-        "A compliant headless-style YouTube handoff without embedded playback.",
-      label: "YT Headless",
-      sourceUrl: "https://www.youtube.com/watch?v=M7lc1UVf-VE&t=2s",
-      stack: "YouTube external presentation",
-      title: "Headless handoff",
-    },
-    source: {
-      externalActionLabel: "Watch on YouTube",
-      id: "vite-demo-youtube-headless",
-      posterUrl: createPosterUrl({
-        accent: "#ff0033",
-        base: "#111113",
-        horizon: "#1b1b20",
-        line: "#f1f1f1",
-      }),
-      presentation: "external",
-      startSeconds: 2,
-      title: "Headless handoff",
-      type: "youtube",
-      youtubeVideoId: "M7lc1UVf-VE",
-    },
-  },
+  ...demoYouTubeSources,
 ];
 
 export function getDemoSource(sourceId: string): DemoSourceItem {

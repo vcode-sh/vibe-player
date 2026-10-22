@@ -164,4 +164,32 @@ describe("VibePlayerVolumeControl", () => {
       vi.useRealTimers();
     }
   });
+
+  it.each([
+    { expected: "vertical", presentation: undefined },
+    { expected: "horizontal", presentation: "outside" as const },
+  ])(
+    "exposes a $expected slider for $presentation presentation",
+    ({ expected, presentation }) => {
+      render(
+        <VibePlayerVolumeControl
+          capabilities={{
+            ...capabilities,
+            ...(presentation ? { controlsPresentation: presentation } : {}),
+          }}
+          onSetMuted={vi.fn()}
+          onSetVolume={vi.fn()}
+          onToggleMute={vi.fn()}
+          snapshot={snapshot}
+        />
+      );
+      act(() =>
+        screen.getByRole("button", { name: "Mute, volume 42%" }).focus()
+      );
+      expect(screen.getByRole("slider", { name: "Volume" })).toHaveAttribute(
+        "aria-orientation",
+        expected
+      );
+    }
+  );
 });

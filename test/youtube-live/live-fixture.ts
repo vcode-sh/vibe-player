@@ -80,9 +80,12 @@ export const test = base.extend({
           headless: testInfo.project.use.headless ?? true,
           launchArguments: testInfo.project.use.launchOptions?.args ?? [],
           origin: "http://127.0.0.1:5203",
+          pagePath: publicUrl(page.url()),
+          pageQuery: new URL(page.url()).search,
           probe,
           responses,
-          videoId: "M7lc1UVf-VE",
+          videoId:
+            new URL(page.url()).searchParams.get("video") ?? "M7lc1UVf-VE",
         },
         null,
         2

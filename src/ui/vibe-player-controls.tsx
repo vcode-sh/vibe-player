@@ -89,7 +89,11 @@ export function VibePlayerControls({
   title,
   topActions,
 }: VibePlayerControlsProps) {
-  const shouldShowPlaybackControls = capabilities.supportsPlayback;
+  const presentation = capabilities.controlsPresentation ?? "overlay";
+  // Provider presentation keeps commands available but leaves the playback
+  // bar to the provider, so shared UI never renders a duplicate.
+  const shouldShowPlaybackControls =
+    capabilities.supportsPlayback && presentation !== "provider";
   return (
     <>
       <VibePlayerTopControls
@@ -100,12 +104,14 @@ export function VibePlayerControls({
       />
       {shouldShowPlaybackControls ? (
         <>
-          <div
-            aria-hidden
-            className={`vibe-player-controls__scrim ${
-              chromeHidden ? "vibe-player-controls__scrim--hidden" : ""
-            }`}
-          />
+          {presentation === "overlay" ? (
+            <div
+              aria-hidden
+              className={`vibe-player-controls__scrim ${
+                chromeHidden ? "vibe-player-controls__scrim--hidden" : ""
+              }`}
+            />
+          ) : null}
           <VibePlayerBottomControls
             capabilities={capabilities}
             captionsEnabled={captionsEnabled}

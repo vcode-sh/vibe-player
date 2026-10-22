@@ -1,0 +1,99 @@
+/* Horizontal volume slider beside its trigger, used by outside presentation. */
+.vibe-player-volume-control__popover:has([aria-orientation="horizontal"]) {
+  top: 50%;
+  bottom: auto;
+  left: calc(100% + 0.375rem);
+  grid-auto-flow: column;
+  gap: 0.5rem;
+  width: auto;
+  padding: 0.25rem 0.5rem;
+  transform: translateY(-50%);
+}
+
+.vibe-player-volume-control__slider[aria-orientation="horizontal"] {
+  width: 7.25rem;
+  height: 1.75rem;
+  cursor: ew-resize;
+}
+
+[aria-orientation="horizontal"] .vibe-player-volume-control__rail {
+  top: 50%;
+  right: 0.5rem;
+  bottom: auto;
+  left: 0.5rem;
+  width: auto;
+  height: 0.625rem;
+  transform: translateY(-50%);
+  transition:
+    height 220ms var(--vibe-player-ease-emphasized),
+    background-color 220ms var(--vibe-player-ease-emphasized);
+}
+
+.vibe-player-volume-control__slider[aria-orientation="horizontal"][data-active="true"]
+  .vibe-player-volume-control__rail {
+  width: auto;
+  height: 0.875rem;
+}
+
+[aria-orientation="horizontal"] .vibe-player-volume-control__fill {
+  top: 0;
+  right: auto;
+  bottom: 0;
+  width: var(--vibe-player-volume-percent);
+  height: auto;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.68),
+    rgba(255, 255, 255, 0.94)
+  );
+  transition: width 280ms var(--vibe-player-ease-emphasized);
+}
+
+[aria-orientation="horizontal"] .vibe-player-volume-control__thumb {
+  top: 50%;
+  bottom: auto;
+  left: var(--vibe-player-volume-percent);
+  width: 0.375rem;
+  height: 1.125rem;
+  transform: translate(-50%, -50%) scaleY(0.72);
+  transition:
+    left 280ms var(--vibe-player-ease-emphasized),
+    transform 220ms var(--vibe-player-ease-emphasized);
+}
+
+.vibe-player-volume-control__slider[aria-orientation="horizontal"][data-active="true"]
+  .vibe-player-volume-control__thumb {
+  transform: translate(-50%, -50%) scaleY(1.08);
+}
+
+[aria-orientation="horizontal"] .vibe-player-volume-control__hash-marks {
+  top: 50%;
+  right: 0.5rem;
+  bottom: auto;
+  left: 0.5rem;
+  width: auto;
+  height: 1.375rem;
+  transform: translateY(-50%);
+}
+
+[aria-orientation="horizontal"] .vibe-player-volume-control__hash-mark {
+  top: 0;
+  right: auto;
+  bottom: 0;
+  width: 1px;
+  height: auto;
+  transform: translateX(-50%);
+}
+
+.vibe-player-volume-control__popover:has([aria-orientation="horizontal"])
+  .vibe-player-volume-control__readout {
+  min-width: 2.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [aria-orientation="horizontal"] .vibe-player-volume-control__fill,
+  [aria-orientation="horizontal"] .vibe-player-volume-control__rail,
+  [aria-orientation="horizontal"] .vibe-player-volume-control__thumb {
+    transition: none;
+  }
+}

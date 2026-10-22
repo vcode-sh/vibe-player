@@ -69,6 +69,9 @@ export function haveEqualVibePlayerSources(
     left.widgetReferrer === right.widgetReferrer &&
     left.presentation === right.presentation &&
     left.externalActionLabel === right.externalActionLabel &&
+    left.controls === right.controls &&
+    left.captionLanguage === right.captionLanguage &&
+    left.showCaptionsByDefault === right.showCaptionsByDefault &&
     Object.is(left.startSeconds, right.startSeconds)
   );
 }

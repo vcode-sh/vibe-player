@@ -60,7 +60,7 @@ const source = {
 } satisfies VibePlayerSource;
 ```
 
-YouTube iframe:
+YouTube iframe with package controls (the default, `controls: "custom"`):
 
 ```ts
 import type { VibePlayerSource } from "vibe-player";
@@ -70,6 +70,22 @@ const source = {
   title: "Official iframe playback",
   type: "youtube",
   youtubeVideoId: "M7lc1UVf-VE",
+} satisfies VibePlayerSource;
+```
+
+YouTube iframe with YouTube's own controls, for its caption and quality menus:
+
+```ts
+import type { VibePlayerSource } from "vibe-player";
+
+const source = {
+  captionLanguage: "en",
+  controls: "native",
+  id: "youtube-native-demo",
+  showCaptionsByDefault: true,
+  title: "Native YouTube controls",
+  type: "youtube",
+  youtubeVideoId: "8S0FDjFBj8o",
 } satisfies VibePlayerSource;
 ```
 
@@ -294,6 +310,42 @@ dependency of the package.
 `presentation: "external"` renders a package-owned handoff surface and opens
 YouTube. It does not fake hidden YouTube playback, raw streams, captions, PiP,
 or quality controls.
+
+Embedded YouTube defaults to `controls: "custom"`: the player is created with
+`controls=0`, so YouTube's control bar is hidden and the package playback bar
+drives play, pause, seek, mute, volume, supported speeds and fullscreen. The
+Stage places its header above the video and the playback bar, tooltips, menus,
+seek previews and notices below it. Nothing the package renders covers the
+iframe, and the video area keeps at least 200 CSS pixels of height.
+
+`controls: "native"` shows YouTube's own controls instead, including its
+caption and quality menus when the selected video offers them. The Stage then
+omits its playback bar but keeps the header and close action above the video;
+controller commands and keyboard shortcuts still work. Switching between the
+two modes is a source change and starts a new player session.
+
+Startup caption options are requests to YouTube, not package captions:
+- `captionLanguage` sets the preferred caption language (`cc_lang_pref`);
+- `showCaptionsByDefault: true` asks YouTube to show captions at start
+  (`cc_load_policy=1`). Omitting it or passing `false` leaves the viewer's and
+  the video's own caption settings in effect; it does not force captions off.
+
+YouTube may render captions inside the video in either mode. In custom mode
+there is no package captions button or caption-language menu, and no quality
+menu: the IFrame API has no supported caption-track or quality selection, so
+the package reports `canShowCaptions: false` and
+`supportsQualitySelection: false` rather than offering controls that do nothing.
+Use native mode when viewers need those menus. Package WebVTT captions apply to
+file and HLS sources only.
+
+YouTube still draws some of its own elements inside the iframe in custom mode,
+such as the video title, share and "Watch on YouTube" links, a pause indicator
+and related-video suggestions. YouTube does not offer a way to remove its
+branding; `rel=0` only limits suggestions to the same channel.
+
+Hosts that give `.vibe-player-stage` a fixed `aspect-ratio` should scope it to
+`[data-controls-presentation="overlay"]`. Outside and provider presentations
+add header and control rows around a 16:9 video area.
 
 Autoplay blocking follows the official SDK event; slow buffering alone does not
 produce a policy warning. Repeating a mount on the same target preserves the

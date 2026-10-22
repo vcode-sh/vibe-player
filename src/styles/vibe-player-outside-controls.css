@@ -1,0 +1,185 @@
+/*
+ * Outside and provider presentations keep every package surface out of the
+ * media rectangle. The stage becomes a single-column grid with rows for the
+ * header (1), media viewport (2), notices (3), playback bar (4) and a reserved
+ * tray (5). Package popovers open downward into the tray instead of over the
+ * media; the tray grows only while a click-opened menu is open. The media
+ * stacks above every package layer so even shadows cannot paint over it.
+ */
+.vibe-player-stage[data-controls-presentation="outside"],
+.vibe-player-stage[data-controls-presentation="provider"] {
+  --vibe-player-outside-tray: 0px;
+  display: grid;
+  grid-template-rows: auto auto auto auto var(--vibe-player-outside-tray);
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"] {
+  --vibe-player-outside-tray: 3.75rem;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"][data-seek-thumbnails] {
+  --vibe-player-outside-tray: 8.25rem;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]:has(
+  .vibe-player-quality-control__menu
+) {
+  --vibe-player-outside-tray: 11rem;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]:fullscreen,
+.vibe-player-stage[data-controls-presentation="provider"]:fullscreen {
+  grid-template-rows:
+    auto minmax(0, 1fr) auto auto
+    var(--vibe-player-outside-tray);
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-stage__media,
+.vibe-player-stage[data-controls-presentation="provider"]
+  > .vibe-player-stage__media {
+  position: relative;
+  inset: auto;
+  z-index: 90;
+  grid-row: 2;
+  min-height: 200px;
+  aspect-ratio: 16 / 9;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]:fullscreen
+  > .vibe-player-stage__media,
+.vibe-player-stage[data-controls-presentation="provider"]:fullscreen
+  > .vibe-player-stage__media {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-controls__top,
+.vibe-player-stage[data-controls-presentation="provider"]
+  > .vibe-player-controls__top {
+  position: relative;
+  inset: auto;
+  grid-row: 1;
+  padding: 0.75rem 1rem;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-controls__top:empty,
+.vibe-player-stage[data-controls-presentation="provider"]
+  > .vibe-player-controls__top:empty {
+  display: none;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-controls__bottom {
+  position: relative;
+  inset: auto;
+  grid-row: 4;
+  padding: 0.625rem 1rem 0;
+}
+
+/* Notices and package captions sit between the media and the playback bar. */
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-caption-overlay,
+.vibe-player-stage[data-controls-presentation="provider"]
+  > .vibe-player-caption-overlay,
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-stage__caption-status,
+.vibe-player-stage[data-controls-presentation="provider"]
+  > .vibe-player-stage__caption-status {
+  position: relative;
+  inset: auto;
+  grid-row: 3;
+  margin: 0.5rem auto 0;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-stage__status,
+.vibe-player-stage[data-controls-presentation="provider"]
+  > .vibe-player-stage__status {
+  position: relative;
+  top: auto;
+  left: auto;
+  grid-row: 5;
+  align-self: center;
+  justify-self: center;
+  margin: 0.375rem 0;
+  transform: none;
+}
+
+/* The provider draws its own buffering indicator with its own controls. */
+.vibe-player-stage[data-controls-presentation="provider"]
+  > .vibe-player-stage__status--busy {
+  display: none;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  > .vibe-player-stage__status--busy {
+  width: 2.25rem;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  min-height: 2.25rem;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  .vibe-player-controls__bottom
+  .vibe-player-tooltip__bubble {
+  top: calc(100% + 0.5rem);
+  bottom: auto;
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  .vibe-player-timeline__tooltip {
+  top: calc(100% + 0.25rem);
+  bottom: auto;
+  transform: translateY(0.25rem);
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  .vibe-player-quality-control__menu {
+  top: calc(100% + 0.625rem);
+  bottom: auto;
+}
+
+/* Header actions show their labels beside the button, never over media. */
+.vibe-player-stage[data-controls-presentation="outside"]
+  .vibe-player-controls__top
+  .vibe-player-tooltip
+  .vibe-player-tooltip__bubble,
+.vibe-player-stage[data-controls-presentation="provider"]
+  .vibe-player-controls__top
+  .vibe-player-tooltip
+  .vibe-player-tooltip__bubble {
+  top: 50%;
+  right: calc(100% + 0.5rem);
+  bottom: auto;
+  left: auto;
+  transform: translate(0.25rem, -50%);
+}
+
+.vibe-player-stage[data-controls-presentation="outside"]
+  .vibe-player-controls__top
+  .vibe-player-tooltip[data-visible="true"]
+  .vibe-player-tooltip__bubble,
+.vibe-player-stage[data-controls-presentation="provider"]
+  .vibe-player-controls__top
+  .vibe-player-tooltip[data-visible="true"]
+  .vibe-player-tooltip__bubble {
+  transform: translate(0, -50%);
+}
+
+.vibe-player-modal__frame:has(
+  .vibe-player-stage[data-controls-presentation="outside"]
+) {
+  width: min(92vw, calc((100svh - 19rem) * 1.777), 1760px);
+}
+
+.vibe-player-modal__frame:has(
+  .vibe-player-stage[data-controls-presentation="provider"]
+) {
+  width: min(92vw, calc((100svh - 13rem) * 1.777), 1760px);
+}

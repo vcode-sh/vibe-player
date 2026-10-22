@@ -122,7 +122,11 @@ async function mountAndLoadControllerAdapter(
       return;
     }
     phase = "load";
-    await adapter.load(input.source);
+    const loading = adapter.load(input.source);
+    // Capabilities may depend on the accepted source (for example where
+    // controls render), so publish them before slow provider readiness.
+    input.updateState({ capabilities: adapter.capabilities });
+    await loading;
   } catch (cause) {
     if (!hasReportedError()) {
       reportControllerLoadError(input, adapter, cause, phase);

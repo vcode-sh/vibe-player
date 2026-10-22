@@ -115,6 +115,10 @@ export function VibePlayerStage({
     <div
       className="vibe-player-stage"
       data-chrome-hidden={chrome.chromeHidden}
+      data-controls-presentation={
+        capabilities.controlsPresentation ?? "overlay"
+      }
+      data-seek-thumbnails={seekThumbnails?.length ? true : undefined}
       {...rootEvents}
       ref={setRootElement}
       tabIndex={-1}

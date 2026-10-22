@@ -15,6 +15,14 @@ Development version: **0.2.0**. This version has not been released.
 - Caption availability callbacks and retry actions for ready-made and custom UI.
 - Optional seek thumbnails from timed images or sprite sheets, with time-only
   fallback when a frame is unavailable.
+- Embedded YouTube playback uses package controls by default, laid out above
+  and below the video so no package control, menu or notice covers the YouTube
+  player. `controls: "native"` switches to YouTube's own controls, including its
+  caption and quality menus, and `captionLanguage` / `showCaptionsByDefault`
+  request startup captions. Custom caption and quality menus for YouTube remain
+  unavailable because the IFrame API does not support them.
+- `controlsPresentation` capability (`overlay`, `outside` or `provider`) so
+  custom UIs can tell where playback controls belong.
 - Interactive demo and integration guides.
 
 ### Improved
@@ -24,6 +32,8 @@ Development version: **0.2.0**. This version has not been released.
 - Accessible modal focus, nested Escape behavior, container-responsive controls,
   and fullscreen/PiP state and exit actions.
 - Readonly source inputs, complete usage examples, and explicit public exports.
+- Source-dependent capabilities are published when a source starts loading,
+  so layout does not wait for slow provider readiness.
 - Media-audit deadlines, cancellation, and origin-specific HTTP diagnostics.
 - Maintained Chromium/WebKit acceptance, live YouTube smoke, native keyboard
   and screen-reader checks, plus installed-consumer verification of documented

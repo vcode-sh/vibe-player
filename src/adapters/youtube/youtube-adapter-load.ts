@@ -3,6 +3,7 @@ import type {
   VibePlayerEventName,
   VibePlayerYouTubeSource,
 } from "../../core/vibe-player-types";
+import { getYouTubeControlsMode } from "./youtube-controls-mode";
 import type {
   YouTubeAdapterRuntime,
   YouTubePlayerHandle,
@@ -35,12 +36,17 @@ export async function loadYouTubePlayer({
 }: LoadYouTubePlayerInput): Promise<YouTubePlayerHandle> {
   const playerPromise = Promise.resolve(
     runtime.createPlayer({
+      ...(source.captionLanguage
+        ? { captionLanguage: source.captionLanguage }
+        : {}),
+      controls: getYouTubeControlsMode(source),
       element,
       onAutoplayBlocked: handleAutoplayBlocked,
       onError: (payload) => emit("error", payload),
       onPlaybackRateChange: () => emit("ratechange"),
       onReady: () => emit("ready"),
       onStateChange: handleStateChange,
+      ...(source.showCaptionsByDefault ? { showCaptionsByDefault: true } : {}),
       signal: abortController.signal,
       ...(source.startSeconds === undefined
         ? {}
