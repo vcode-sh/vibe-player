@@ -22,7 +22,8 @@ describe("media delivery audit core", () => {
       { size: 32, type: "ftyp" },
       { size: 96, type: "mdat" },
     ]);
-    const tailBytes = createMp4Sample([{ size: 48, type: "moov" }]);
+    const tailBytes = new Uint8Array(4_194_304);
+    tailBytes.set(createMp4Sample([{ size: 48, type: "moov" }]));
     const totalSize = 5_242_880;
 
     globalThis.fetch = vi.fn((_url, init) => {
@@ -35,11 +36,13 @@ describe("media delivery audit core", () => {
       }
       const range =
         init?.headers instanceof Headers ? init.headers.get("Range") : null;
-      return createRangeResponse(
-        range === "bytes=0-4194303" ? firstBytes : tailBytes,
-        totalSize,
-        null
-      );
+      if (range === "bytes=0-4194303") {
+        return createRangeResponse(firstBytes, totalSize, null);
+      }
+      return new Response(tailBytes, {
+        headers: { "content-range": "bytes 1048576-5242879/5242880" },
+        status: 206,
+      });
     });
 
     const report = await createMediaDeliveryAuditReport({

@@ -1,0 +1,29 @@
+body {
+  padding: 24px;
+  margin: 0;
+  font: 16px system-ui;
+  color: white;
+  background: #171717;
+}
+main {
+  max-width: 960px;
+  margin-inline: auto;
+}
+#media {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: black;
+}
+#media iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+nav {
+  display: flex;
+  gap: 12px;
+  margin-block: 16px;
+}
+pre {
+  white-space: pre-wrap;
+}

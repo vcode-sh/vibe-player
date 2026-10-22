@@ -8,7 +8,7 @@ without archaeology.
 
 1. Run `bun install`.
 2. Install browser acceptance dependencies with
-   `bunx playwright install --with-deps chromium`.
+   `bunx playwright install --with-deps chromium webkit`.
 3. Run `bun run ci`.
 4. If you changed package output, run `npm pack --dry-run --json`.
 5. If you changed media delivery logic, add or update focused Vitest coverage.
@@ -42,12 +42,23 @@ checks an isolated tarball consumer on Node 22.0.0 with React 19.2.7 and on
 Node 24 with the development React version.
 
 `bun run ci` checks the package, both demo builds, an isolated packed consumer,
-and Chromium acceptance. Install Chromium before running it locally; Playwright
-also installs required system libraries on Linux with `--with-deps`.
+and Chromium/WebKit acceptance. Install both engines before running it locally;
+Playwright also installs required system libraries on Linux with `--with-deps`.
 `bun run demo:vite:verify`, `bun run package:consumer`, and
 `bun run test:browser` expect the package to have been built first.
 Vitest runs CLI tests in Node and component tests in Happy DOM. Playwright owns
 the real browser lane; DOM emulation does not prove playback or focus geometry.
+The WebKit project selects the public native-HLS adapter path. On Linux it
+enables the engine's GStreamer HLS support; this is test environment
+configuration, not a package or consumer option.
+
+`bun run test:youtube` is a separate live smoke using ordinary installed Google
+Chrome and the official public sample. It checks the real SDK without mocks;
+provider/network failures fail the lane with diagnostic artifacts. It stays out
+of deterministic CI. `bun run test:youtube:check` validates that harness in CI.
+See [test/youtube-live/README.md](./test/youtube-live/README.md) and
+[accessibility-acceptance.md](./docs/accessibility-acceptance.md) for external
+provider and native accessibility acceptance boundaries.
 
 Ultracite 8.0.1 needs the checked-in Bun patch to use Biome 2.6's renamed
 Tailwind rule and shared Tailwind settings. Bun applies it during installation.

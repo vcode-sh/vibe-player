@@ -41,8 +41,8 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
-      - name: Install Chromium
-        run: bunx playwright install --with-deps chromium
+      - name: Install browser engines
+        run: bunx playwright install --with-deps chromium webkit
 
       - name: Release quality gates
         run: bun run ci

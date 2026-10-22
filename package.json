@@ -69,7 +69,7 @@
     "build": "tsdown src/index.ts --format esm --dts --clean --out-dir dist --platform neutral --target es2022 --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
     "check": "biome check .",
     "check-types": "tsc --noEmit",
-    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw && bun run demo:vite:verify && bun run package:consumer && bun run test:browser:check && bun run test:browser",
+    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw && bun run demo:vite:verify && bun run package:consumer && bun run test:youtube:check && bun run test:browser:check && bun run test:browser",
     "demo:vite": "vite --config demo/vite/vite.config.ts --host localhost",
     "demo:vite:build": "vite build --config demo/vite/vite.config.ts",
     "demo:vite:check": "tsc -p demo/vite/tsconfig.json --noEmit",
@@ -93,9 +93,12 @@
     "release:publish": "changeset publish",
     "release:version": "changeset version && bun install",
     "test": "vitest run",
+    "test:accessibility:native": "node test/browser/accessibility-native.mjs",
     "test:browser": "playwright test",
     "test:browser:check": "tsc -p test/browser/tsconfig.json --noEmit",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:youtube": "playwright test --config playwright.youtube.config.ts",
+    "test:youtube:check": "tsc -p test/youtube-live/tsconfig.json --noEmit"
   },
   "dependencies": {
     "entities": "7.0.1",

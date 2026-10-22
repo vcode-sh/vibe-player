@@ -1,4 +1,5 @@
 import type { VibePlayerSource } from "vibe-player";
+import { bunnyDemoSource } from "./demo-bunny-source";
 
 interface PosterOptions {
   accent: string;
@@ -113,6 +114,7 @@ export const demoSources: DemoSourceItem[] = [
       type: "hls",
     },
   },
+  bunnyDemoSource,
   {
     id: "youtube",
     meta: {

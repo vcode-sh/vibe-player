@@ -8,6 +8,7 @@ const scannedExtensions = new Set([
   ".html",
   ".json",
   ".mjs",
+  ".py",
   ".ts",
   ".tsx",
 ]);
@@ -15,6 +16,7 @@ const rootFiles = [
   "biome.json",
   "package.json",
   "playwright.config.ts",
+  "playwright.youtube.config.ts",
   "tsconfig.json",
   "vitest.config.ts",
 ];

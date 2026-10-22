@@ -28,7 +28,7 @@ The release workflow is gated by `vars.ENABLE_NPM_PUBLISH`.
 Before `changesets/action` can create a version PR or publish, it runs
 `bun run ci`, including package rules, boundaries, dependency guard,
 release-state guard, TypeScript, tests, build, styles, size, public surface,
-tarball, publint, ATTW, the packaged consumer, and deterministic Chromium
+tarball, publint, ATTW, the packaged consumer, and deterministic Chromium/WebKit
 acceptance. CI and release also call a consumer-compatibility workflow for exact
 Node 22.0.0 / React 19.2.7 and normal Node 24. Minimum-runtime checks skip the
 Vite consumer build, whose toolchain requires a newer Node than package runtime.
@@ -63,7 +63,8 @@ dist tag.
 
 ## Manual checks
 
-Install Chromium once with `bunx playwright install --with-deps chromium`.
+Install browser engines once with
+`bunx playwright install --with-deps chromium webkit`.
 Run these before any publish:
 
 ```bash
@@ -79,9 +80,16 @@ bun run package:tarball
 bun run package:publint
 bun run package:attw
 bun run package:consumer
+bun run test:youtube:check
 bun run test:browser:check
 bun run test:browser
 ```
+
+The live YouTube lane is intentionally separate from deterministic CI. Before
+claiming target-platform acceptance, record a successful `bun run test:youtube`
+and the applicable native keyboard/screen-reader checks from
+[accessibility-acceptance.md](../accessibility-acceptance.md). Linux WebKit
+coverage does not establish physical Safari/iOS behavior.
 
 ## Changelog rules
 

@@ -1,7 +1,7 @@
 # Development Status and Next Tasks
 
-Release target: **0.2.0, unreleased**. The original T01–T17 backlog is
-implemented. This checkpoint extends the modular-provider work in `ca6882f`;
+Release target: **0.2.0, unreleased**. The original T01–T17 backlog and the N01–N04 implementation and available
+acceptance lanes are complete. Physical-platform limits remain explicit below. This checkpoint extends the modular-provider work in `ca6882f`;
 it does not prepare a release or change package ownership.
 
 ## Implemented backlog
@@ -36,75 +36,117 @@ provider getter has settled. The accepted target is deliberately separate from
 subsequent observed playback time. No heuristic infers settlement from a stale
 SDK getter.
 
-## Verification checkpoint
+## Current verification checkpoint
 
-- **432 Vitest tests / 100 files** pass using the testing-patterns skill.
-- **19 Chromium cases / zero skips** cover playback, rerenders, source replacement,
-  headless lifecycle, captions, quality, authenticated HLS, modal focus/cleanup,
-  narrow controls and presentation. Preview coverage includes real motion
-  preference changes and host pause.
-- TypeScript, Biome, coding/layer/dependency rules, release state, build, CSS,
-  size, public surface, tarball, publint, ATTW and both demo builds pass.
-- Installed consumers pass on **Node 22.0.0 / React 19.2.7**, **Node 24.22.0 /
-  React 19.3.1**, and the local Node 26.5.0 development runtime. Fourteen shipped
-  TypeScript recipes compile. Node 22 intentionally skips Vite's newer build
-  toolchain; its package runtime, SSR, types, CSS and CLI are checked.
-- Runtime ESM remains within its existing budget: **162,571 bytes raw /
-  35,544 bytes gzip**. No size budget was raised.
+- **446 Vitest tests / 102 files** pass using the testing-patterns skill.
+- **26 deterministic browser cases pass with zero skips:** 22 Chromium and four
+  WebKit. The Linux WebKit PiP case verifies capability absence; it does not
+  claim successful PiP on that platform.
+- Full `bun run ci` passes: types, formatting, coding/layer/dependency rules,
+  release state, tests, build, CSS, size, public surface, tarball, publint, ATTW,
+  both demo builds, installed consumer and browser lanes. `bun run lint` passes.
+- Installed consumers pass on **Node 22.0.0 / React 19.2.7**, **Node 24.22.1 /
+  React 19.3.1**, and local **Node 26.5.0 / React 19.3.1**. Fourteen shipped
+  TypeScript recipes compile. The minimum Node lane intentionally skips Vite's
+  newer build toolchain; package runtime, SSR, types, CSS and CLI are checked.
+- Live YouTube: **two cases pass in both headless and windowed Google Chrome**.
+  The isolated native AT-SPI/Orca/OS-key probe also passes on the final build.
+- Runtime ESM: **162,683 bytes raw / 35,567 bytes gzip**, within unchanged budgets.
 
-Run the maintained gates via `bun run ci`; install Chromium first as described
-in [test/browser/README.md](../test/browser/README.md). Use
-`npm exec --yes --package=node@22.0.0 -- node scripts/assert-packed-consumer.mjs --react-version 19.2.7 --skip-build`
-for the exact minimum consumer locally. CI also maintains the Node 24 lane.
+Install both engines before `bun run ci`:
+`bunx playwright install --with-deps chromium webkit`. The live provider and
+native assistive-tool lanes remain separate from deterministic CI.
 
-## Next bounded tasks
+## N01–N04 follow-up results
 
-### N01 — Validate tail-range evidence in the media audit (P2)
+### N01 — Tail-range evidence: implemented and verified
 
-**Confirmed source gap:** the tail probe currently consumes `.bytes` without
-checking its HTTP status or returned `Content-Range` start. MP4 diagnostics add
-the requested tail offset to a discovered marker. A server that ignores or
-changes the requested tail can therefore produce an inaccurate diagnostic
-offset. Initial-range validation is fixed; this separate path is not covered.
+Tail diagnostics now require HTTP 206, the exact requested start/end, the same
+known total size and a complete bounded response body. Invalid evidence yields
+`mp4.tailMoovOffset: null`, without changing initial faststart/readiness or
+adding a new failure code. Thirteen focused RED/GREEN cases cover valid data,
+HTTP 200, wrong offsets/end/total, missing headers and truncated bodies. The
+media-audit lane passes 87 tests across 17 files; independent delta review found
+no regression.
 
-Start with independently constructed 200, wrong-offset 206, truncated and valid
-206 fixtures. Validate the response before interpreting absolute offsets and
-keep initial faststart detection independent. Do not widen this into a complete
-MP4 validator or claim the current informational offset proves faststart.
+This remains an informational ASCII-marker scan, not a full MP4 or ETag
+consistency validator. See [media-delivery.md](./media-delivery.md#tail-diagnostics).
 
-### N02 — Establish native WebKit/Safari acceptance (P2)
+### N02 — Native WebKit acceptance: implemented and verified on Linux
 
-**Verified coverage gap:** the browser project currently runs Chromium only.
-Native HLS fallback and WebKit presentation have controlled contract coverage,
-but no maintained real WebKit lane. This is not evidence of incompatibility.
+The default deterministic browser command now runs Chromium and a dedicated
+WebKit project. Four WebKit cases verify real local native-HLS decoding,
+captions/pause, modal keyboard containment/restoration and container fullscreen.
+The fixture uses public adapter runtime injection to select native fallback;
+media APIs and network responses remain real.
 
-Add local native-HLS playback, fullscreen/PiP capability behavior and modal
-keyboard acceptance on supported WebKit targets. Include actual Safari/iOS
-where platform UI requires it; do not assume Playwright WebKit proves every
-native OS behavior. Keep platform-specific failures distinct from package bugs.
+Linux WebKit 27.2 requires `WEBKIT_GST_ENABLE_HLS_SUPPORT=1` to enable its actual
+GStreamer HLS backend; only the WebKit test project sets it. PiP is absent on
+this platform, and its case verifies absent controls with an unsupported-API
+annotation. Actual Chromium PiP remains independently tested. CI/release install
+both engines. This does not establish physical Safari/iOS behavior.
 
-### N03 — Complete live YouTube acceptance (P2)
+### N03 — Live YouTube acceptance: implemented and verified
 
-**Verified coverage gap:** official SDK behavior is tested through controlled
-boundaries. Live playback remains unconfirmed; the earlier session timed out
-and browser-tool document interception was observed. Its cause is not proven.
+`bun run test:youtube` uses the built package, default SDK and official public
+sample in ordinary installed Google Chrome. Two cases passed both headless and
+windowed under Xvfb on Chrome 156.0.8078.47, origin `http://127.0.0.1:5203`.
+Readiness, advancing playback, actual provider pause, offered rate application,
+same-iframe/player-frame preservation and disposal were observed. Real SDK,
+embed and media requests succeeded; no provider restriction occurred.
 
-Use an official public sample in an ordinary browser and verify readiness,
-play/pause, supported rates, blocked-autoplay signaling and repeated mounting.
-Keep this network-dependent smoke separate from deterministic CI. Record the
-actual origin/browser and any restrictions without guessing their cause.
+The explicit audible-autoplay policy test observes the actual SDK blocked event
+with no user activation at dispatch. Read-only state uses raw CDP without a user
+gesture; tracing is disabled for this case because its snapshots granted
+activation in the observed toolchain. Playback navigation assertions track only
+the player frame, excluding unrelated measurement/ad descendants.
 
-### N04 — Verify physical keyboard and assistive technology (P2)
+This network lane stays opt-in; CI typechecks it without contacting YouTube.
+See [the live harness](../test/youtube-live/README.md) for exact commands,
+diagnostics and the recorded offered rates. Earlier interception/timeouts are
+historical observations; their cause remains unproven and was not assumed to be
+a package bug.
 
-**Verified automation limit:** CDP Escape does not exit fullscreen even on a bare
-page without package code, in both headless Chromium and headed Chromium under
-Xvfb. The maintained test proves F toggling and actual
-`document.exitFullscreen()` event/state synchronization. It does not claim a
-physical browser Escape test.
+### N04 — Native accessibility: implemented and verified within available tools
 
-Verify physical Escape and screen-reader behavior for native dialog, popovers,
-caption status/retry and fullscreen on target browsers. Automated roles, focus
-and native presentation assertions remain useful but do not replace that lane.
+Three Chromium accessibility-tree cases verify native modality/background
+exclusion, quality/volume semantics, polite atomic caption failure with reachable
+retry, and fullscreen action names. An additional isolated native probe uses
+actual AT-SPI, Orca generated speech and OS-synthetic XTest keys in a private
+DBus/Xvfb session. It verifies generated speech for caption failure/retry, control roles,
+reserved browser fullscreen Escape, nested popover dismissal and opener restore.
+It does not change the user's desktop accessibility settings.
+
+The native check exposed a real focus bug: successful caption retry removed its
+focused button and left focus outside the modal. A focused DOM/browser RED
+preceded the fix; Stage now focuses its existing root before retry removes the
+button. This is the only player-runtime correction in this follow-up.
+
+The native launcher is `bun run test:accessibility:native`; it deliberately
+requires the local fixture server and installed OS dependencies. Its dummy
+speech backend records generated utterances without speaker audio. It fails
+instead of replacing an existing Orca process. The exact setup, evidence,
+cleanup contract and physical-device protocol are in
+[accessibility-acceptance.md](./accessibility-acceptance.md).
+
+## Remaining physical-platform acceptance
+
+No physical Safari/iOS device, VoiceOver or NVDA session was available on this
+Linux host. OS-synthetic keys exercise the real browser path but are not a
+physical hardware keyboard test. Orca generated-speech verification is not a
+human listening or usability session. These limits are not implementation
+failures and have no synthetic PASS; the manual protocol records each actual
+platform outcome separately.
+
+The deterministic lanes remain independent from the live provider and native
+OS/assistive-tool prerequisites:
+
+```bash
+bun run ci
+bun run test:youtube
+# With the documented local fixture server and native OS tools running:
+bun run test:accessibility:native
+```
 
 ## Continue to defer
 

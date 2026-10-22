@@ -56,6 +56,22 @@ summary, remediation text, origin context when relevant, and a `nextAction`.
 Range support requires the initial HTTP 206 response to start at the requested
 byte zero, as confirmed by `Content-Range`.
 
+## Tail Diagnostics
+
+`mp4.tailMoovOffset` is an informational marker offset. Before adding an
+absolute byte position, the audit requires HTTP 206, a `Content-Range` matching
+the requested tail start and end, the same total size reported by the initial
+response, and enough body bytes to cover that complete range. HTTP 200,
+incorrect or missing range headers, changed totals, and truncated bodies leave
+the offset `null`.
+
+Invalid tail evidence adds no failure and does not change `rangeOk`, which
+describes the initial request. Faststart and rollout readiness continue to use
+the initial MP4 box ordering alongside the existing range, CORS and size checks.
+A tail marker cannot establish faststart: the tail scan looks for ASCII `moov`,
+without validating a complete MP4 box, and matching range totals do not prove
+the asset remained unchanged between requests.
+
 ## Deadline And Cancellation
 
 Each audit has a total **30,000 ms** network budget. Initial sampling, tail

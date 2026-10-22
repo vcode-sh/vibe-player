@@ -3,7 +3,23 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   expect: { timeout: 5000 },
   fullyParallel: false,
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      testIgnore: "**/webkit*.browser.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "webkit",
+      testMatch: "**/webkit*.browser.ts",
+      use: {
+        ...devices["Desktop Safari"],
+        launchOptions: {
+          env: { ...process.env, WEBKIT_GST_ENABLE_HLS_SUPPORT: "1" },
+        },
+      },
+    },
+  ],
   reporter: process.env.CI ? "github" : "list",
   testDir: "./test/browser",
   testMatch: "**/*.browser.ts",

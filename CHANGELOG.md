@@ -23,9 +23,9 @@ Development version: **0.2.0**. This version has not been released.
   and fullscreen/PiP state and exit actions.
 - Readonly source inputs, complete usage examples, and explicit public exports.
 - Media-audit deadlines, cancellation, and origin-specific HTTP diagnostics.
-- Maintained Chromium acceptance and installed-consumer checks, including
-  documented recipes and minimum Node/React compatibility, alongside package
-  architecture and release guards.
+- Maintained Chromium/WebKit acceptance, live YouTube smoke, native keyboard
+  and screen-reader checks, plus installed-consumer verification of documented
+  recipes and minimum Node/React compatibility.
 
 ### Changed
 
@@ -45,11 +45,11 @@ Development version: **0.2.0**. This version has not been released.
   server snapshot for React hydration.
 - Refresh ambient previews when asset URLs change, observe motion preferences,
   and stop disposed work from restarting media.
-- Keep caption requests stable across callback updates and report failures
-  without interrupting video playback.
+- Keep caption requests stable across callback updates, report failures without
+  interrupting playback, and preserve keyboard focus after caption retry.
 - Keep the volume panel closed after Escape restores focus to its button.
-- Reject invalid HTTP byte ranges and avoid mistaking partial downloads for
-  the full video size in media audits.
+- Reject invalid initial byte ranges, validate tail responses before computing
+  MP4 diagnostic offsets, and distinguish partial downloads from full file size.
 
 ## [0.1.0] - 2026-06-08
 

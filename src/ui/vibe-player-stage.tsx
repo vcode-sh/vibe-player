@@ -67,6 +67,10 @@ export function VibePlayerStage({
     }),
     [captions.error, captions.loading, captions.track]
   );
+  function retryCaptions(): void {
+    rootElement?.focus({ preventScroll: true });
+    captions.retry();
+  }
   useVibePlayerStageObservers({
     captionStatus,
     controller,
@@ -122,7 +126,7 @@ export function VibePlayerStage({
       <VibePlayerCaptionOverlay lines={captions.activeLines} />
       <VibePlayerCaptionStatusNotice
         error={captions.error}
-        onRetry={captions.retry}
+        onRetry={retryCaptions}
       />
       <VibePlayerControls
         capabilities={capabilities}

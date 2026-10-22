@@ -69,6 +69,25 @@ export function createMediaDeliveryAuditReport(input) {
   );
 }
 
+async function fetchValidatedTailBytes(input, start, totalSize) {
+  const response = await fetchMediaDeliveryRangeSample({
+    end: totalSize - 1,
+    signal: input.signal,
+    start,
+    url: input.url,
+  });
+  const range = parseMediaDeliveryContentRange(
+    response.headers.get("content-range")
+  );
+  const valid =
+    response.status === 206 &&
+    range?.start === start &&
+    range.end === totalSize - 1 &&
+    range.total === totalSize &&
+    response.bytes.length === totalSize - start;
+  return valid ? response.bytes : new Uint8Array();
+}
+
 async function collectMediaDeliveryAuditReport(input) {
   const credentialsRequired = input.credentials === true;
   const first = await fetchMediaDeliveryRangeSample({
@@ -91,14 +110,7 @@ async function collectMediaDeliveryAuditReport(input) {
   const tailStart = Math.max(0, totalSize - tailSampleSize);
   const tailBytes =
     rangeOk && totalSizeKnown
-      ? (
-          await fetchMediaDeliveryRangeSample({
-            end: totalSize - 1,
-            signal: input.signal,
-            start: tailStart,
-            url: input.url,
-          })
-        ).bytes
+      ? await fetchValidatedTailBytes(input, tailStart, totalSize)
       : new Uint8Array();
   const mp4 = inspectMediaDeliveryMp4(first.bytes, tailBytes, tailStart);
   const corsResults = await collectCorsResults(
