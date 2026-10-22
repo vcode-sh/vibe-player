@@ -61,6 +61,7 @@
 - Keep caption requests stable across callback updates, report failures without
   interrupting playback, and preserve keyboard focus after caption retry.
 - Keep the volume panel closed after Escape restores focus to its button.
+- Keep the playback speed tooltip inside narrow players.
 - Reject invalid initial byte ranges, validate tail responses before computing
   MP4 diagnostic offsets, and distinguish partial downloads from full file size.
 

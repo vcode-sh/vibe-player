@@ -77,7 +77,7 @@ export function VibePlayerRateControl({
   }
   const rate = formatVibePlayerPlaybackRate(snapshot.playbackRate);
   return (
-    <VibePlayerTooltip label="Playback speed">
+    <VibePlayerTooltip align="end" label="Playback speed">
       <button
         aria-label={`Playback speed ${rate}`}
         className="vibe-player-controls__rate"
