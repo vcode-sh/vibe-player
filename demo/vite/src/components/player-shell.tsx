@@ -1,10 +1,10 @@
-import type {
-  VibePlayerAnalyticsEvent,
-  VibePlayerControllerState,
-  VibePlayerResumeStore,
+import {
+  type VibePlayerAnalyticsEvent,
+  type VibePlayerControllerState,
+  type VibePlayerResumeStore,
+  VibePlayerStage,
 } from "vibe-player";
 import type { DemoSourceItem } from "../demo-sources";
-import { DemoPlayerStage } from "./demo-player-stage";
 import { PlayerStateStrip } from "./player-state-strip";
 import { createSourceAccentStyle } from "./source-accent-style";
 
@@ -50,10 +50,10 @@ export function PlayerShell({
       </div>
       <PlayerStateStrip activeSource={activeSource} playerState={playerState} />
       <div className="vp-player-shell__stage">
-        <DemoPlayerStage
+        <VibePlayerStage
+          autoHideControls={false}
           autoPlay={source.type !== "youtube"}
           autoPlayMutedBootstrap
-          key={source.id}
           onAnalyticsEvent={onAnalyticsEvent}
           onStateChange={onStateChange}
           resumeStore={resumeStore}

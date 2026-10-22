@@ -7,6 +7,7 @@ import type {
   VibePlayerAnalyticsEvent,
   VibePlayerControllerOptions,
   VibePlayerControllerState,
+  VibePlayerError,
   VibePlayerSource,
 } from "./vibe-player-types";
 
@@ -30,110 +31,135 @@ export interface LoadVibePlayerControllerSourceInput {
   ) => VibePlayerControllerState;
 }
 
-export async function loadVibePlayerControllerSource({
-  adapterFactory,
-  analyticsSession,
-  currentState,
-  emitAnalytics,
-  handleAdapterEvent,
-  isCurrentOperation,
-  operationGeneration,
-  resumeStore,
-  setAdapter,
-  setAdapterUnsubscribe,
-  source,
-  syncFromAdapter,
-  target,
-  teardownAdapter,
-  updateState,
-}: LoadVibePlayerControllerSourceInput): Promise<void> {
-  analyticsSession.close(currentState);
-  await teardownAdapter();
-  if (!isCurrentOperation(operationGeneration)) {
+export async function loadVibePlayerControllerSource(
+  input: LoadVibePlayerControllerSourceInput
+): Promise<void> {
+  input.analyticsSession.close(input.currentState);
+  await input.teardownAdapter();
+  if (!input.isCurrentOperation(input.operationGeneration)) {
     return;
   }
-  analyticsSession.clear();
-  const adapter = adapterFactory(source);
-  setAdapter(adapter);
-  updateState({
-    capabilities: adapter.capabilities,
-    currentSource: source,
-    lastEvent: null,
-    playbackBlocked: false,
-    snapshot: adapter.getSnapshot(),
-  });
-  setAdapterUnsubscribe(adapter.subscribe(handleAdapterEvent));
-  if (target) {
-    await adapter.mount(target);
-  }
-  if (!isCurrentOperation(operationGeneration)) {
+  input.analyticsSession.clear();
+  const adapter = createControllerAdapter(input);
+  const hasReportedError = subscribeControllerAdapter(input, adapter);
+  await mountAndLoadControllerAdapter(input, adapter, hasReportedError);
+  if (!input.isCurrentOperation(input.operationGeneration)) {
     await adapter.unmount();
     return;
   }
-  await loadControllerAdapter({
-    adapter,
-    emitAnalytics,
-    isCurrentOperation,
-    operationGeneration,
-    source,
-    updateState,
-  });
-  if (!isCurrentOperation(operationGeneration)) {
-    await adapter.unmount();
-    return;
-  }
-  updateState({
+  input.updateState({
     capabilities: adapter.capabilities,
-    currentSource: source,
+    currentSource: input.source,
     lastEvent: "ready",
     playbackBlocked: false,
     snapshot: adapter.getSnapshot(),
   });
-  analyticsSession.emitOnce({
-    provider: source.type,
-    sourceId: source.id,
+  input.analyticsSession.emitOnce({
+    provider: input.source.type,
+    sourceId: input.source.id,
     type: "opened",
   });
-  await restoreVibePlayerResumePosition({
-    adapter,
-    isCurrentOperation,
-    operationGeneration,
-    resumeStore,
-    source,
-    syncFromAdapter,
-  });
+  await restoreControllerResumePosition(input, adapter);
 }
 
-interface LoadControllerAdapterInput {
-  adapter: VibePlayerAdapter;
-  emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
-  isCurrentOperation: (operationGeneration: number) => boolean;
-  operationGeneration: number;
-  source: VibePlayerSource;
-  updateState: (
-    next: Partial<VibePlayerControllerState>
-  ) => VibePlayerControllerState;
-}
-
-async function loadControllerAdapter({
-  adapter,
-  emitAnalytics,
-  isCurrentOperation,
-  operationGeneration,
-  source,
-  updateState,
-}: LoadControllerAdapterInput): Promise<void> {
+function createControllerAdapter(
+  input: LoadVibePlayerControllerSourceInput
+): VibePlayerAdapter {
+  let adapter: VibePlayerAdapter | null = null;
   try {
-    await adapter.load(source);
-  } catch (error) {
-    if (isCurrentOperation(operationGeneration)) {
-      handleVibePlayerLoadError({
-        adapter,
-        emitAnalytics,
-        source,
-        updateState,
-      });
+    adapter = input.adapterFactory(input.source);
+    input.setAdapter(adapter);
+    input.updateState({
+      capabilities: adapter.capabilities,
+      currentSource: input.source,
+      error: null,
+      lastEvent: null,
+      playbackBlocked: false,
+      snapshot: adapter.getSnapshot(),
+    });
+    return adapter;
+  } catch (cause) {
+    reportControllerLoadError(input, adapter, cause, "create");
+    throw cause;
+  }
+}
+
+function subscribeControllerAdapter(
+  input: LoadVibePlayerControllerSourceInput,
+  adapter: VibePlayerAdapter
+): () => boolean {
+  let active = true;
+  let errorReported = false;
+  const unsubscribe = adapter.subscribe((event) => {
+    if (!active) {
+      return;
     }
-    throw error;
+    errorReported ||= event.type === "error";
+    input.handleAdapterEvent(event);
+  });
+  input.setAdapterUnsubscribe(() => {
+    active = false;
+    unsubscribe();
+  });
+  return () => errorReported;
+}
+
+async function mountAndLoadControllerAdapter(
+  input: LoadVibePlayerControllerSourceInput,
+  adapter: VibePlayerAdapter,
+  hasReportedError: () => boolean
+): Promise<void> {
+  let phase: VibePlayerError["phase"] = "mount";
+  try {
+    if (input.target) {
+      await adapter.mount(input.target);
+    }
+    if (!input.isCurrentOperation(input.operationGeneration)) {
+      return;
+    }
+    phase = "load";
+    await adapter.load(input.source);
+  } catch (cause) {
+    if (!hasReportedError()) {
+      reportControllerLoadError(input, adapter, cause, phase);
+    }
+    throw cause;
+  }
+}
+
+async function restoreControllerResumePosition(
+  input: LoadVibePlayerControllerSourceInput,
+  adapter: VibePlayerAdapter
+): Promise<void> {
+  try {
+    await restoreVibePlayerResumePosition({
+      adapter,
+      isCurrentOperation: input.isCurrentOperation,
+      operationGeneration: input.operationGeneration,
+      resumeStore: input.resumeStore,
+      source: input.source,
+      syncFromAdapter: input.syncFromAdapter,
+    });
+  } catch (cause) {
+    reportControllerLoadError(input, adapter, cause, "load");
+    throw cause;
+  }
+}
+
+function reportControllerLoadError(
+  input: LoadVibePlayerControllerSourceInput,
+  adapter: VibePlayerAdapter | null,
+  cause: unknown,
+  phase: VibePlayerError["phase"]
+): void {
+  if (input.isCurrentOperation(input.operationGeneration)) {
+    handleVibePlayerLoadError({
+      adapter,
+      cause,
+      emitAnalytics: input.emitAnalytics,
+      phase,
+      source: input.source,
+      updateState: input.updateState,
+    });
   }
 }

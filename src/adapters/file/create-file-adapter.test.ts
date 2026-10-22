@@ -1,0 +1,183 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { VibePlayerAdapterEvent } from "../../core/vibe-player-types";
+import {
+  createDeferredPlayback,
+  defineNativeVideoBooleanProperty,
+  defineNativeVideoNumberProperty,
+} from "../native/native-video-test-helpers";
+import { createFileAdapter } from "./create-file-adapter";
+import {
+  createLoadedFileAdapter,
+  createSingleFileSource,
+  emptyFileSource,
+  fileSource,
+  hlsSource,
+} from "./file-adapter-test-helpers";
+
+describe("createFileAdapter", () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+    vi.restoreAllMocks();
+  });
+
+  it("mounts a native video element with sources, poster, and captions", async () => {
+    const { adapter, video } = await createLoadedFileAdapter();
+    const sources = Array.from(video.querySelectorAll("source"));
+    const tracks = Array.from(video.querySelectorAll("track"));
+    expect(video.poster).toBe(fileSource.posterUrl);
+    expect(video.preload).toBe("metadata");
+    expect(video.crossOrigin).toBeNull();
+    expect(video.playsInline).toBe(true);
+    expect(sources.map((source) => source.type)).toEqual([
+      "video/mp4",
+      "video/webm",
+    ]);
+    expect(sources.map((source) => source.src)).toEqual([
+      "https://example.com/video.mp4",
+      "https://example.com/video.webm",
+    ]);
+    expect(tracks.map((track) => track.kind)).toEqual(["captions"]);
+    expect(tracks.map((track) => track.srclang)).toEqual(["en"]);
+    expect(tracks.map((track) => track.default)).toEqual([false]);
+    expect(adapter.capabilities.canShowCaptions).toBe(true);
+    expect(adapter.capabilities.supportsPoster).toBe(true);
+  });
+
+  it("uses the native video src for a single file source", async () => {
+    const { video } = await createLoadedFileAdapter(createSingleFileSource());
+    expect(video.autoplay).toBe(true);
+    expect(video.src).toBe("https://example.com/video.mp4");
+    expect(video.querySelector("source")).toBeNull();
+  });
+
+  it("keeps cross-origin configurable for file sources", async () => {
+    const { video } = await createLoadedFileAdapter({
+      ...fileSource,
+      crossOrigin: "anonymous",
+    });
+    expect(video.crossOrigin).toBe("anonymous");
+  });
+
+  it("normalizes native media events into adapter events", async () => {
+    const { adapter, video } = await createLoadedFileAdapter();
+    const events: VibePlayerAdapterEvent[] = [];
+    adapter.subscribe((event) => {
+      events.push(event);
+    });
+
+    defineNativeVideoNumberProperty(video, "duration", 120);
+    video.currentTime = 30;
+    video.dispatchEvent(new Event("timeupdate"));
+
+    const lastEvent = events.at(-1);
+    expect(lastEvent?.type).toBe("timeupdate");
+    expect(lastEvent?.snapshot.currentTime).toBe(30);
+    expect(lastEvent?.snapshot.duration).toBe(120);
+  });
+
+  it("does not show buffering chrome for ordinary seek starts", async () => {
+    const { adapter, video } = await createLoadedFileAdapter();
+    const events: VibePlayerAdapterEvent[] = [];
+    adapter.subscribe((event) => {
+      events.push(event);
+    });
+
+    video.dispatchEvent(new Event("seeking"));
+    expect(events.map((event) => event.type)).not.toContain("buffering");
+
+    defineNativeVideoBooleanProperty(video, "paused", true);
+    video.dispatchEvent(new Event("waiting"));
+    expect(events.map((event) => event.type)).not.toContain("buffering");
+
+    defineNativeVideoBooleanProperty(video, "paused", false);
+    video.dispatchEvent(new Event("waiting"));
+    expect(events.at(-1)?.type).toBe("buffering");
+  });
+
+  it("forwards playback commands and clamps seek and volume values", async () => {
+    const { adapter, target, video } = await createLoadedFileAdapter();
+    document.body.append(target);
+    defineNativeVideoNumberProperty(video, "duration", 100);
+    const play = vi.fn(() => Promise.resolve());
+    const pause = vi.fn(() => undefined);
+    video.play = play;
+    video.pause = pause;
+
+    await adapter.play();
+    await adapter.pause();
+    await adapter.seekTo(120);
+    await adapter.setMuted(true);
+    await adapter.setPlaybackRate(1.25);
+    await adapter.setVolume(2);
+
+    expect(play).toHaveBeenCalledOnce();
+    expect(pause).toHaveBeenCalledOnce();
+    expect(video.currentTime).toBe(100);
+    expect(video.muted).toBe(true);
+    expect(video.playbackRate).toBe(1.25);
+    expect(video.volume).toBe(1);
+  });
+
+  it("stops a pending playback request after unmount", async () => {
+    const { adapter, target, video } = await createLoadedFileAdapter();
+    document.body.append(target);
+    const playback = createDeferredPlayback();
+    video.play = () =>
+      playback.promise.then(() => {
+        defineNativeVideoBooleanProperty(video, "paused", false);
+      });
+    video.pause = () => defineNativeVideoBooleanProperty(video, "paused", true);
+
+    const playPromise = adapter.play();
+    await adapter.unmount();
+    playback.resolve();
+    await playPromise;
+
+    expect(video.paused).toBe(true);
+    expect(video.isConnected).toBe(false);
+    expect(video.getAttribute("src")).toBeNull();
+    expect(adapter.getSnapshot().readyState).toBe("idle");
+    expect(adapter.capabilities.canSeek).toBe(false);
+    expect(adapter.capabilities.supportsVolumeControl).toBe(false);
+  });
+
+  it("stops a pending playback request after pause", async () => {
+    const { adapter, target, video } = await createLoadedFileAdapter();
+    document.body.append(target);
+    const playback = createDeferredPlayback();
+    video.play = () =>
+      playback.promise.then(() => {
+        defineNativeVideoBooleanProperty(video, "paused", false);
+      });
+    video.pause = () => defineNativeVideoBooleanProperty(video, "paused", true);
+
+    const playPromise = adapter.play();
+    await adapter.pause();
+    playback.resolve();
+    await playPromise;
+
+    expect(video.paused).toBe(true);
+  });
+
+  it("uses fullscreen only when the mounted video supports it", async () => {
+    const { adapter, video } = await createLoadedFileAdapter();
+    const requestFullscreen = vi.fn(() => Promise.resolve());
+    video.requestFullscreen = requestFullscreen;
+    expect(adapter.capabilities.canFullscreen).toBe(true);
+    await adapter.enterFullscreen?.();
+    expect(requestFullscreen).toHaveBeenCalledOnce();
+    await adapter.unmount();
+    expect(adapter.capabilities.canFullscreen).toBe(false);
+  });
+
+  it("rejects unsupported and empty file sources", async () => {
+    const adapter = createFileAdapter();
+
+    await expect(adapter.load(hlsSource)).rejects.toThrow(
+      "File adapter cannot load hls sources."
+    );
+    await expect(adapter.load(emptyFileSource)).rejects.toThrow(
+      "File source must include at least one media source."
+    );
+  });
+});

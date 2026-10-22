@@ -1,5 +1,6 @@
 import type {
   VibePlayerAdapter,
+  VibePlayerAdapterEvent,
   VibePlayerCapabilities,
   VibePlayerEventName,
   VibePlayerSnapshot,
@@ -34,10 +35,21 @@ export interface VibePlayerAnalyticsEvent {
   type: VibePlayerAnalyticsEventName;
 }
 
+/** Normalized failure with its original cause or provider diagnostics intact. */
+export interface VibePlayerError {
+  cause?: unknown;
+  details?: Readonly<VibePlayerAdapterEvent["payload"]>;
+  message: string;
+  phase: "create" | "mount" | "load" | "playback";
+  provider: VibePlayerSource["type"];
+  sourceId: string;
+}
+
 /** Observable controller state consumed by React bindings and UI. */
 export interface VibePlayerControllerState {
   capabilities: VibePlayerCapabilities | null;
   currentSource: VibePlayerSource | null;
+  error: VibePlayerError | null;
   isMounted: boolean;
   lastEvent: VibePlayerEventName | null;
   playbackBlocked: boolean;
@@ -48,5 +60,6 @@ export interface VibePlayerControllerState {
 export interface VibePlayerControllerOptions {
   adapterFactory: (source: VibePlayerSource) => VibePlayerAdapter;
   onAnalyticsEvent?: (event: VibePlayerAnalyticsEvent) => void;
+  onError?: (error: VibePlayerError) => void;
   resumeStore?: VibePlayerResumeStore;
 }

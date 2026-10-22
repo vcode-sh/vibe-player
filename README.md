@@ -51,7 +51,8 @@ export function Film() {
 - compliant YouTube external handoff when iframe chrome is the wrong answer
 - package-owned controls, timeline, captions, volume, quality, PiP, fullscreen
 - keyboard shortcuts and real tooltips instead of browser-default mystery meat
-- exported controller, volume, and quality helpers for custom/headless UI
+- package-owned headless lifecycle, controller, volume, and quality helpers
+- state observers and source-aware errors for host integrations
 - ambient preview primitives and a neutral cinematic skin
 - media delivery audit CLI for catching bad MP4/CDN/CORS decisions early
 

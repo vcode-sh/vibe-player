@@ -5,6 +5,7 @@ export function createInitialControllerState(): VibePlayerControllerState {
   return {
     capabilities: null,
     currentSource: null,
+    error: null,
     isMounted: false,
     lastEvent: null,
     playbackBlocked: false,

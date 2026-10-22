@@ -1,6 +1,24 @@
-export * from "./adapter-types";
-export * from "./create-file-adapter";
-export * from "./create-hls-adapter";
-export * from "./create-vibe-player-adapter";
-export * from "./create-youtube-adapter";
-export * from "./create-youtube-external-adapter";
+export type {
+  VibePlayerAdapter,
+  VibePlayerAdapterEvent,
+  VibePlayerCapabilities,
+  VibePlayerSnapshot,
+} from "../core/vibe-player-types";
+export { createVibePlayerAdapter } from "./create-vibe-player-adapter";
+export { createFileAdapter } from "./file";
+export type {
+  HlsAdapterErrorPayload,
+  HlsAdapterRuntime,
+  ManagedHlsController,
+  ManagedHlsLevel,
+  ManagedHlsSession,
+} from "./hls";
+export { createHlsAdapter } from "./hls";
+export type {
+  YouTubeAdapterErrorPayload,
+  YouTubeAdapterRuntime,
+  YouTubePlayerHandle,
+  YouTubePlayerSession,
+  YouTubePlayerState,
+} from "./youtube";
+export { createYouTubeAdapter, createYouTubeExternalAdapter } from "./youtube";

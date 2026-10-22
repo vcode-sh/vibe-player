@@ -1,4 +1,5 @@
 import type { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
+import { createVibePlayerError } from "./vibe-player-errors";
 import { createIdleCapabilities } from "./vibe-player-time";
 import type {
   VibePlayerAdapter,
@@ -43,6 +44,15 @@ export function handleVibePlayerAdapterEvent({
   });
   updateState({
     capabilities: adapter?.capabilities ?? createIdleCapabilities(),
+    ...(stateEvent.type === "error" && currentSource
+      ? {
+          error: createVibePlayerError({
+            details: event.payload,
+            phase: "playback",
+            source: currentSource,
+          }),
+        }
+      : {}),
     lastEvent: stateEvent.type,
     playbackBlocked: getNextPlaybackBlocked(stateEvent, playbackBlocked),
     snapshot: stateEvent.snapshot,

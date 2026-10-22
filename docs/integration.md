@@ -47,9 +47,17 @@ serving a stale dependency or transform cache.
 Use the exported skin preset when the host wants a scoped wrapper:
 
 ```tsx
-import { cinematicDefaultSkin, VibePlayerStage } from "vibe-player";
+import {
+  cinematicDefaultSkin,
+  VibePlayerStage,
+  type VibePlayerSource,
+} from "vibe-player";
 
-export function PlayerSurface() {
+interface PlayerSurfaceProps {
+  source: VibePlayerSource;
+}
+
+export function PlayerSurface({ source }: PlayerSurfaceProps) {
   return (
     <section className={cinematicDefaultSkin.classNames.root}>
       <VibePlayerStage source={source} />
@@ -57,6 +65,23 @@ export function PlayerSurface() {
   );
 }
 ```
+
+## Skin Metadata And CSS
+
+`cinematicDefaultSkin` contains preset metadata, stable class names, and reference
+design values. Its `tokens` object is descriptive: mutating it does not update
+rendered players, CSS, or hook timing. Import the stylesheet to apply the bundled
+visuals. Use CSS custom properties for scoped visual overrides, for example:
+
+```css
+.product-player {
+  --vibe-player-border: rgba(80, 170, 220, 0.45);
+  --vibe-player-surface: rgba(8, 18, 28, 0.92);
+}
+```
+
+The scope can wrap a player stage or assembly. Existing hook options control
+behavior such as idle timing; CSS variables control the styles that use them.
 
 ## Media Source Rules
 
@@ -166,10 +191,69 @@ Top-level product actions, such as "Watch on YouTube", should be passed as
 host-owned UI through player composition props rather than hardcoded in the
 package.
 
-For custom/headless surfaces, use `useVibePlayerController` together with the
-exported volume and quality helpers. Base UI is a good optional host-layer fit
-for custom sliders and menus, but the default package entrypoint does not make
-`@base-ui/react` a mandatory runtime dependency.
+`onStateChange` observes the current normalized state. `onError` receives the
+source ID, provider, phase (`create`, `mount`, `load`, or `playback`), message, and
+available cause or provider details. The same current error is available as
+`state.error`; starting a new source clears the previous source's error. Hosts
+choose where to log or report it.
+
+Rejected control commands include their name in `details.command`. Failures in
+auxiliary actions such as fullscreen or PiP preserve ongoing playback. Browser
+policy blocking `play()` uses the `playbackBlocked` notice instead of `onError`.
+Resume storage and position-restore failures report during the `load` phase.
+
+For custom/headless surfaces, use `useVibePlayer`. It owns mounting, source
+loading, autoplay, closing, and cleanup. See the complete example in
+[usage.md](./usage.md#custom-and-headless-ui). Use the lower-level
+`useVibePlayerController` when your integration intentionally owns that sequence.
+Both bindings use the default provider factory unless an override is supplied.
+Base UI is an optional host-layer fit for custom sliders and menus, not a runtime
+dependency of the package.
+
+An equivalent source object on a later render keeps the active source. Changing
+source contents, including a media URL with the same source ID, loads the changed
+source. Inline callback updates do not recreate the controller. Changing the
+adapter factory or resume store establishes a new controller boundary.
+
+`VibePlayerInline` and `VibePlayerModal` forward playback options, state/error
+observers, and `topActions` to the package stage. Set `autoHideControls={false}`
+for a persistent control surface; the default follows normalized capabilities.
+
+## Advanced Adapter Integration
+
+The root API exports the built-in factories and named HLS and YouTube runtime
+contracts. Override one provider while retaining package defaults for the rest:
+
+```ts
+import {
+  createHlsAdapter,
+  createVibePlayerAdapter,
+  type HlsAdapterRuntime,
+  type VibePlayerSource,
+} from "vibe-player";
+
+export function createPlayerAdapterFactory(runtime: HlsAdapterRuntime) {
+  return (source: VibePlayerSource) =>
+    source.type === "hls"
+      ? createHlsAdapter(runtime)
+      : createVibePlayerAdapter(source);
+}
+```
+
+Pass the resulting stable function as `adapterFactory`. Managed HLS stays the
+default when supported, with native fallback after managed attachment failure.
+YouTube runtime injection uses `YouTubeAdapterRuntime`; provider SDK objects
+remain behind that bridge. A custom runtime must return a usable player handle,
+or resolve only after its player is ready. Honor `session.signal` to release
+pending creation when a source is replaced, unmounted, or times out. The default
+runtime waits for the official `onReady` event.
+
+For direct adapter use, subscribe, mount the target, then load the source and
+await commands. Unsubscribe and unmount when the owner disposes the adapter.
+Unmount releases media; subscriptions survive until their returned unsubscribe
+function is called. The controller owns this sequence for ordinary package use
+and creates a fresh adapter per source load. Built-in HLS and YouTube adapters
+discard or clean up superseded asynchronous load completions.
 
 ## Verification Checklist
 

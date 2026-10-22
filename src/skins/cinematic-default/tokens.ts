@@ -69,6 +69,7 @@ export interface CinematicDefaultSkinTokens {
   timeline: CinematicDefaultTimelineTokens;
 }
 
+/** Reference design values; CSS and hook options control rendered players. */
 export const cinematicDefaultSkinTokens: CinematicDefaultSkinTokens = {
   caption: {
     bottomMobileRem: 5.75,

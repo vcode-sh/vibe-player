@@ -1,39 +1,27 @@
 import type { ReactNode } from "react";
+import type { VibePlayerControllerState, VibePlayerSource } from "../core";
 import type {
-  VibePlayerAdapter,
-  VibePlayerAnalyticsEvent,
-  VibePlayerResumeStore,
-  VibePlayerSource,
-} from "../core";
-import type { VibePlayerCaptionTextLoader } from "../react";
+  UseVibePlayerOptions,
+  VibePlayerCaptionTextLoader,
+} from "../react";
 
-/** Props for the full package-owned player stage. */
-export interface VibePlayerStageProps {
-  /** Optional adapter factory for tests or host-provided provider overrides. */
-  adapterFactory?:
-    | ((source: VibePlayerSource) => VibePlayerAdapter)
-    | undefined;
-  /** Requests package playback after the selected source loads. */
-  autoPlay?: boolean;
-  /**
-   * Temporarily mutes the package autoplay command to satisfy browser policy.
-   * Disable only for player opens that are directly tied to a user gesture.
-   */
-  autoPlayMutedBootstrap?: boolean;
-  /** Host-provided caption text loader; defaults to `fetch`. */
+/** Playback options shared by full-stage, inline and modal assemblies. */
+export interface VibePlayerPlaybackOptions
+  extends Omit<UseVibePlayerOptions, "source" | "open"> {
+  /** Keep controls visible when false; provider visibility requirements still apply. */
+  autoHideControls?: boolean | undefined;
+  /** Host caption loader; defaults to a cancellable fetch. */
   loadCaptionText?: VibePlayerCaptionTextLoader | undefined;
-  /** Normalized package analytics sink owned by the consuming app. */
-  onAnalyticsEvent?: ((event: VibePlayerAnalyticsEvent) => void) | undefined;
-  /** Optional close action rendered by the package controls. */
-  onClose?: (() => void) | undefined;
-  /** Controls whether the active media source should stay mounted. */
-  open?: boolean;
-  /** Optional host persistence adapter for resume playback. */
-  resumeStore?: VibePlayerResumeStore | undefined;
-  /** Provider-agnostic source loaded by the package stage. */
-  source: VibePlayerSource;
-  /** Display title override; falls back to `source.title`. */
-  title?: string | undefined;
-  /** Host-owned actions rendered in the top control chrome. */
+  /** Observe normalized playback state without assembling a custom player. */
+  onStateChange?: ((state: VibePlayerControllerState) => void) | undefined;
+  /** Host actions rendered in the top control chrome. */
   topActions?: ReactNode;
+}
+
+/** Full package-owned player with optional host integrations. */
+export interface VibePlayerStageProps extends VibePlayerPlaybackOptions {
+  onClose?: (() => void) | undefined;
+  open?: boolean | undefined;
+  source: VibePlayerSource;
+  title?: string | undefined;
 }

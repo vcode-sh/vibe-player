@@ -1,43 +1,30 @@
 import type { PropsWithChildren, ReactNode } from "react";
-import { createVibePlayerAdapter } from "../adapters";
-import type {
-  VibePlayerAdapter,
-  VibePlayerAnalyticsEvent,
-  VibePlayerResumeStore,
-  VibePlayerSource,
-} from "../core";
-import {
-  useVibePlayerOverlayPresence,
-  type VibePlayerCaptionTextLoader,
-} from "../react";
+import type { VibePlayerSource } from "../core";
+import { useVibePlayerOverlayPresence } from "../react";
 import { VibePlayerShell } from "./vibe-player-shell";
 import { VibePlayerStage } from "./vibe-player-stage";
+import type { VibePlayerPlaybackOptions } from "./vibe-player-stage-types";
 
-export interface VibePlayerModalProps extends PropsWithChildren {
-  adapterFactory?: (source: VibePlayerSource) => VibePlayerAdapter;
+export interface VibePlayerModalProps
+  extends PropsWithChildren,
+    VibePlayerPlaybackOptions {
   footer?: ReactNode;
   header?: ReactNode;
-  loadCaptionText?: VibePlayerCaptionTextLoader;
-  onAnalyticsEvent?: (event: VibePlayerAnalyticsEvent) => void;
   onClose?: () => void;
   open: boolean;
-  resumeStore?: VibePlayerResumeStore;
   source?: VibePlayerSource | null;
   title?: string;
 }
 
 export function VibePlayerModal({
-  adapterFactory = createVibePlayerAdapter,
   children,
   footer,
   header,
-  loadCaptionText,
-  onAnalyticsEvent,
   onClose,
   open,
-  resumeStore,
   source = null,
   title,
+  ...playback
 }: VibePlayerModalProps) {
   const { rendered, state } = useVibePlayerOverlayPresence(open);
   if (!rendered) {
@@ -50,14 +37,11 @@ export function VibePlayerModal({
     : undefined;
   const body = source ? (
     <VibePlayerStage
-      adapterFactory={adapterFactory}
+      {...playback}
       onClose={onClose}
       open={state === "open"}
       source={source}
       title={playerTitle}
-      {...(loadCaptionText ? { loadCaptionText } : {})}
-      {...(onAnalyticsEvent ? { onAnalyticsEvent } : {})}
-      {...(resumeStore ? { resumeStore } : {})}
     />
   ) : (
     children

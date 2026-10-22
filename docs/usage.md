@@ -19,9 +19,13 @@ import "vibe-player/styles.css";
 ## Render A Player
 
 ```tsx
-import { VibePlayerStage } from "vibe-player";
+import { VibePlayerStage, type VibePlayerSource } from "vibe-player";
 
-export function ProductVideo() {
+interface ProductVideoProps {
+  source: VibePlayerSource;
+}
+
+export function ProductVideo({ source }: ProductVideoProps) {
   return <VibePlayerStage source={source} />;
 }
 ```
@@ -31,41 +35,49 @@ export function ProductVideo() {
 Direct file:
 
 ```ts
+import type { VibePlayerSource } from "vibe-player";
+
 const source = {
   id: "file-demo",
   posterUrl: "/video/poster.jpg",
   sources: [{ mimeType: "video/mp4", url: "/video/file.mp4" }],
   title: "Direct file",
   type: "file",
-} as const;
+} satisfies VibePlayerSource;
 ```
 
 HLS:
 
 ```ts
+import type { VibePlayerSource } from "vibe-player";
+
 const source = {
   id: "hls-demo",
   manifestUrl: "https://cdn.example.com/video/master.m3u8",
   posterUrl: "https://cdn.example.com/video/poster.jpg",
   title: "Adaptive stream",
   type: "hls",
-} as const;
+} satisfies VibePlayerSource;
 ```
 
 YouTube iframe:
 
 ```ts
+import type { VibePlayerSource } from "vibe-player";
+
 const source = {
   id: "youtube-demo",
   title: "Official iframe playback",
   type: "youtube",
   youtubeVideoId: "M7lc1UVf-VE",
-} as const;
+} satisfies VibePlayerSource;
 ```
 
 YouTube external handoff:
 
 ```ts
+import type { VibePlayerSource } from "vibe-player";
+
 const source = {
   externalActionLabel: "Watch on YouTube",
   id: "youtube-external-demo",
@@ -75,14 +87,21 @@ const source = {
   title: "Compliant handoff",
   type: "youtube",
   youtubeVideoId: "M7lc1UVf-VE",
-} as const;
+} satisfies VibePlayerSource;
 ```
+
+Source collections accept both ordinary arrays and readonly arrays, including
+values declared with `as const`. The package reads source and caption collections
+without mutating them. Replace the source value when media changes instead of
+mutating an already supplied source in place.
 
 ## Captions
 
 File and HLS sources accept WebVTT caption tracks:
 
 ```ts
+import type { VibePlayerSource } from "vibe-player";
+
 const source = {
   captions: [
     {
@@ -97,7 +116,7 @@ const source = {
   id: "captioned-file",
   sources: [{ mimeType: "video/mp4", url: "/video/file.mp4" }],
   type: "file",
-} as const;
+} satisfies VibePlayerSource;
 ```
 
 Pass `loadCaptionText` to `VibePlayerStage` when captions should load through a
@@ -120,7 +139,9 @@ gesture and audible playback is intended:
 
 Use `onAnalyticsEvent` to map normalized package events into your telemetry.
 Use `resumeStore` when your app wants resume persistence. The package does not
-write localStorage by default.
+write localStorage by default. `onStateChange` observes normalized player state;
+`onError` receives a source-aware error with its lifecycle phase and available
+provider details. Updating these callbacks does not restart the player.
 
 ```tsx
 <VibePlayerStage
@@ -130,11 +151,60 @@ write localStorage by default.
 />;
 ```
 
+`VibePlayerInline` and `VibePlayerModal` accept the same playback options,
+including autoplay, callbacks, and `topActions`. Use `autoHideControls={false}`
+when controls should remain visible. The default follows the adapter's normalized
+chrome capability.
+
 ## Custom And Headless UI
 
-Use `useVibePlayerController` for custom surfaces. The package also exports
-volume and quality helpers so host controls can stay aligned with adapter
-capabilities without copying internal UI code.
+Use `useVibePlayer` when building your own controls. It owns media mounting,
+source loading, autoplay, closing, and cleanup, so a custom surface does not need
+to copy the package stage's effects:
+
+```tsx
+import { useVibePlayer, type VibePlayerSource } from "vibe-player";
+
+const source = {
+  id: "custom-file",
+  sources: [{ mimeType: "video/mp4", url: "/video/file.mp4" }],
+  type: "file",
+} satisfies VibePlayerSource;
+
+export function CustomPlayer() {
+  const { controller, setTarget, state } = useVibePlayer({ source });
+
+  return (
+    <section aria-label="Custom video player">
+      <div ref={setTarget} />
+      <button
+        disabled={!state.capabilities?.supportsPlayback}
+        onClick={() => controller.play().catch(() => undefined)}
+        type="button"
+      >
+        Play
+      </button>
+      <button
+        disabled={!state.capabilities?.supportsPlayback}
+        onClick={() => controller.pause().catch(() => undefined)}
+        type="button"
+      >
+        Pause
+      </button>
+      {state.error ? <p role="status">{state.error.message}</p> : null}
+    </section>
+  );
+}
+```
+
+Give the media mount a size in your own layout. Add `autoPlay`, `open`,
+`onAnalyticsEvent`, `onError`, or `resumeStore` when needed. Volume and quality
+helpers remain available for controls that follow normalized capabilities.
+
+`useVibePlayerController` is the lower-level binding for integrations that own
+mounting and source loading themselves. Its default adapter factory is optional;
+a custom factory or resume store defines a new controller, while callback
+updates do not restart playback.
 
 The default UI intentionally stays dependency-light. Base UI is a good host
 layer for custom sliders, menus, and popovers, but it is not a required runtime

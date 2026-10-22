@@ -1,36 +1,39 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { collectPublicSurfaceIssues } from "./public-surface-rules.mjs";
+import { pathToFileURL } from "node:url";
+import { publicRuntimeExports } from "./public-api-exports.mjs";
+import {
+  collectExportNameIssues,
+  collectPublicSurfaceIssues,
+} from "./public-surface-rules.mjs";
 
-const declarationPath = resolve(import.meta.dirname, "../dist/index.d.ts");
+const distPath = resolve(import.meta.dirname, "../dist");
+const declaration = await readFile(resolve(distPath, "index.d.ts"), "utf8");
+const runtime = await import(pathToFileURL(resolve(distPath, "index.js")).href);
+const surfaces = [
+  {
+    issues: await collectPublicSurfaceIssues(declaration),
+    label: "declaration",
+  },
+  {
+    issues: collectExportNameIssues(Object.keys(runtime), publicRuntimeExports),
+    label: "runtime",
+  },
+];
 
-function reportFailure(title, symbols) {
-  console.error(title);
-  for (const symbol of symbols) {
-    console.error(`- ${symbol}`);
+for (const { label, issues } of surfaces) {
+  for (const name of issues.missingSymbols) {
+    console.error(`Missing ${label} export: ${name}`);
+    process.exitCode = 1;
+  }
+  for (const name of issues.leakedSymbols) {
+    console.error(`Unreviewed ${label} export: ${name}`);
+    process.exitCode = 1;
   }
 }
 
-const declaration = await readFile(declarationPath, "utf8");
-const { leakedSymbols, missingSymbols } =
-  collectPublicSurfaceIssues(declaration);
-
-if (missingSymbols.length > 0) {
-  reportFailure(
-    "Missing expected public symbols in dist/index.d.ts:",
-    missingSymbols
+if (!process.exitCode) {
+  console.log(
+    "Public declaration and runtime surfaces match the reviewed API."
   );
-}
-
-if (leakedSymbols.length > 0) {
-  reportFailure(
-    "Unexpected internal symbols leaked into dist/index.d.ts:",
-    leakedSymbols
-  );
-}
-
-if (missingSymbols.length > 0 || leakedSymbols.length > 0) {
-  process.exitCode = 1;
-} else {
-  console.log("Public declaration surface is clean.");
 }

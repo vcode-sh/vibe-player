@@ -1,10 +1,10 @@
 import type { VibePlayerAdapter, VibePlayerSource } from "../core";
 import { getVibePlayerYouTubePresentation } from "../core";
-import { createFileAdapter } from "./create-file-adapter";
-import { createHlsAdapter } from "./create-hls-adapter";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
-import { createYouTubeExternalAdapter } from "./create-youtube-external-adapter";
+import { createFileAdapter } from "./file";
+import { createHlsAdapter } from "./hls";
+import { createYouTubeAdapter, createYouTubeExternalAdapter } from "./youtube";
 
+/** Selects a built-in adapter without requiring provider setup in the host. */
 export function createVibePlayerAdapter(
   source: VibePlayerSource
 ): VibePlayerAdapter {

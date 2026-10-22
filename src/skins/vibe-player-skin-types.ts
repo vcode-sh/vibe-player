@@ -26,7 +26,11 @@ export interface VibePlayerSkinClassNames {
   stage: string;
 }
 
-/** Typed skin preset that keeps metadata, classes, and tokens together. */
+/**
+ * Reference metadata, CSS hooks, and design values for a package skin.
+ * Tokens describe the preset; mutating them does not configure rendered players.
+ * Apply visual overrides through the package stylesheet's CSS custom properties.
+ */
 export interface VibePlayerSkinPreset<TTokens> {
   classNames: VibePlayerSkinClassNames;
   metadata: VibePlayerSkinMetadata;

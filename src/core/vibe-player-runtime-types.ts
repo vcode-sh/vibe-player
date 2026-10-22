@@ -19,6 +19,8 @@ export interface VibePlayerCapabilities {
   canShowCaptions: boolean;
   hasNativeCaptionsMenu: boolean;
   isLive: boolean;
+  /** Keep host controls visible when the provider owns interactive media UI. */
+  keepsControlsVisible?: boolean;
   supportsDuration: boolean;
   supportsMute: boolean;
   supportsPlayback: boolean;

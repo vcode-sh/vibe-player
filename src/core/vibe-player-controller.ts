@@ -1,4 +1,5 @@
 import { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
+import { runVibePlayerControllerCommand } from "./vibe-player-controller-command-error";
 import {
   handleVibePlayerControllerPause,
   handleVibePlayerControllerPlay,
@@ -6,6 +7,7 @@ import {
 } from "./vibe-player-controller-commands";
 import { handleVibePlayerAdapterEvent } from "./vibe-player-controller-events";
 import { loadVibePlayerControllerSource } from "./vibe-player-controller-load";
+import { mountVibePlayerControllerAdapter } from "./vibe-player-controller-mount";
 import { createInitialControllerState } from "./vibe-player-controller-state";
 import { createIdleSnapshot } from "./vibe-player-time";
 import type {
@@ -24,6 +26,7 @@ export class VibePlayerController {
   private readonly analyticsSession: VibePlayerAnalyticsSession;
   private readonly listeners = new Set<VibePlayerStateListener>();
   private readonly onAnalyticsEvent: VibePlayerControllerOptions["onAnalyticsEvent"];
+  private readonly onError: VibePlayerControllerOptions["onError"];
   private readonly resumeStore: VibePlayerControllerOptions["resumeStore"];
   private operationGeneration = 0;
   private playbackCommandGeneration = 0;
@@ -32,6 +35,7 @@ export class VibePlayerController {
   constructor(options: VibePlayerControllerOptions) {
     this.adapterFactory = options.adapterFactory;
     this.onAnalyticsEvent = options.onAnalyticsEvent;
+    this.onError = options.onError;
     this.resumeStore = options.resumeStore;
     this.analyticsSession = new VibePlayerAnalyticsSession((event) =>
       this.onAnalyticsEvent?.(event)
@@ -50,13 +54,21 @@ export class VibePlayerController {
     if (targetChanged) {
       this.updateState({ isMounted: true });
     }
-    if (this.adapter) {
-      await this.adapter.mount(target);
-      if (targetChanged) {
-        this.syncFromAdapter();
-      }
-    }
+    const { adapter, operationGeneration } = this;
+    await mountVibePlayerControllerAdapter({
+      adapter,
+      emitAnalytics: (event) => this.onAnalyticsEvent?.(event),
+      isCurrent: () =>
+        this.isCurrentOperation(operationGeneration) &&
+        this.adapter === adapter &&
+        this.target === target,
+      source: this.state.currentSource,
+      target,
+      targetChanged,
+      updateState: (next) => this.updateState(next),
+    });
   }
+
   async unmount(): Promise<void> {
     this.operationGeneration += 1;
     const { operationGeneration } = this;
@@ -102,71 +114,60 @@ export class VibePlayerController {
     this.updateState({
       capabilities: null,
       currentSource: null,
+      error: null,
       lastEvent: null,
       playbackBlocked: false,
       snapshot: createIdleSnapshot(),
     });
   }
-  async play(): Promise<void> {
-    this.playbackCommandGeneration += 1;
-    const { operationGeneration, playbackCommandGeneration } = this;
-    await handleVibePlayerControllerPlay({
-      adapter: this.adapter,
-      updateState: (next) => {
-        if (
-          this.isCurrentOperation(operationGeneration) &&
-          this.playbackCommandGeneration === playbackCommandGeneration
-        ) {
-          this.updateState(next);
-        }
-      },
-    });
+  play(): Promise<void> {
+    return this.runPlaybackCommand("play");
   }
-  async pause(): Promise<void> {
-    this.playbackCommandGeneration += 1;
-    const { operationGeneration, playbackCommandGeneration } = this;
-    await handleVibePlayerControllerPause({
-      adapter: this.adapter,
-      updateState: (next) => {
-        if (
-          this.isCurrentOperation(operationGeneration) &&
-          this.playbackCommandGeneration === playbackCommandGeneration
-        ) {
-          this.updateState(next);
-        }
-      },
-    });
+  pause(): Promise<void> {
+    return this.runPlaybackCommand("pause");
   }
-  async seekTo(seconds: number): Promise<void> {
-    await handleVibePlayerControllerSeek({
-      adapter: this.adapter,
-      currentSource: this.state.currentSource,
-      duration: this.state.snapshot.duration,
-      emitAnalytics: (event) => this.onAnalyticsEvent?.(event),
-      resumeStore: this.resumeStore,
-      seconds,
-    });
+  seekTo(seconds: number): Promise<void> {
+    return this.runCommand("seekTo", () =>
+      handleVibePlayerControllerSeek({
+        adapter: this.adapter,
+        currentSource: this.state.currentSource,
+        duration: this.state.snapshot.duration,
+        emitAnalytics: (event) => this.onAnalyticsEvent?.(event),
+        resumeStore: this.resumeStore,
+        seconds,
+      })
+    );
   }
-  async setMuted(value: boolean): Promise<void> {
-    await this.adapter?.setMuted(value);
+  setMuted(value: boolean): Promise<void> {
+    return this.runCommand("setMuted", () => this.adapter?.setMuted(value));
   }
-  async setPlaybackRate(value: number): Promise<void> {
-    await this.adapter?.setPlaybackRate(value);
+  setPlaybackRate(value: number): Promise<void> {
+    return this.runCommand("setPlaybackRate", () =>
+      this.adapter?.setPlaybackRate(value)
+    );
   }
-  async setQuality(qualityId: string): Promise<void> {
-    await this.adapter?.setQuality?.(qualityId);
+  setQuality(qualityId: string): Promise<void> {
+    return this.runCommand("setQuality", () =>
+      this.adapter?.setQuality?.(qualityId)
+    );
   }
-  async setVolume(value: number): Promise<void> {
-    await this.adapter?.setVolume(value);
+  setVolume(value: number): Promise<void> {
+    return this.runCommand("setVolume", () => this.adapter?.setVolume(value));
   }
-  async enterFullscreen(): Promise<void> {
-    await this.adapter?.enterFullscreen?.();
+  enterFullscreen(): Promise<void> {
+    return this.runCommand("enterFullscreen", () =>
+      this.adapter?.enterFullscreen?.()
+    );
   }
-  async exitFullscreen(): Promise<void> {
-    await this.adapter?.exitFullscreen?.();
+  exitFullscreen(): Promise<void> {
+    return this.runCommand("exitFullscreen", () =>
+      this.adapter?.exitFullscreen?.()
+    );
   }
-  async enterPictureInPicture(): Promise<void> {
-    await this.adapter?.enterPictureInPicture?.();
+  enterPictureInPicture(): Promise<void> {
+    return this.runCommand("enterPictureInPicture", () =>
+      this.adapter?.enterPictureInPicture?.()
+    );
   }
   async teardown(): Promise<void> {
     this.operationGeneration += 1;
@@ -180,6 +181,45 @@ export class VibePlayerController {
     this.target = null;
     this.state = createInitialControllerState();
     this.notify();
+  }
+  private runPlaybackCommand(command: "play" | "pause"): Promise<void> {
+    this.playbackCommandGeneration += 1;
+    const execute =
+      command === "play"
+        ? handleVibePlayerControllerPlay
+        : handleVibePlayerControllerPause;
+    return this.runCommand(
+      command,
+      (updateState) => execute({ adapter: this.adapter, updateState }),
+      this.playbackCommandGeneration
+    );
+  }
+  private runCommand(
+    command: string,
+    execute: (
+      updateState: (next: Partial<VibePlayerControllerState>) => void
+    ) => Promise<void> | undefined,
+    playbackGeneration?: number
+  ): Promise<void> {
+    const { operationGeneration } = this;
+    const isCurrent = () =>
+      this.isCurrentOperation(operationGeneration) &&
+      (playbackGeneration === undefined ||
+        playbackGeneration === this.playbackCommandGeneration);
+    const updateIfCurrent = (next: Partial<VibePlayerControllerState>) => {
+      if (isCurrent()) {
+        this.updateState(next);
+      }
+    };
+    return runVibePlayerControllerCommand({
+      adapter: this.adapter,
+      command,
+      emitAnalytics: (event) => this.onAnalyticsEvent?.(event),
+      execute: () => execute(updateIfCurrent),
+      getState: () => this.state,
+      isCurrent,
+      updateState: updateIfCurrent,
+    });
   }
   private handleAdapterEvent(event: VibePlayerAdapterEvent): void {
     handleVibePlayerAdapterEvent({
@@ -220,8 +260,16 @@ export class VibePlayerController {
   private updateState(
     next: Partial<VibePlayerControllerState>
   ): VibePlayerControllerState {
+    const previousError = this.state.error;
     this.state = { ...this.state, ...next };
     this.notify();
+    if (next.error && next.error !== previousError) {
+      try {
+        this.onError?.(next.error);
+      } catch {
+        // Diagnostic observers must not replace the original playback failure.
+      }
+    }
     return this.state;
   }
   private isCurrentOperation(operationGeneration: number): boolean {

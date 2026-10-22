@@ -3,6 +3,7 @@
 ## Current state
 
 - Package: `vibe-player`
+- Development version: `0.2.0`, unreleased
 - License: `Apache-2.0`
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
 - Output: ESM-only, built into `dist`

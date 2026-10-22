@@ -1,7 +1,16 @@
 import type { VibePlayerSkinPreset } from "../vibe-player-skin-types";
 import { cinematicDefaultSkinTokens } from "./tokens";
 
-export * from "./tokens";
+export {
+  type CinematicDefaultCaptionTokens,
+  type CinematicDefaultChromeTokens,
+  type CinematicDefaultModalTokens,
+  type CinematicDefaultMotionTokens,
+  type CinematicDefaultShellTokens,
+  type CinematicDefaultSkinTokens,
+  type CinematicDefaultTimelineTokens,
+  cinematicDefaultSkinTokens,
+} from "./tokens";
 
 /** Legacy compact motion export kept for early consumers. */
 export const cinematicDefaultMotion = {
@@ -24,7 +33,7 @@ export const cinematicDefaultSkinClassNames = {
   shell: "vibe-player-shell",
 } as const;
 
-/** First exported skin preset: neutral package chrome with product-grade motion. */
+/** Reference metadata and CSS hooks for the bundled cinematic default skin. */
 export const cinematicDefaultSkin: VibePlayerSkinPreset<
   typeof cinematicDefaultSkinTokens
 > = {

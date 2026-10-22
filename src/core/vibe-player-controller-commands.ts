@@ -26,6 +26,7 @@ export async function handleVibePlayerControllerPlay({
     return;
   }
   updateState({
+    error: null,
     lastEvent: "play",
     playbackBlocked: false,
     snapshot: createPlayIntentSnapshot(adapter.getSnapshot()),

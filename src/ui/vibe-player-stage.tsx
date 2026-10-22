@@ -1,34 +1,31 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { createIdleCapabilities } from "../core";
 import {
+  useVibePlayer,
   useVibePlayerCaptions,
   useVibePlayerChrome,
-  useVibePlayerController,
   useVibePlayerShortcuts,
 } from "../react";
-import { useVibePlayerMediaTarget } from "./use-vibe-player-media-target";
 import { useVibePlayerStageActions } from "./use-vibe-player-stage-actions";
 import { useVibePlayerStageRootEvents } from "./use-vibe-player-stage-root-events";
 import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
 import { VibePlayerControls } from "./vibe-player-controls";
 import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
-import { startVibePlayerAutoplay } from "./vibe-player-stage-autoplay";
-import { createVibePlayerStageControllerOptions } from "./vibe-player-stage-options";
 import { VibePlayerStageStatus } from "./vibe-player-stage-status";
 import type { VibePlayerStageProps } from "./vibe-player-stage-types";
 
 export type { VibePlayerStageProps } from "./vibe-player-stage-types";
 
-const useVibePlayerStageEffect =
-  typeof window === "undefined" ? useEffect : useLayoutEffect;
-
 export function VibePlayerStage({
   adapterFactory,
+  autoHideControls,
   autoPlay = false,
   autoPlayMutedBootstrap = true,
   loadCaptionText,
   onAnalyticsEvent,
   onClose,
+  onError,
+  onStateChange,
   open = true,
   resumeStore,
   source,
@@ -37,27 +34,25 @@ export function VibePlayerStage({
 }: VibePlayerStageProps) {
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [rootElement, setRootElement] = useState<HTMLDivElement | null>(null);
-  const controllerOptions = useMemo(
-    () =>
-      createVibePlayerStageControllerOptions({
-        adapterFactory,
-        onAnalyticsEvent,
-        resumeStore,
-      }),
-    [adapterFactory, onAnalyticsEvent, resumeStore]
-  );
-  const { controller, state } = useVibePlayerController(controllerOptions);
-  const { hasMediaTarget, setMediaElement } =
-    useVibePlayerMediaTarget(controller);
-  const chrome = useVibePlayerChrome({
-    autoHide: source.type !== "youtube",
+  const { controller, setTarget, state } = useVibePlayer({
+    adapterFactory,
+    autoPlay,
+    autoPlayMutedBootstrap,
+    onAnalyticsEvent,
+    onError,
     open,
+    resumeStore,
+    source,
   });
   const capabilities = state.capabilities ?? createIdleCapabilities();
+  const chrome = useVibePlayerChrome({
+    autoHide: !capabilities.keepsControlsVisible && (autoHideControls ?? true),
+    open,
+  });
   const captions = useVibePlayerCaptions({
     currentTime: state.snapshot.currentTime,
     enabled: captionsEnabled,
-    source,
+    source: state.currentSource,
     ...(loadCaptionText ? { loadCaptionText } : {}),
   });
   const playerTitle = title ?? source.title;
@@ -67,42 +62,10 @@ export function VibePlayerStage({
     snapshot: state.snapshot,
   });
 
-  useVibePlayerStageEffect(() => {
-    let cancelled = false;
-
-    if (!open) {
-      controller.closeSource().catch(() => undefined);
-      return;
-    }
-    if (!hasMediaTarget) {
-      return;
-    }
-
-    controller
-      .load(source)
-      .then(() => {
-        if (!(autoPlay && !cancelled)) {
-          return;
-        }
-        return startVibePlayerAutoplay({
-          controller,
-          isCancelled: () => cancelled,
-          mutedBootstrap: autoPlayMutedBootstrap,
-        });
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    autoPlay,
-    autoPlayMutedBootstrap,
-    controller,
-    hasMediaTarget,
-    open,
-    source,
-  ]);
+  const notifyStateChange = useEffectEvent(onStateChange ?? (() => undefined));
+  useEffect(() => {
+    notifyStateChange(state);
+  }, [state]);
 
   useEffect(() => {
     if (!(open && rootElement)) {
@@ -135,7 +98,7 @@ export function VibePlayerStage({
       ref={setRootElement}
       tabIndex={-1}
     >
-      <VibePlayerMediaSlot onTarget={setMediaElement} />
+      <VibePlayerMediaSlot onTarget={setTarget} />
       <VibePlayerStageStatus
         playbackBlocked={state.playbackBlocked}
         snapshot={state.snapshot}

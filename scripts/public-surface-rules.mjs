@@ -1,123 +1,32 @@
-export const requiredPublicSymbols = [
-  "VibePlayerStage",
-  "VibePlayerStageProps",
-  "VibePlayerSource",
-  "VibePlayerAnalyticsEvent",
-  "VibePlayerResumeStore",
-  "createFileAdapter",
-  "createHlsAdapter",
-  "createYouTubeExternalAdapter",
-  "createYouTubeAdapter",
-  "createVibePlayerYouTubeWatchUrl",
-  "VibePlayerBackgroundPreview",
-  "VibePlayerAmbientPreview",
-  "cinematicDefaultSkin",
-  "VibePlayerSkinPreset",
-  "VibePlayerStageStatus",
-  "VibePlayerStageStatusProps",
-  "VibePlayerVolumeControl",
-  "VibePlayerVolumeState",
-  "VibePlayerVolumeStateInput",
-  "VibePlayerQualityOption",
-  "createVibePlayerVolumeState",
-  "clampVibePlayerVolume",
-  "getVibePlayerVolumePercent",
-  "getSelectedVibePlayerQualityOption",
-  "canRenderVibePlayerQualityOptions",
-];
+import { publicApiExports } from "./public-api-exports.mjs";
+import { inspectTypeScriptFiles } from "./typescript-inspection.mjs";
 
-export const forbiddenPublicSymbols = [
-  "playGuardedNativeVideo",
-  "PlayGuardedNativeVideoInput",
-  "VibePlayerAdapterListener",
-  "HlsAdapterQualityState",
-  "HlsAdapterLoadSession",
-  "createHlsAdapterQualityState",
-  "MutableHlsAdapterQualityState",
-  "LoadCurrentHlsAdapterSourceInput",
-  "loadCurrentHlsAdapterSource",
-  "TestStageAdapter",
-  "StageAdapterFactoryHarness",
-  "createStageAdapterFactory",
-  "stageFileSource",
-  "getStageMediaElement",
-  "previewSource",
-  "installPreviewBrowserMocks",
-  "restorePreviewBrowserMocks",
-  "pauseMock",
-  "playMock",
-  "DeferredPlayback",
-  "createDeferredPlayback",
-  "createDeferredManagedHlsController",
-  "createDeferredManagedHlsFailure",
-  "defineNativeVideoNumberProperty",
-  "DeferredManagedHlsFailure",
-  "DeferredManagedHlsController",
-  "getMountedNativeVideo",
-  "TestAdapter",
-  "ControllerHarness",
-  "createControllerHarness",
-  "createControllerWithAdapter",
-  "createHlsRuntime",
-  "createLoadedFileAdapter",
-  "createSingleFileSource",
-  "emptyFileSource",
-  "fileSource",
-  "getManagedSession",
-  "hlsSource",
-  "handleVibePlayerControllerPlay",
-  "HandleVibePlayerControllerPlayInput",
-  "handleVibePlayerControllerSeek",
-  "HandleVibePlayerControllerSeekInput",
-  "loadVibePlayerControllerSource",
-  "LoadVibePlayerControllerSourceInput",
-  "YouTubeAdapterCommandInput",
-  "pauseYouTubeVideo",
-  "playYouTubeVideo",
-  "seekYouTubeVideo",
-  "setYouTubeMuted",
-  "setYouTubePlaybackRate",
-  "setYouTubeVolume",
-  "enterYouTubeFullscreen",
-  "exitYouTubeFullscreen",
-  "VibePlayerBackgroundLayer",
-  "VibePlayerToggleButton",
-];
-
-function escapeRegExp(source) {
-  return source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function hasDeclarationSymbol(declaration, symbol) {
-  const pattern = new RegExp(
-    `(^|[^A-Za-z0-9_$])${escapeRegExp(symbol)}([^A-Za-z0-9_$]|$)`
+export async function collectPublicSurfaceIssues(
+  declaration,
+  expectedExports = publicApiExports
+) {
+  const exportedNames = await inspectTypeScriptFiles(
+    [{ path: "index.d.ts", source: declaration }],
+    async (project, root) => {
+      const sourceFile = await project.program.getSourceFile(
+        `${root}/index.d.ts`
+      );
+      const symbol = await project.checker.getSymbolAtLocation(sourceFile);
+      if (!symbol) {
+        return [];
+      }
+      const exports = await project.checker.getExportsOfModule(symbol);
+      return exports.map((entry) => entry.name).sort();
+    }
   );
-  return pattern.test(declaration);
+  return collectExportNameIssues(exportedNames, expectedExports);
 }
 
-function collectMissingSymbols(declaration, symbols) {
-  const missingSymbols = [];
-  for (const symbol of symbols) {
-    if (!hasDeclarationSymbol(declaration, symbol)) {
-      missingSymbols.push(symbol);
-    }
-  }
-  return missingSymbols;
-}
-
-function collectLeakedSymbols(declaration, symbols) {
-  const leakedSymbols = [];
-  for (const symbol of symbols) {
-    if (hasDeclarationSymbol(declaration, symbol)) {
-      leakedSymbols.push(symbol);
-    }
-  }
-  return leakedSymbols;
-}
-
-export function collectPublicSurfaceIssues(declaration) {
+export function collectExportNameIssues(exportedNames, expectedExports) {
+  const actual = new Set(exportedNames);
+  const expected = new Set(expectedExports);
   return {
-    leakedSymbols: collectLeakedSymbols(declaration, forbiddenPublicSymbols),
-    missingSymbols: collectMissingSymbols(declaration, requiredPublicSymbols),
+    leakedSymbols: exportedNames.filter((name) => !expected.has(name)),
+    missingSymbols: [...expected].filter((name) => !actual.has(name)).sort(),
   };
 }

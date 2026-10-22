@@ -22,18 +22,18 @@ export interface VibePlayerFileSource {
    * for native-video parity when a user gesture opens the player surface.
    */
   autoPlay?: boolean;
-  captions?: VibePlayerCaptionTrack[];
+  captions?: readonly VibePlayerCaptionTrack[];
   crossOrigin?: "anonymous" | "use-credentials" | null;
   id: string;
   posterUrl?: string | null;
-  sources: VibePlayerMediaSource[];
+  sources: readonly VibePlayerMediaSource[];
   title?: string;
   type: "file";
 }
 
 /** HLS manifest source rendered through managed hls.js or native HLS. */
 export interface VibePlayerHlsSource {
-  captions?: VibePlayerCaptionTrack[];
+  captions?: readonly VibePlayerCaptionTrack[];
   crossOrigin?: "anonymous" | "use-credentials" | null;
   id: string;
   live?: boolean;
