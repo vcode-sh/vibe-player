@@ -19,7 +19,8 @@ export async function createPackedConsumer(root, reactVersion) {
       ["pack", "--ignore-scripts", "--json", "--pack-destination", directory],
       root
     );
-    const [archive] = JSON.parse(packOutput);
+    const packed = JSON.parse(packOutput);
+    const [archive] = Array.isArray(packed) ? packed : Object.values(packed);
     if (!archive?.filename) {
       throw new Error("npm pack did not return an archive filename.");
     }

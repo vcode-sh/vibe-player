@@ -24,19 +24,22 @@ should use the npm package or a real workspace boundary.
 
 ## GitHub workflows
 
+Both workflows use Ubuntu 26.04. Build and publish steps use Node 26; the
+minimum-runtime check deliberately uses the package's supported Node 22.0.0.
+
 Pull requests run one lightweight CI job: formatting/lint, TypeScript, unit
 tests and build. New PR updates cancel superseded runs. Pushes to `main` do not
 start CI or publish packages.
 
 Release runs only through `workflow_dispatch` on `main`. It runs `bun run ci`
-once on Node 24, including package rules, boundaries, dependency guard,
+once on Node 26, including package rules, boundaries, dependency guard,
 release-state guard, TypeScript, tests, build, styles, size, public surface,
 tarball, publint, ATTW, the packaged consumer, and deterministic Chromium/WebKit
 acceptance. The same job then checks the built package on exact Node 22.0.0 /
-React 19.2.7, restores Node 24, and runs
+React 19.2.7, restores Node 26, and runs
 `bun run release:publish --no-git-tag` to publish the committed version.
 The minimum-runtime check skips the Vite consumer build,
-whose toolchain requires a newer Node than package runtime. Node 24 consumer
+whose toolchain requires a newer Node than package runtime. Node 26 consumer
 coverage already belongs to `bun run ci`.
 
 Changesets prepares versions and changelogs locally. There is no automatic
