@@ -1,5 +1,6 @@
 import type { Level } from "hls.js";
 import type { ManagedHlsLevel } from "./hls-quality";
+import { createHlsRequestConfig } from "./hls-request-config";
 import type { HlsAdapterRuntime } from "./hls-runtime-types";
 
 export const defaultHlsAdapterRuntime: HlsAdapterRuntime = {
@@ -8,7 +9,7 @@ export const defaultHlsAdapterRuntime: HlsAdapterRuntime = {
     if (!Hls.isSupported()) {
       throw new Error("hls.js is not supported in this environment.");
     }
-    const hls = new Hls();
+    const hls = new Hls(createHlsRequestConfig(session.video));
     const syncLevels = (selectedLevelIndex: number) => {
       session.onLevelsChanged(
         hls.levels.map((level) => toManagedLevel(level)),

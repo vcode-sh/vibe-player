@@ -7,11 +7,13 @@ import type {
   VibePlayerSource,
   VibePlayerYouTubeSource,
 } from "../../core/vibe-player-types";
+import { createAdapterFullscreen } from "../shared/adapter-fullscreen";
 import type { VibePlayerAdapterListener } from "../shared/adapter-listener";
 import { clearElement } from "../shared/clear-element";
 import { YouTubeAdapterCommandDelegate } from "./youtube-adapter-command-delegate";
 import type { YouTubeAdapterCommandInput } from "./youtube-adapter-commands";
 import { loadYouTubePlayer } from "./youtube-adapter-load";
+import { mountYouTubeElement } from "./youtube-adapter-mount";
 import {
   getYouTubeCapabilities,
   getYouTubeSnapshot,
@@ -24,7 +26,7 @@ import {
   type YouTubePlayerState,
   youtubePlayerStates,
 } from "./youtube-iframe-types";
-import { YouTubePlaybackWatchdog } from "./youtube-playback-watchdog";
+import { YouTubePlaybackIntent } from "./youtube-playback-intent";
 import { YouTubeTimeUpdates } from "./youtube-time-updates";
 
 /** Creates iframe playback. Unmount discards pending players, not subscriptions. */
@@ -40,14 +42,20 @@ class YouTubeVibePlayerAdapter
 {
   readonly kind = "youtube";
   protected readonly commandInput: YouTubeAdapterCommandInput;
+  private readonly fullscreen = createAdapterFullscreen((type) =>
+    this.emit(type)
+  );
   private readonly listeners = new Set<VibePlayerAdapterListener>();
-  private readonly playbackWatchdog = new YouTubePlaybackWatchdog({
+  private readonly playbackIntent = new YouTubePlaybackIntent({
     emitPlayBlocked: () => this.emit("playblocked"),
     hasPlayer: () => Boolean(this.player),
   });
   private readonly runtime: YouTubeAdapterRuntime;
   private readonly timeUpdates = new YouTubeTimeUpdates({
-    onTimeUpdate: () => this.emitTimeUpdate(),
+    onTimeUpdate: () => {
+      this.playbackIntent.completeIfAdvanced(this.getSnapshot().currentTime);
+      this.emit("timeupdate");
+    },
   });
   private loadAbortController: AbortController | null = null;
   private mountElement: HTMLElement | null = null;
@@ -61,18 +69,26 @@ class YouTubeVibePlayerAdapter
     this.runtime = runtime;
     this.commandInput = {
       emit: (type) => this.emit(type),
+      fullscreen: this.fullscreen,
       getPlayer: () => this.player,
       getSnapshot: () => this.getSnapshot(),
-      watchdog: this.playbackWatchdog,
+      playbackIntent: this.playbackIntent,
     };
   }
 
   get capabilities(): VibePlayerCapabilities {
-    return getYouTubeCapabilities(this.player, this.source);
+    return getYouTubeCapabilities(
+      this.player,
+      this.source,
+      this.fullscreen.canFullscreen
+    );
   }
 
   getSnapshot(): VibePlayerSnapshot {
-    return getYouTubeSnapshot(this.player, this.playerState);
+    return {
+      ...getYouTubeSnapshot(this.player, this.playerState),
+      isFullscreen: this.fullscreen.isFullscreen,
+    };
   }
 
   async load(source: VibePlayerSource): Promise<void> {
@@ -94,6 +110,11 @@ class YouTubeVibePlayerAdapter
         emit: (type, payload) => {
           if (isCurrent()) {
             this.emit(type, payload);
+          }
+        },
+        handleAutoplayBlocked: () => {
+          if (isCurrent()) {
+            this.playbackIntent.reportBlocked();
           }
         },
         handleStateChange: (state) => {
@@ -118,12 +139,15 @@ class YouTubeVibePlayerAdapter
     }
   }
 
-  mount(target: HTMLElement): Promise<void> {
+  mount(target: HTMLElement, presentationTarget?: HTMLElement): Promise<void> {
+    mountYouTubeElement({
+      mountElement: this.mountElement,
+      player: this.player,
+      previousTarget: this.target,
+      target,
+    });
     this.target = target;
-    clearElement(target);
-    if (this.mountElement) {
-      target.append(this.mountElement);
-    }
+    this.fullscreen.mount(presentationTarget ?? target);
     this.emit("ready");
     return Promise.resolve();
   }
@@ -138,7 +162,7 @@ class YouTubeVibePlayerAdapter
   unmount(): Promise<void> {
     this.destroyPlayer();
     this.target = null;
-    return Promise.resolve();
+    return this.fullscreen.unmount();
   }
 
   private createMountElement(): HTMLElement {
@@ -154,7 +178,7 @@ class YouTubeVibePlayerAdapter
   private destroyPlayer(): void {
     this.loadAbortController?.abort();
     this.loadAbortController = null;
-    this.playbackWatchdog.cancelIntent();
+    this.playbackIntent.cancel();
     this.timeUpdates.stop();
     this.player?.destroy();
     this.player = null;
@@ -182,18 +206,13 @@ class YouTubeVibePlayerAdapter
     handleYouTubeAdapterStateChange({
       emit: (type) => this.emit(type),
       getCurrentTime: () => this.getSnapshot().currentTime,
+      playbackIntent: this.playbackIntent,
       playerState: state,
       setPlayerState: (nextState) => {
         this.playerState = nextState;
       },
       startTimeUpdates: () => this.timeUpdates.start(),
       stopTimeUpdates: () => this.timeUpdates.stop(),
-      watchdog: this.playbackWatchdog,
     });
-  }
-
-  private emitTimeUpdate(): void {
-    this.playbackWatchdog.completeIfAdvanced(this.getSnapshot().currentTime);
-    this.emit("timeupdate");
   }
 }

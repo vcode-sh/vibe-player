@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createIdleCapabilities } from "../core";
 import {
   useVibePlayer,
@@ -7,8 +7,10 @@ import {
   useVibePlayerShortcuts,
 } from "../react";
 import { useVibePlayerStageActions } from "./use-vibe-player-stage-actions";
+import { useVibePlayerStageObservers } from "./use-vibe-player-stage-observers";
 import { useVibePlayerStageRootEvents } from "./use-vibe-player-stage-root-events";
 import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
+import { VibePlayerCaptionStatusNotice } from "./vibe-player-caption-status";
 import { VibePlayerControls } from "./vibe-player-controls";
 import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
 import { VibePlayerStageStatus } from "./vibe-player-stage-status";
@@ -23,6 +25,7 @@ export function VibePlayerStage({
   autoPlayMutedBootstrap = true,
   loadCaptionText,
   onAnalyticsEvent,
+  onCaptionStatusChange,
   onClose,
   onError,
   onStateChange,
@@ -41,6 +44,7 @@ export function VibePlayerStage({
     onAnalyticsEvent,
     onError,
     open,
+    presentationTarget: rootElement,
     resumeStore,
     source,
   });
@@ -55,17 +59,29 @@ export function VibePlayerStage({
     source: state.currentSource,
     ...(loadCaptionText ? { loadCaptionText } : {}),
   });
+  const captionStatus = useMemo(
+    () => ({
+      error: captions.error,
+      loading: captions.loading,
+      track: captions.track,
+    }),
+    [captions.error, captions.loading, captions.track]
+  );
+  useVibePlayerStageObservers({
+    captionStatus,
+    controller,
+    onCaptionStatusChange,
+    onError,
+    onStateChange,
+    source,
+    state,
+  });
   const playerTitle = title ?? source.title;
   const actions = useVibePlayerStageActions({
     controller,
     setCaptionsEnabled,
     snapshot: state.snapshot,
   });
-
-  const notifyStateChange = useEffectEvent(onStateChange ?? (() => undefined));
-  useEffect(() => {
-    notifyStateChange(state);
-  }, [state]);
 
   useEffect(() => {
     if (!(open && rootElement)) {
@@ -104,6 +120,10 @@ export function VibePlayerStage({
         snapshot={state.snapshot}
       />
       <VibePlayerCaptionOverlay lines={captions.activeLines} />
+      <VibePlayerCaptionStatusNotice
+        error={captions.error}
+        onRetry={captions.retry}
+      />
       <VibePlayerControls
         capabilities={capabilities}
         captionsEnabled={captionsEnabled}

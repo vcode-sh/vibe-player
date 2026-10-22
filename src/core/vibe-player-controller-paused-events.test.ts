@@ -35,4 +35,39 @@ describe("VibePlayerController paused event handling", () => {
       readyState: "playing",
     });
   });
+  it("accepts provider playback after the provider acknowledges a pause", async () => {
+    const { adapters, controller, resumeCalls } = createControllerHarness();
+    await controller.load(fileSource);
+    const adapter = getAdapter(adapters, 0);
+    adapter.emit("play", { paused: false, readyState: "playing" });
+    await controller.pause();
+    adapter.emit("pause", { paused: true, readyState: "ready" });
+
+    adapter.emit("play", { paused: false, readyState: "playing" });
+    adapter.emit("timeupdate", {
+      currentTime: 37,
+      paused: false,
+      readyState: "playing",
+    });
+
+    expect(controller.getState().snapshot).toMatchObject({
+      currentTime: 37,
+      paused: false,
+      readyState: "playing",
+    });
+    expect(resumeCalls).toContain("set:video-1:37");
+    await controller.teardown();
+  });
+
+  it("does not require another pause acknowledgment for an already paused source", async () => {
+    const { adapters, controller } = createControllerHarness();
+    await controller.load(fileSource);
+    const adapter = getAdapter(adapters, 0);
+    await controller.pause();
+
+    adapter.emit("play", { paused: false, readyState: "playing" });
+
+    expect(controller.getState().snapshot.paused).toBe(false);
+    await controller.teardown();
+  });
 });

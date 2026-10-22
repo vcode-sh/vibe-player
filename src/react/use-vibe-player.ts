@@ -12,6 +12,8 @@ export interface UseVibePlayerOptions extends UseVibePlayerControllerOptions {
   autoPlay?: boolean | undefined;
   autoPlayMutedBootstrap?: boolean | undefined;
   open?: boolean | undefined;
+  /** Fullscreen container; defaults to the bound media target. */
+  presentationTarget?: HTMLElement | null | undefined;
   source: VibePlayerSource | null;
 }
 
@@ -37,6 +39,7 @@ export function useVibePlayer({
   autoPlay = false,
   autoPlayMutedBootstrap = true,
   open = true,
+  presentationTarget,
   source: nextSource,
   ...options
 }: UseVibePlayerOptions) {
@@ -51,11 +54,18 @@ export function useVibePlayer({
     if (!target) {
       return;
     }
-    controller.mount(target).catch(() => undefined);
     return () => {
       controller.unmount().catch(() => undefined);
     };
   }, [controller, target]);
+
+  useMountEffect(() => {
+    if (target) {
+      controller
+        .mount(target, presentationTarget ?? target)
+        .catch(() => undefined);
+    }
+  }, [controller, presentationTarget, target]);
 
   useMountEffect(() => {
     loadGeneration.current += 1;

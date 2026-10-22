@@ -28,7 +28,10 @@ The release workflow is gated by `vars.ENABLE_NPM_PUBLISH`.
 Before `changesets/action` can create a version PR or publish, it runs
 `bun run ci`, including package rules, boundaries, dependency guard,
 release-state guard, TypeScript, tests, build, styles, size, public surface,
-tarball, publint, and ATTW.
+tarball, publint, ATTW, the packaged consumer, and deterministic Chromium
+acceptance. CI and release also call a consumer-compatibility workflow for exact
+Node 22.0.0 / React 19.2.7 and normal Node 24. Minimum-runtime checks skip the
+Vite consumer build, whose toolchain requires a newer Node than package runtime.
 
 The workflow uses npm Trusted Publishing through GitHub Actions OIDC. It does
 not require a long-lived `NPM_TOKEN`. Keep `id-token: write` in workflow
@@ -42,8 +45,8 @@ permissions and keep `publishConfig.provenance: true` for public releases.
 4. Add a changeset for the release.
 5. Run `bun run ci`.
 6. Run `npm publish --dry-run --tag alpha --json`.
-7. Install the generated tarball in a temporary consumer and verify import,
-   stylesheet resolution, and `vibe-player-media-audit --help`.
+7. Run `bun run package:consumer` to verify the installed archive, documented
+   recipes, strict types, SSR, CSS, CLI, and consumer build.
 8. Set `vars.ENABLE_NPM_PUBLISH=true` only when publish should run.
 
 ## Prereleases
@@ -60,6 +63,7 @@ dist tag.
 
 ## Manual checks
 
+Install Chromium once with `bunx playwright install --with-deps chromium`.
 Run these before any publish:
 
 ```bash
@@ -74,6 +78,9 @@ bun run package:surface
 bun run package:tarball
 bun run package:publint
 bun run package:attw
+bun run package:consumer
+bun run test:browser:check
+bun run test:browser
 ```
 
 ## Changelog rules

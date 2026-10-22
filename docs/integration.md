@@ -166,6 +166,10 @@ and `← / →` for timeline seek.
 
 ## CORS And Credentials
 
+For managed HLS, `crossOrigin: "use-credentials"` also configures `hls.js`
+XHR/Fetch requests for playlists, segments and keys. Anonymous/default requests
+retain their SDK credential policy. Browser cookie restrictions still apply.
+
 Leave `crossOrigin` unset unless the media host sends matching CORS headers for
 the exact consuming origin. A forced `crossOrigin="anonymous"` can block
 metadata and playback for otherwise valid same-path media URLs.
@@ -192,21 +196,50 @@ host-owned UI through player composition props rather than hardcoded in the
 package.
 
 `onStateChange` observes the current normalized state. `onError` receives the
-source ID, provider, phase (`create`, `mount`, `load`, or `playback`), message, and
-available cause or provider details. The same current error is available as
-`state.error`; starting a new source clears the previous source's error. Hosts
-choose where to log or report it.
+source ID, provider, phase (`create`, `mount`, `load`, `playback`, or
+`integration`), message, and available cause or provider details. Controller
+errors are also available as `state.error`; starting a new source clears the
+previous source's error. Failures of UI observers (`onStateChange` and
+`onCaptionStatusChange`) go directly to `onError` without mutating controller
+state, avoiding a reporting feedback loop. Hosts choose where to report errors.
 
 Rejected control commands include their name in `details.command`. Failures in
 auxiliary actions such as fullscreen or PiP preserve ongoing playback. Browser
 policy blocking `play()` uses the `playbackBlocked` notice instead of `onError`.
-Resume storage and position-restore failures report during the `load` phase.
+Resume-store, analytics and controller-subscriber failures report as nonfatal
+`integration` errors with `details.operation`; they cannot block media cleanup
+or remaining state listeners. Rejected asynchronous observer/write callbacks
+are contained too. Failure of `onError` itself is contained without recursively
+reporting another error. A failed resume read skips restoration; a provider's
+failed position-restore command still reports in the `load` phase. The current
+`state.error` may therefore describe an integration failure while playback
+remains healthy; use the phase and snapshot together.
+
+The package normalizes seek requests to the adapter's duration and `canSeek`
+capability before dispatch. Resume and seek analytics use that accepted target;
+provider getters can lag immediately after an asynchronous seek. Pending pause
+intent suppresses stale active events until a provider pause acknowledgment;
+a later provider-initiated play can then update normalized state.
 
 For custom/headless surfaces, use `useVibePlayer`. It owns mounting, source
 loading, autoplay, closing, and cleanup. See the complete example in
 [usage.md](./usage.md#custom-and-headless-ui). Use the lower-level
 `useVibePlayerController` when your integration intentionally owns that sequence.
 Both bindings use the default provider factory unless an override is supplied.
+`useVibePlayer` accepts an optional `presentationTarget` for a fullscreen
+container that includes host controls; changing it does not reload media.
+Direct controller/adapter users pass that container as the second argument to
+`mount`. Built-in assemblies supply their stage root. Optional snapshot
+`isFullscreen`/`isPictureInPicture` fields and matching enter/exit methods keep
+custom controls synchronized with browser exits. Unsupported APIs remain gated
+by adapter capabilities.
+
+Caption failures have a separate `onCaptionStatusChange` seam and do not fail
+video playback. Ready-made stages offer retry; `useVibePlayerCaptions` exposes
+`retry()` for custom surfaces. Captions select the default/first declared track;
+there is no multi-track menu yet. Changing `loadCaptionText` identity does not
+restart a pending request; explicit retry uses the latest loader.
+
 Base UI is an optional host-layer fit for custom sliders and menus, not a runtime
 dependency of the package.
 
@@ -250,8 +283,11 @@ runtime waits for the official `onReady` event.
 
 For direct adapter use, subscribe, mount the target, then load the source and
 await commands. Unsubscribe and unmount when the owner disposes the adapter.
-Unmount releases media; subscriptions survive until their returned unsubscribe
-function is called. The controller owns this sequence for ordinary package use
+Repeating a mount on the same target is idempotent. YouTube target relocation
+uses `Element.moveBefore` when available to retain the iframe browsing context;
+the legacy node-move fallback can reload embedded content. Unmount releases
+media and owned fullscreen/PiP; subscriptions survive until their returned
+unsubscribe function is called. The controller owns this sequence for ordinary package use
 and creates a fresh adapter per source load. Built-in HLS and YouTube adapters
 discard or clean up superseded asynchronous load completions.
 

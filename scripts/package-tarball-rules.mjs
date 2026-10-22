@@ -16,9 +16,11 @@ export const expectedPackageFiles = [
   "scripts/media-delivery-audit-args.mjs",
   "scripts/media-delivery-audit-cors.mjs",
   "scripts/media-delivery-audit-core.mjs",
+  "scripts/media-delivery-audit-deadline.mjs",
   "scripts/media-delivery-audit-fetch.mjs",
   "scripts/media-delivery-audit-findings.mjs",
   "scripts/media-delivery-audit-format.mjs",
+  "scripts/media-delivery-audit-mp4.mjs",
   "scripts/media-delivery-audit-rollout.mjs",
   "scripts/media-delivery-audit-runner.mjs",
 ];

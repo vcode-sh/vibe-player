@@ -81,6 +81,9 @@ export function createMediaDeliveryFindings({
     });
   }
   for (const result of corsResults) {
+    if (result.status < 200 || result.status >= 300) {
+      findings.push(createOriginHttpFinding(result));
+    }
     const failure = getMediaDeliveryCorsFailure(result);
     const recommendation = createMediaDeliveryCorsRecommendation(result);
     if (failure && recommendation) {
@@ -98,6 +101,25 @@ export function createMediaDeliveryFindings({
     }
   }
   return findings;
+}
+
+function createOriginHttpFinding(result) {
+  const failure = `HTTP ${result.status} for origin ${result.origin}`;
+  return {
+    code: "origin-http-error",
+    failure,
+    nextAction: {
+      code: "fix-origin-delivery",
+      detail: `Serve a successful 2xx response for media requests from ${result.origin}.`,
+      label: "Fix origin media delivery",
+      origin: result.origin,
+    },
+    origin: result.origin,
+    recommendation: `Ensure ${result.origin} can retrieve the media asset successfully before rollout.`,
+    severity: "error",
+    status: result.status,
+    summary: failure,
+  };
 }
 
 function createCorsNextAction(result) {

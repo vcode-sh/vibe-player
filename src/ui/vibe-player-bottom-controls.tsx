@@ -55,52 +55,60 @@ export function VibePlayerBottomControls({
       className={`vibe-player-controls__bottom ${getVibePlayerChromeClassName(chromeHidden, "bottom")}`}
       inert={chromeHidden ? true : undefined}
     >
-      <VibePlayerPlaybackControl
-        onTogglePlay={onTogglePlay}
-        snapshot={snapshot}
-      />
-      <VibePlayerVolumeControl
-        capabilities={capabilities}
-        onSetMuted={onSetMuted}
-        onSetVolume={onSetVolume}
-        onToggleMute={onToggleMute}
-        snapshot={snapshot}
-      />
-      <span className="vibe-player-controls__time">
-        {formatVibePlayerTime(snapshot.currentTime)}
-      </span>
-      <VibePlayerTimeline
-        currentTime={snapshot.currentTime}
-        disabled={!(capabilities.canSeek && capabilities.supportsDuration)}
-        duration={snapshot.duration}
-        onSeek={onSeek}
-      />
-      <span className="vibe-player-controls__time">
-        -{formatVibePlayerTime(remaining)}
-      </span>
-      <VibePlayerRateControl
-        capabilities={capabilities}
-        onSetPlaybackRate={onSetPlaybackRate}
-        snapshot={snapshot}
-      />
-      <VibePlayerQualityControl
-        capabilities={capabilities}
-        onSetQuality={onSetQuality}
-        qualityOptions={snapshot.qualityOptions}
-      />
-      <VibePlayerCaptionsControl
-        capabilities={capabilities}
-        captionsEnabled={captionsEnabled}
-        onToggleCaptions={onToggleCaptions}
-      />
-      <VibePlayerFullscreenControl
-        capabilities={capabilities}
-        onToggleFullscreen={onToggleFullscreen}
-      />
-      <VibePlayerPictureInPictureControl
-        capabilities={capabilities}
-        onTogglePictureInPicture={onTogglePictureInPicture}
-      />
+      <div className="vibe-player-controls__playback">
+        <VibePlayerPlaybackControl
+          onTogglePlay={onTogglePlay}
+          snapshot={snapshot}
+        />
+        <VibePlayerVolumeControl
+          capabilities={capabilities}
+          onSetMuted={onSetMuted}
+          onSetVolume={onSetVolume}
+          onToggleMute={onToggleMute}
+          snapshot={snapshot}
+        />
+      </div>
+      <div className="vibe-player-controls__progress">
+        <span className="vibe-player-controls__time">
+          {formatVibePlayerTime(snapshot.currentTime)}
+        </span>
+        <VibePlayerTimeline
+          currentTime={snapshot.currentTime}
+          disabled={!(capabilities.canSeek && capabilities.supportsDuration)}
+          duration={snapshot.duration}
+          onSeek={onSeek}
+        />
+        <span className="vibe-player-controls__time">
+          -{formatVibePlayerTime(remaining)}
+        </span>
+      </div>
+      <div className="vibe-player-controls__options">
+        <VibePlayerRateControl
+          capabilities={capabilities}
+          onSetPlaybackRate={onSetPlaybackRate}
+          snapshot={snapshot}
+        />
+        <VibePlayerQualityControl
+          capabilities={capabilities}
+          onSetQuality={onSetQuality}
+          qualityOptions={snapshot.qualityOptions}
+        />
+        <VibePlayerCaptionsControl
+          capabilities={capabilities}
+          captionsEnabled={captionsEnabled}
+          onToggleCaptions={onToggleCaptions}
+        />
+        <VibePlayerFullscreenControl
+          capabilities={capabilities}
+          isFullscreen={snapshot.isFullscreen}
+          onToggleFullscreen={onToggleFullscreen}
+        />
+        <VibePlayerPictureInPictureControl
+          capabilities={capabilities}
+          isPictureInPicture={snapshot.isPictureInPicture}
+          onTogglePictureInPicture={onTogglePictureInPicture}
+        />
+      </div>
     </div>
   );
 }

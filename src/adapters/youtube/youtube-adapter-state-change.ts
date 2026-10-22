@@ -4,21 +4,19 @@ import {
   youtubePlayerStates,
 } from "./youtube-iframe-types";
 
-interface YouTubeStateChangeWatchdog {
-  cancelIfIdle: () => void;
-  cancelIntent: () => void;
+interface YouTubeStateChangeIntent {
+  cancel: () => void;
   completeIfAdvanced: (currentTime: number) => void;
-  ensureScheduled: () => void;
 }
 
 export interface HandleYouTubeAdapterStateChangeInput {
   emit: (type: VibePlayerEventName) => void;
   getCurrentTime: () => number;
+  playbackIntent: YouTubeStateChangeIntent;
   playerState: YouTubePlayerState;
   setPlayerState: (state: YouTubePlayerState) => void;
   startTimeUpdates: () => void;
   stopTimeUpdates: () => void;
-  watchdog: YouTubeStateChangeWatchdog;
 }
 
 export function handleYouTubeAdapterStateChange({
@@ -28,30 +26,27 @@ export function handleYouTubeAdapterStateChange({
   setPlayerState,
   startTimeUpdates,
   stopTimeUpdates,
-  watchdog,
+  playbackIntent,
 }: HandleYouTubeAdapterStateChangeInput): void {
   setPlayerState(playerState);
-  watchdog.completeIfAdvanced(getCurrentTime());
+  playbackIntent.completeIfAdvanced(getCurrentTime());
   if (playerState === youtubePlayerStates.playing) {
+    playbackIntent.cancel();
     startTimeUpdates();
     emit("play");
     return;
   }
   stopTimeUpdates();
   if (playerState === youtubePlayerStates.buffering) {
-    watchdog.ensureScheduled();
     emit("buffering");
     return;
   }
   if (playerState === youtubePlayerStates.paused) {
-    watchdog.cancelIfIdle();
     emit("pause");
     return;
   }
   if (playerState === youtubePlayerStates.ended) {
-    watchdog.cancelIntent();
+    playbackIntent.cancel();
     emit("ended");
-    return;
   }
-  watchdog.cancelIfIdle();
 }

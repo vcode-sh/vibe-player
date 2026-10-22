@@ -18,6 +18,7 @@ export interface LoadYouTubePlayerInput {
     type: VibePlayerEventName,
     payload?: VibePlayerAdapterEvent["payload"]
   ) => void;
+  handleAutoplayBlocked: () => void;
   handleStateChange: (state: YouTubePlayerState) => void;
   runtime: YouTubeAdapterRuntime;
   source: VibePlayerYouTubeSource;
@@ -27,6 +28,7 @@ export async function loadYouTubePlayer({
   abortController,
   element,
   emit,
+  handleAutoplayBlocked,
   handleStateChange,
   runtime,
   source,
@@ -34,6 +36,7 @@ export async function loadYouTubePlayer({
   const playerPromise = Promise.resolve(
     runtime.createPlayer({
       element,
+      onAutoplayBlocked: handleAutoplayBlocked,
       onError: (payload) => emit("error", payload),
       onPlaybackRateChange: () => emit("ratechange"),
       onReady: () => emit("ready"),

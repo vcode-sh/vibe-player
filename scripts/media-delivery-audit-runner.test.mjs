@@ -80,6 +80,7 @@ describe("media delivery audit runner", () => {
       credentials: false,
       maxSizeBytes: 524_288_000,
       origins: ["https://app.example.com"],
+      timeoutMs: 30_000,
       url: "https://cdn.example.com/video.mp4",
     });
   });

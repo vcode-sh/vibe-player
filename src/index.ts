@@ -95,6 +95,7 @@ export {
   useVibePlayerShortcuts,
   VIBE_PLAYER_CHROME_IDLE_DELAY_MS,
   VIBE_PLAYER_OVERLAY_EXIT_MS,
+  type VibePlayerCaptionStatus,
   type VibePlayerCaptionsState,
   type VibePlayerCaptionTextLoader,
   type VibePlayerChromeState,

@@ -34,9 +34,13 @@ export interface VibePlayerSnapshot {
   bufferedPct?: number;
   currentTime: number;
   duration: number;
+  isFullscreen?: boolean;
+  isPictureInPicture?: boolean;
   muted: boolean;
   paused: boolean;
   playbackRate: number;
+  /** Provider-supported rate choices; omitted adapters use package defaults. */
+  playbackRates?: readonly number[];
   qualityOptions?: VibePlayerQualityOption[];
   readyState:
     | "buffering"
@@ -57,6 +61,7 @@ export type VibePlayerEventName =
   | "ended"
   | "error"
   | "fullscreenchange"
+  | "pictureinpicturechange"
   | "pause"
   | "play"
   | "playblocked"
@@ -79,12 +84,14 @@ export interface VibePlayerAdapter {
   enterFullscreen?(): Promise<void>;
   enterPictureInPicture?(): Promise<void>;
   exitFullscreen?(): Promise<void>;
+  exitPictureInPicture?(): Promise<void>;
   getSnapshot(): VibePlayerSnapshot;
   readonly kind: VibePlayerSource["type"];
   load(source: VibePlayerSource): Promise<void>;
-  mount(target: HTMLElement): Promise<void>;
+  mount(target: HTMLElement, presentationTarget?: HTMLElement): Promise<void>;
   pause(): Promise<void>;
   play(): Promise<void>;
+  /** Acknowledges the seek request; provider events/snapshots report subsequent playback position. */
   seekTo(seconds: number): Promise<void>;
   setMuted(value: boolean): Promise<void>;
   setPlaybackRate(value: number): Promise<void>;

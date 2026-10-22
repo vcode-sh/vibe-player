@@ -40,6 +40,8 @@ export class TestStageAdapter implements VibePlayerAdapter {
   readonly kind = "file";
   loadError: Error | null = null;
   playError: Error | null = null;
+  presentationTarget: HTMLElement | null = null;
+  private video: HTMLVideoElement | null = null;
   private listener: ((event: VibePlayerAdapterEvent) => void) | null = null;
   private snapshot: VibePlayerSnapshot = {
     ...createIdleSnapshot(),
@@ -49,11 +51,35 @@ export class TestStageAdapter implements VibePlayerAdapter {
 
   enterFullscreen(): Promise<void> {
     this.calls.push("fullscreen");
+    this.snapshot = { ...this.snapshot, isFullscreen: true };
+    this.listener?.({ snapshot: this.snapshot, type: "fullscreenchange" });
     return Promise.resolve();
   }
 
   enterPictureInPicture(): Promise<void> {
     this.calls.push("pip");
+    this.snapshot = { ...this.snapshot, isPictureInPicture: true };
+    this.listener?.({
+      snapshot: this.snapshot,
+      type: "pictureinpicturechange",
+    });
+    return Promise.resolve();
+  }
+
+  exitFullscreen(): Promise<void> {
+    this.calls.push("exit-fullscreen");
+    this.snapshot = { ...this.snapshot, isFullscreen: false };
+    this.listener?.({ snapshot: this.snapshot, type: "fullscreenchange" });
+    return Promise.resolve();
+  }
+
+  exitPictureInPicture(): Promise<void> {
+    this.calls.push("exit-pip");
+    this.snapshot = { ...this.snapshot, isPictureInPicture: false };
+    this.listener?.({
+      snapshot: this.snapshot,
+      type: "pictureinpicturechange",
+    });
     return Promise.resolve();
   }
 
@@ -73,9 +99,13 @@ export class TestStageAdapter implements VibePlayerAdapter {
     return Promise.resolve();
   }
 
-  mount(target: HTMLElement): Promise<void> {
+  mount(target: HTMLElement, presentationTarget = target): Promise<void> {
     this.calls.push("mount");
-    target.append(document.createElement("video"));
+    this.presentationTarget = presentationTarget;
+    this.video ??= document.createElement("video");
+    if (this.video.parentElement !== target) {
+      target.append(this.video);
+    }
     return Promise.resolve();
   }
 
@@ -127,6 +157,9 @@ export class TestStageAdapter implements VibePlayerAdapter {
 
   unmount(): Promise<void> {
     this.calls.push("unmount");
+    this.video?.remove();
+    this.video = null;
+    this.presentationTarget = null;
     return Promise.resolve();
   }
 }

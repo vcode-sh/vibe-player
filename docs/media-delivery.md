@@ -53,6 +53,35 @@ The JSON payload includes:
 contract for product automation: each finding includes a code, severity,
 summary, remediation text, origin context when relevant, and a `nextAction`.
 
+Range support requires the initial HTTP 206 response to start at the requested
+byte zero, as confirmed by `Content-Range`.
+
+## Deadline And Cancellation
+
+Each audit has a total **30,000 ms** network budget. Initial sampling, tail
+sampling, sequential origin probes, and response-body reads share that budget.
+A CDN that sends headers but stops sending body bytes cannot keep the audit
+running indefinitely.
+
+Override the budget with a whole number from 1 through 600,000:
+
+```bash
+vibe-player-media-audit https://cdn.example.com/video.mp4 --timeout-ms 60000 --json
+```
+
+Timeout aborts the active request, cancels its body reader, and prevents further
+probes. It always returns exit code 1, including without `--strict`, and writes
+`Media delivery audit timed out after <ms> ms.` to stderr. In `--json` mode,
+stdout remains empty on this operational failure, matching other network
+failures; a partial report is not a successful audit result.
+
+Programmatic `createMediaDeliveryAuditReport` callers can pass `timeoutMs` and
+an optional `signal`. Host cancellation aborts the same request/read pipeline
+and preserves the host's abort reason. Successful completion clears the timer
+and removes the host abort listener.
+Late response bodies are also cancelled when a custom Fetch implementation
+ignores the abort signal and resolves after the audit has already failed.
+
 ## Rollout Decisions
 
 Use `rollout.directFileReady` for the direct-MP4 decision. Direct file rollout
@@ -63,6 +92,7 @@ is ready only when it is `true`.
 - `hls-renditions`: publish adaptive HLS/renditions for oversized assets.
 - `faststart-remux-or-hls`: remux the MP4 or use HLS.
 - `fix-delivery-headers`: fix range or size headers.
+- `fix-origin-delivery`: fix unsuccessful HTTP responses for checked origins.
 - `fix-cors`: fix requested-origin CORS headers.
 
 Use `--require-direct-file-ready` when CI should fail on the rollout decision
@@ -72,6 +102,11 @@ instead of only printing the report.
 
 Leave source `crossOrigin` unset unless the media host sends matching CORS
 headers for every consuming origin.
+
+Each `corsResults` entry includes the origin probe's HTTP `status`. Its `allowed`
+field describes CORS header permission only. Non-2xx origin responses emit an
+`origin-http-error` finding with `origin` and `status`, and block direct-file
+readiness even when their CORS headers allow access.
 
 Add `--credentials` only for sources that will use
 `crossOrigin="use-credentials"`. Credentialed media requires:

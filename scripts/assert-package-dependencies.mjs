@@ -9,6 +9,7 @@ const expectedSections = {
     "@arethetypeswrong/cli",
     "@biomejs/biome",
     "@changesets/cli",
+    "@playwright/test",
     "@testing-library/jest-dom",
     "@testing-library/react",
     "@types/react",

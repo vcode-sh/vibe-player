@@ -9,9 +9,6 @@ import type {
 import { createNativeVideo } from "../native/native-video-dom";
 import {
   clearNativeVideoPlayback,
-  enterNativeVideoFullscreen,
-  enterNativeVideoPictureInPicture,
-  exitNativeVideoFullscreen,
   type NativeVideoCommandInput,
   pauseNativeVideo,
   playNativeVideo,
@@ -20,6 +17,7 @@ import {
   setNativeVideoPlaybackRate,
   setNativeVideoVolume,
 } from "../native/native-video-playback";
+import { NativeVideoPresentation } from "../native/native-video-presentation";
 import type { VibePlayerAdapterListener } from "../shared/adapter-listener";
 import { clearElement } from "../shared/clear-element";
 import {
@@ -48,6 +46,9 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   private readonly commandInput: NativeVideoCommandInput;
   private readonly session = createHlsAdapterSessionState();
   private readonly runtime: HlsAdapterRuntime;
+  private readonly presentation = new NativeVideoPresentation((type) =>
+    this.emit(type)
+  );
   private managedHlsController: ManagedHlsController | null = null;
   private readonly quality = createHlsAdapterQualityState();
   private video: HTMLVideoElement | null = null;
@@ -66,20 +67,30 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   get capabilities(): VibePlayerCapabilities {
-    return getHlsVideoCapabilities(
+    const capabilities = getHlsVideoCapabilities(
       this.video,
       this.session.source,
       this.session.live,
       this.quality.supportsSelection
     );
+    return {
+      ...capabilities,
+      canFullscreen:
+        capabilities.supportsPlayback &&
+        this.presentation.fullscreen.canFullscreen,
+    };
   }
 
   getSnapshot(): VibePlayerSnapshot {
     const snapshot = getHlsVideoSnapshot(this.video, this.session.live);
-    if (this.quality.options.length === 0) {
-      return snapshot;
-    }
-    return { ...snapshot, qualityOptions: this.quality.options };
+    return {
+      ...snapshot,
+      ...this.presentation.getSnapshot(),
+      readyState: this.session.failed ? "error" : snapshot.readyState,
+      ...(this.quality.options.length
+        ? { qualityOptions: this.quality.options }
+        : {}),
+    };
   }
 
   async load(source: VibePlayerSource): Promise<void> {
@@ -108,9 +119,13 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     }
   }
 
-  mount(target: HTMLElement): Promise<void> {
+  mount(
+    target: HTMLElement,
+    presentationTarget: HTMLElement = target
+  ): Promise<void> {
     const video = this.ensureVideo();
     this.session.markMounted();
+    this.presentation.mount(video, presentationTarget);
     if (video.parentElement === target) {
       return Promise.resolve();
     }
@@ -127,10 +142,10 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   setPlaybackRate = (value: number) =>
     setNativeVideoPlaybackRate(this.commandInput, value);
   setVolume = (value: number) => setNativeVideoVolume(this.commandInput, value);
-  enterFullscreen = () => enterNativeVideoFullscreen(this.commandInput);
-  enterPictureInPicture = () =>
-    enterNativeVideoPictureInPicture(this.commandInput);
-  exitFullscreen = () => exitNativeVideoFullscreen(this.commandInput);
+  enterFullscreen = () => this.presentation.fullscreen.enter();
+  enterPictureInPicture = () => this.presentation.enterPictureInPicture();
+  exitFullscreen = () => this.presentation.fullscreen.exit();
+  exitPictureInPicture = () => this.presentation.exitPictureInPicture();
 
   setQuality(qualityId: string): Promise<void> {
     if (this.quality.select(qualityId, this.managedHlsController)) {
@@ -147,13 +162,14 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   unmount(): Promise<void> {
+    const cleanup = this.presentation.unmount();
     this.session.close();
     if (this.video) {
       clearNativeVideoPlayback(this.video);
     }
     this.destroyManagedHls();
     this.video = null;
-    return Promise.resolve();
+    return cleanup;
   }
 
   private destroyManagedHls(): void {
@@ -173,6 +189,9 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     type: VibePlayerEventName,
     payload?: VibePlayerAdapterEvent["payload"]
   ): void {
+    if (type === "error" && payload?.fatal === true) {
+      this.session.markFailed();
+    }
     const event: VibePlayerAdapterEvent = {
       ...(payload ? { payload } : {}),
       snapshot: this.getSnapshot(),
@@ -187,9 +206,9 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     if (this.video) {
       return this.video;
     }
-    const video = createNativeVideo((event) => {
+    const video = createNativeVideo((event, payload) => {
       if (this.video === video) {
-        this.emit(event);
+        this.emit(event, payload);
       }
     });
     this.video = video;

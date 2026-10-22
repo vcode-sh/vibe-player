@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { VibePlayerBackgroundLayerState } from "./vibe-player-background-layer-types";
+import { bindVibePlayerPreviewPlayback } from "./vibe-player-preview-playback";
 
 export interface VibePlayerBackgroundLayerProps
   extends VibePlayerBackgroundLayerState {
@@ -50,27 +51,7 @@ export function VibePlayerBackgroundLayer({
     if (!(video && previewVideoUrl)) {
       return;
     }
-    if (paused || prefersReducedMotion()) {
-      video.pause();
-      return;
-    }
-
-    playBackgroundVideo(video);
-    if (typeof window.IntersectionObserver === "undefined") {
-      return;
-    }
-
-    const observer = new window.IntersectionObserver((entries) => {
-      const [entry] = entries;
-      if (entry?.isIntersecting && !paused) {
-        playBackgroundVideo(video);
-        return;
-      }
-      video.pause();
-    });
-
-    observer.observe(video);
-    return () => observer.disconnect();
+    return bindVibePlayerPreviewPlayback(video, paused);
   }, [paused, previewVideoUrl]);
 
   return (
@@ -114,14 +95,4 @@ function getBackgroundImage(
 
 function hasRenderableFrame(video: HTMLVideoElement): boolean {
   return video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
-}
-
-function playBackgroundVideo(video: HTMLVideoElement): void {
-  video.play().catch(() => {
-    // Muted preview autoplay is best-effort and must never break rendering.
-  });
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }

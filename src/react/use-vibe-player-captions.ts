@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from "react";
 import {
   getActiveVibePlayerCaptionLines,
   parseWebVtt,
@@ -21,11 +27,17 @@ export interface UseVibePlayerCaptionsOptions {
   source: VibePlayerSource | null;
 }
 
-export interface VibePlayerCaptionsState {
-  activeLines: string[];
+/** Request status excludes time-varying caption lines for host observers. */
+export interface VibePlayerCaptionStatus {
   error: Error | null;
   loading: boolean;
   track: VibePlayerCaptionTrack | null;
+}
+
+export interface VibePlayerCaptionsState extends VibePlayerCaptionStatus {
+  activeLines: string[];
+  /** Reloads the selected track and cancels the previous request. */
+  retry: () => void;
 }
 
 async function defaultLoadCaptionText(
@@ -53,9 +65,52 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error("Failed to load captions.");
 }
 
-interface LoadedCaptions {
+interface CaptionRequestState {
+  attempt: number;
   cues: VibePlayerCaptionCue[];
+  error: Error | null;
+  loading: boolean;
   track: VibePlayerCaptionTrack;
+}
+
+interface CaptionRequestInput {
+  attempt: number;
+  loadCaptionText: VibePlayerCaptionTextLoader;
+  signal: AbortSignal;
+  track: VibePlayerCaptionTrack;
+  update: (state: CaptionRequestState) => void;
+}
+
+async function loadCaptionRequest({
+  attempt,
+  loadCaptionText,
+  signal,
+  track,
+  update,
+}: CaptionRequestInput): Promise<void> {
+  update({ attempt, cues: [], error: null, loading: true, track });
+  try {
+    const content = await loadCaptionText(track, signal);
+    if (!signal.aborted) {
+      update({
+        attempt,
+        cues: parseWebVtt(content),
+        error: null,
+        loading: false,
+        track,
+      });
+    }
+  } catch (cause) {
+    if (!signal.aborted) {
+      update({
+        attempt,
+        cues: [],
+        error: toError(cause),
+        loading: false,
+        track,
+      });
+    }
+  }
 }
 
 export function useVibePlayerCaptions({
@@ -65,52 +120,44 @@ export function useVibePlayerCaptions({
   source,
 }: UseVibePlayerCaptionsOptions): VibePlayerCaptionsState {
   const track = useMemo(() => getPreferredCaptionTrack(source), [source]);
-  const [loadedCaptions, setLoadedCaptions] = useState<LoadedCaptions | null>(
-    null
-  );
-  const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [request, setRequest] = useState<CaptionRequestState | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((previous) => previous + 1), []);
+  const loadTrackText = useEffectEvent(loadCaptionText);
 
   useEffect(() => {
     if (!(enabled && track)) {
-      setLoadedCaptions(null);
-      setError(null);
-      setLoading(false);
+      setRequest(null);
       return;
     }
 
     const abortController = new AbortController();
-    setLoadedCaptions(null);
-    setLoading(true);
-    setError(null);
-    loadCaptionText(track, abortController.signal)
-      .then((content) => {
-        if (!abortController.signal.aborted) {
-          setLoadedCaptions({ cues: parseWebVtt(content), track });
-        }
-      })
-      .catch((captionError: unknown) => {
-        if (!abortController.signal.aborted) {
-          setLoadedCaptions(null);
-          setError(toError(captionError));
-        }
-      })
-      .finally(() => {
-        if (!abortController.signal.aborted) {
-          setLoading(false);
-        }
-      });
+    loadCaptionRequest({
+      attempt,
+      loadCaptionText: loadTrackText,
+      signal: abortController.signal,
+      track,
+      update: setRequest,
+    });
 
     return () => abortController.abort();
-  }, [enabled, loadCaptionText, track]);
+  }, [attempt, enabled, track]);
 
+  const current =
+    enabled && request?.track === track && request.attempt === attempt
+      ? request
+      : null;
   const activeLines = useMemo(
     () =>
-      enabled && loadedCaptions?.track === track
-        ? getActiveVibePlayerCaptionLines(loadedCaptions.cues, currentTime)
-        : [],
-    [currentTime, enabled, loadedCaptions, track]
+      current ? getActiveVibePlayerCaptionLines(current.cues, currentTime) : [],
+    [current, currentTime]
   );
 
-  return { activeLines, error, loading, track };
+  return {
+    activeLines,
+    error: current?.error ?? null,
+    loading: Boolean(enabled && track && (!current || current.loading)),
+    retry,
+    track,
+  };
 }

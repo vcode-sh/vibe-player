@@ -1,6 +1,8 @@
 export {
   canUseNativePictureInPicture,
   enterNativePictureInPicture,
+  exitNativePictureInPicture,
+  isNativePictureInPicture,
 } from "./native-picture-in-picture";
 export type { NativeVideoSourceMetadata } from "./native-video-dom";
 export {
@@ -12,9 +14,6 @@ export {
 export type { NativeVideoCommandInput } from "./native-video-playback";
 export {
   clearNativeVideoPlayback,
-  enterNativeVideoFullscreen,
-  enterNativeVideoPictureInPicture,
-  exitNativeVideoFullscreen,
   pauseNativeVideo,
   playNativeVideo,
   seekNativeVideo,
@@ -22,3 +21,4 @@ export {
   setNativeVideoPlaybackRate,
   setNativeVideoVolume,
 } from "./native-video-playback";
+export { NativeVideoPresentation } from "./native-video-presentation";

@@ -2,11 +2,24 @@
   position: fixed;
   inset: 0;
   z-index: 50;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  padding: 0;
+  margin: 0;
   overflow: hidden;
   color: #fff;
   background: #050506;
+  border: 0;
   animation: vibe-player-overlay-in 180ms var(--vibe-player-ease-emphasized)
     both;
+}
+
+.vibe-player-modal::backdrop {
+  background: transparent;
 }
 
 .vibe-player-modal[data-state="closing"] {

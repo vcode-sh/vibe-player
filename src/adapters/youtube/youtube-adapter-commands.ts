@@ -3,20 +3,22 @@ import type {
   VibePlayerEventName,
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
+import type { AdapterFullscreen } from "../shared/adapter-fullscreen";
 import type { YouTubePlayerHandle } from "./youtube-iframe-types";
-import type { YouTubePlaybackWatchdog } from "./youtube-playback-watchdog";
+import type { YouTubePlaybackIntent } from "./youtube-playback-intent";
 
 export interface YouTubeAdapterCommandInput {
   emit: (type: VibePlayerEventName) => void;
+  fullscreen: AdapterFullscreen;
   getPlayer: () => YouTubePlayerHandle | null;
   getSnapshot: () => VibePlayerSnapshot;
-  watchdog: YouTubePlaybackWatchdog;
+  playbackIntent: YouTubePlaybackIntent;
 }
 
 export function pauseYouTubeVideo(
   input: YouTubeAdapterCommandInput
 ): Promise<void> {
-  input.watchdog.cancelIntent();
+  input.playbackIntent.cancel();
   input.getPlayer()?.pauseVideo();
   return Promise.resolve();
 }
@@ -26,7 +28,7 @@ export function playYouTubeVideo(
 ): Promise<void> {
   const player = input.getPlayer();
   if (player) {
-    input.watchdog.begin(input.getSnapshot().currentTime);
+    input.playbackIntent.begin(input.getSnapshot().currentTime);
     player.playVideo();
   }
   return Promise.resolve();
@@ -84,13 +86,11 @@ export function setYouTubeVolume(
 export async function enterYouTubeFullscreen(
   input: YouTubeAdapterCommandInput
 ): Promise<void> {
-  await input.getPlayer()?.getIframe?.()?.requestFullscreen?.();
-  input.emit("fullscreenchange");
+  await input.fullscreen.enter();
 }
 
 export async function exitYouTubeFullscreen(
   input: YouTubeAdapterCommandInput
 ): Promise<void> {
-  await document.exitFullscreen?.();
-  input.emit("fullscreenchange");
+  await input.fullscreen.exit();
 }

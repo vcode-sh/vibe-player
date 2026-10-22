@@ -125,4 +125,54 @@ describe("official YouTube player readiness", () => {
     expect(player.actions).toEqual([]);
     expect(adapter.getSnapshot().readyState).toBe("idle");
   });
+
+  it("forwards official autoplay blocks only from the current SDK session", async () => {
+    vi.useFakeTimers();
+    const {
+      adapter,
+      getPlayer,
+      outcome,
+      player: old,
+    } = await startDefaultAdapter();
+    old.signalReady();
+    await outcome;
+    const replacement = adapter.load({
+      ...youtubeSource,
+      youtubeVideoId: "replacement",
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const current = getPlayer();
+    current.signalReady();
+    await replacement;
+    const events = collectYouTubeAdapterEvents(adapter);
+    try {
+      await adapter.play();
+      old.signalAutoplayBlocked();
+      expect(events).toEqual([]);
+      current.signalAutoplayBlocked();
+      expect(events.map((event) => event.type)).toEqual(["playblocked"]);
+    } finally {
+      await adapter.unmount();
+    }
+  });
+
+  it("moves the SDK iframe while creation is still waiting for readiness", async () => {
+    vi.useFakeTimers();
+    const { adapter, outcome, pending, player, target } =
+      await startDefaultAdapter();
+    const replacement = document.createElement("section");
+    try {
+      await adapter.mount(replacement);
+      expect(replacement.querySelector("iframe")).toBe(player.iframe);
+      expect(target.childElementCount).toBe(0);
+      player.signalReady();
+      await pending;
+      expect(adapter.getSnapshot().currentTime).toBe(23.5);
+      expect(player.destroyed).toBe(false);
+    } finally {
+      player.signalReady();
+      await outcome;
+      await adapter.unmount();
+    }
+  });
 });

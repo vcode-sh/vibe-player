@@ -1,9 +1,15 @@
 # Test quality audit
 
-## Current outcome
+This is a historical record of the test-quality cleanup before adapter
+modularization and the later development backlog. Counts, file paths and
+commands below describe that checkpoint, not the current tree. Current gates
+are defined in `package.json`; later work is tracked in
+[next-tasks.md](./next-tasks.md).
+
+## Historical outcome
 
 The initial test cleanup and the implementation follow-up are complete.
-The current tree has **280 passing tests across 61 files**, with no failing or
+That checkpoint had **280 passing tests across 61 files**, with no failing or
 skipped tests. The original WebVTT regression is fixed. Full `bun run ci` passes,
 including types, architecture/dependency rules, production build, package size,
 public surface, archive validation, publint, ATTW, and both Vite demo builds.

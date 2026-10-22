@@ -26,6 +26,8 @@ export async function runMediaDeliveryAuditCli(input = {}) {
       credentials: args.credentials,
       maxSizeBytes: args.maxSizeBytes,
       origins: args.origins,
+      ...(input.signal ? { signal: input.signal } : {}),
+      timeoutMs: args.timeoutMs,
       url: args.url,
     });
 

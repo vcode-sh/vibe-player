@@ -5,6 +5,7 @@ export {
 export {
   type UseVibePlayerCaptionsOptions,
   useVibePlayerCaptions,
+  type VibePlayerCaptionStatus,
   type VibePlayerCaptionsState,
   type VibePlayerCaptionTextLoader,
 } from "./use-vibe-player-captions";

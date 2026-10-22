@@ -1,4 +1,5 @@
 import { isVibePlayerPlaybackBlockedError } from "./vibe-player-errors";
+import { clampVibePlayerTime } from "./vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAnalyticsEvent,
@@ -84,27 +85,41 @@ function createPauseIntentSnapshot(
 export interface HandleVibePlayerControllerSeekInput {
   adapter: VibePlayerAdapter | null;
   currentSource: VibePlayerSource | null;
-  duration: number;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
+  isCurrent: () => boolean;
   resumeStore: VibePlayerResumeStore | undefined;
   seconds: number;
+  syncFromAdapter: () => void;
 }
 
 export async function handleVibePlayerControllerSeek({
   adapter,
   currentSource,
-  duration,
   emitAnalytics,
+  isCurrent,
   resumeStore,
   seconds,
+  syncFromAdapter,
 }: HandleVibePlayerControllerSeekInput): Promise<void> {
-  if (!(adapter && currentSource)) {
+  if (!(adapter && currentSource && adapter.capabilities.canSeek)) {
     return;
   }
-  await adapter.seekTo(seconds);
-  resumeStore?.set(currentSource.id, seconds);
+  const { duration } = adapter.getSnapshot();
+  const acceptedTime = clampVibePlayerTime(seconds, duration, false);
+  await adapter.seekTo(acceptedTime);
+  if (!isCurrent()) {
+    return;
+  }
+  syncFromAdapter();
+  if (!isCurrent()) {
+    return;
+  }
+  resumeStore?.set(currentSource.id, acceptedTime);
+  if (!isCurrent()) {
+    return;
+  }
   emitAnalytics({
-    currentTime: seconds,
+    currentTime: acceptedTime,
     duration,
     provider: currentSource.type,
     sourceId: currentSource.id,

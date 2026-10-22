@@ -81,6 +81,36 @@ describe("controller asynchronous operation ownership", () => {
     await controller.teardown();
   });
 
+  it("ignores an old mount failure after the presentation target changes", async () => {
+    const adapter = new TestAdapter();
+    const controller = new VibePlayerController({
+      adapterFactory: () => adapter,
+    });
+    const gate = createGate();
+    const media = document.createElement("div");
+    const previousPresentation = document.createElement("section");
+    const currentPresentation = document.createElement("article");
+    await controller.load(fileSource);
+    adapter.mount = (_target, presentationTarget?: HTMLElement) =>
+      presentationTarget === previousPresentation
+        ? gate.promise
+        : Promise.resolve();
+
+    const obsoleteMount = controller.mount(media, previousPresentation);
+    await controller.mount(media, currentPresentation);
+    const cause = new Error("Previous presentation detached");
+    gate.reject(cause);
+    await expect(obsoleteMount).rejects.toBe(cause);
+
+    expect(controller.getState()).toMatchObject({
+      currentSource: { id: "video-1" },
+      error: null,
+      isMounted: true,
+      snapshot: { readyState: "ready" },
+    });
+    await controller.teardown();
+  });
+
   it.each([
     { delayed: "play", latest: "pause", paused: true, readyState: "ready" },
     {

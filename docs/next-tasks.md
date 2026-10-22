@@ -1,286 +1,120 @@
-# Next Development Tasks
+# Development Status and Next Tasks
 
-Release target: **0.2.0, unreleased**. Reviewed implementation: `ca6882f`.
-These are proposed tasks, not completed changes or a release commitment.
+Release target: **0.2.0, unreleased**. The original T01–T17 backlog is
+implemented. This checkpoint extends the modular-provider work in `ca6882f`;
+it does not prepare a release or change package ownership.
 
-The previous implementation passed 325 tests and the full package CI. That
-verification remains useful; the findings below identify contracts outside its
-current protection. No broad gates were repeated solely for this research.
+## Implemented backlog
 
-## Research scope and evidence
+| Task | Result                                                                                                                        | Verification boundary                                                                                              |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| T01  | Persistence, analytics and subscribers cannot interrupt playback/cleanup; synchronous and asynchronous failures are isolated. | Real controller with throwing/rejecting host integrations and valid controls.                                      |
+| T02  | Seek dispatch, resume and analytics use the duration-normalized accepted target; obsolete/reentrant work stops.               | Controller regression with clamped positions, non-seekable sources and source replacement.                         |
+| T03  | Pending pause protects stale events until acknowledgment; later provider play updates state.                                  | Controller/provider-event contract.                                                                                |
+| T04  | Explicit HLS credentials configure XHR and Fetch playlist, segment and key requests.                                          | SDK boundary plus protected two-origin Chromium playback for playlists/segments.                                   |
+| T05  | Fatal HLS errors remain terminal; recoverable faults preserve playback; native errors retain code/message.                    | Real adapters with controlled media/SDK events.                                                                    |
+| T06  | Native dialog, initial/restored focus, explicit Tab wrapping, scroll lock, nested Escape and immediate media disposal.        | DOM interactions and actual Chromium focus/lifecycle.                                                              |
+| T07  | All supported controls fit narrow containers without removing capabilities.                                                   | Chromium geometry and hit targets at 240/280px embedded widths and 320/390/768px viewports.                        |
+| T08  | Presentation belongs to the stage/custom container, exposes browser state and supports exit/cleanup.                          | Real Chromium fullscreen/PiP, F toggles and external browser API exit; controlled async disposal races.            |
+| T09  | Repeated YouTube mounting preserves the live SDK node.                                                                        | SDK replacement/pending-creation boundary; browsing-context preservation on relocation needs `Element.moveBefore`. |
+| T10  | Failed YouTube SDK initialization permits a later retry while preserving host ownership.                                      | Script failure/success and concurrent-attempt boundary.                                                            |
+| T11  | SDK-confirmed autoplay blocking drives the notice; elapsed buffering does not.                                                | Official callback translation and stale/pause cancellation cases.                                                  |
+| T12  | Controls cycle normalized provider-supported playback rates.                                                                  | Provider capability/choice tests and real controls.                                                                |
+| T13  | Preview work cannot restart disposed media; motion-preference changes and host pause are observed.                            | Controlled lifecycle regressions and the local Chromium preview fixture.                                           |
+| T14  | Caption status/retry is available to ready-made/headless consumers without failing video.                                     | Real hook/Stage, cancellation, synchronous errors, retry and replacement callbacks.                                |
+| T15  | Deterministic browser acceptance uses built package exports and local MP4/HLS/VTT.                                            | Maintained `test:browser` lane; no production media or CDN dependency.                                             |
+| T16  | A real archive is installed outside the repo; shipped recipes, strict types, SSR, CSS, CLI and consumer builds are checked.   | Normal and exact-minimum runtime lanes plus disposable invalid-signature/missing-CSS sensitivity probes.           |
+| T17  | A total audit deadline bounds all network/body work and honors host cancellation.                                             | Real Fetch/loopback stalls and resource cleanup, including cancellation-ignoring Fetch implementations.            |
 
-The review covered core state/events/commands, persistence and analytics,
-file/HLS/YouTube bridges, React bindings, ready-made and headless UI, captions,
-ambient previews, styles, public types, consumer examples, packaging and CI.
-- **Source-confirmed:** traced through the implementation and immediate consumer.
-- **Controlled probe:** exercised real owners with replaceable browser, storage
-  or SDK boundaries. These probes do not prove live-provider playback.
-- **Browser-reproduced:** observed the running packaged demo in Chrome.
-- **Unverified support boundary:** a published contract without a maintained
-  acceptance lane; this does not establish an incompatibility.
+Independent delta reviews also exposed and fixed reentrant notifications and
+old event side effects, stale presentation/observer completions, nested menu
+Escape defects, callback-driven caption reload loops, wrong initial byte-range
+offsets, and successful CORS headers hiding failed origin HTTP responses.
 
-Disposable probes were removed. Research did not change production behavior.
-Live YouTube playback remains unconfirmed; the prior iframe session timed out,
-with browser-tool document interception also observed. Its cause is not proven.
+Seek acknowledgment means the command was dispatched, not that an asynchronous
+provider getter has settled. The accepted target is deliberately separate from
+subsequent observed playback time. No heuristic infers settlement from a stale
+SDK getter.
 
-## Recommended order
+## Verification checkpoint
 
-1. Start T15's minimal browser harness alongside T01, T02, T04 and T05: correct
-   lifecycle side effects, seek outcomes, private HLS requests and fatal errors.
-2. Use it to deliver T06-T10: modal/mobile/fullscreen behavior and YouTube
-   mounting/retry. Resolve T03's provider-event contract before its regression.
-3. Complete T11-T14 and T16-T17 as bounded protocol, reliability and DX work.
+- **432 Vitest tests / 100 files** pass using the testing-patterns skill.
+- **19 Chromium cases / zero skips** cover playback, rerenders, source replacement,
+  headless lifecycle, captions, quality, authenticated HLS, modal focus/cleanup,
+  narrow controls and presentation. Preview coverage includes real motion
+  preference changes and host pause.
+- TypeScript, Biome, coding/layer/dependency rules, release state, build, CSS,
+  size, public surface, tarball, publint, ATTW and both demo builds pass.
+- Installed consumers pass on **Node 22.0.0 / React 19.2.7**, **Node 24.22.0 /
+  React 19.3.1**, and the local Node 26.5.0 development runtime. Fourteen shipped
+  TypeScript recipes compile. Node 22 intentionally skips Vite's newer build
+  toolchain; its package runtime, SSR, types, CSS and CLI are checked.
+- Runtime ESM remains within its existing budget: **162,571 bytes raw /
+  35,544 bytes gzip**. No size budget was raised.
 
-P1 tasks affect an existing integration, advertised capability or cleanup
-contract. P2 tasks improve narrower behavior or make support repeatable. Each
-implementation should retain existing incident regressions and add a focused,
-independently derived challenge case under the testing-patterns skill.
+Run the maintained gates via `bun run ci`; install Chromium first as described
+in [test/browser/README.md](../test/browser/README.md). Use
+`npm exec --yes --package=node@22.0.0 -- node scripts/assert-packed-consumer.mjs --react-version 19.2.7 --skip-build`
+for the exact minimum consumer locally. CI also maintains the Node 24 lane.
 
-## Correctness and integration
+## Next bounded tasks
 
-### T01 — Isolate persistence and telemetry failures (P1)
+### N01 — Validate tail-range evidence in the media audit (P2)
 
-- **Evidence, controlled probes:** a throwing storage write escapes a timeupdate
-  callback, produces no `onError`, and prevents progress analytics. A throwing
-  `onAnalyticsEvent` for `closed` rejects `closeSource` before adapter disposal;
-  the old source remains active. See `src/core/vibe-player-controller-events.ts:66`,
-  `vibe-player-controller-load.ts:38`, `vibe-player-analytics.ts:30`, and
-  `vibe-player-resume-store.ts:54` in the same core directory.
-- **Owner:** core integration boundaries and the supplied resume-store helpers.
-- **Acceptance:** quota/unavailable-storage and telemetry failures cannot prevent
-  media disposal, source replacement, other state notifications or playback.
-  Define a small failure-reporting policy without recursive analytics/error
-  loops. Exercise storage set/clear and analytics failures with a valid control.
+**Confirmed source gap:** the tail probe currently consumes `.bytes` without
+checking its HTTP status or returned `Content-Range` start. MP4 diagnostics add
+the requested tail offset to a discovered marker. A server that ignores or
+changes the requested tail can therefore produce an inaccurate diagnostic
+offset. Initial-range validation is fixed; this separate path is not covered.
 
-### T02 — Persist and report the actual seek result (P1)
+Start with independently constructed 200, wrong-offset 206, truncated and valid
+206 fixtures. Validate the response before interpreting absolute offsets and
+keep initial faststart detection independent. Do not widen this into a complete
+MP4 validator or claim the current informational offset proves faststart.
 
-- **Evidence, real file adapter probe:** seeking to 250 in a 100-second video
-  sets media time to 100, but the controller then stores 250 and emits seek
-  analytics with 250. Native event translation first writes the correct value,
-  which the command completion overwrites. See
-  `src/core/vibe-player-controller-commands.ts:104` and
-  `src/adapters/native/native-video-playback.ts:84`.
-- **Owner:** controller command outcome normalization.
-- **Acceptance:** clamped/invalid positions and non-seekable sources cannot write
-  or report an imaginary successful seek. For the 100/250 fixture, observable
-  media, resume and analytics agree on 100. Preserve source ownership when an
-  asynchronous seek finishes after replacement.
+### N02 — Establish native WebKit/Safari acceptance (P2)
 
-### T03 — Define provider-initiated playback after a pause (P2)
+**Verified coverage gap:** the browser project currently runs Chromium only.
+Native HLS fallback and WebKit presentation have controlled contract coverage,
+but no maintained real WebKit lane. This is not evidence of incompatibility.
 
-- **Evidence, controlled probe:** after controller pause, a provider play event
-  and advancing timeupdate still yield `paused: true` and `readyState: ready`.
-  The broad guard in `src/core/vibe-player-controller-events.ts:141` suppresses
-  active events until a controller play command; the existing paused-event
-  regression intentionally characterizes that protection.
-- **Owner:** core intent/event reconciliation with provider adapters.
-- **Acceptance:** explicitly distinguish an obsolete response to a command from
-  a later user action in native/provider controls. Keep late-event protection,
-  while allowing genuine provider playback to update controls and analytics.
-  Validate the chosen acknowledgment contract at the real adapter boundary.
+Add local native-HLS playback, fullscreen/PiP capability behavior and modal
+keyboard acceptance on supported WebKit targets. Include actual Safari/iOS
+where platform UI requires it; do not assume Playwright WebKit proves every
+native OS behavior. Keep platform-specific failures distinct from package bugs.
 
-### T04 — Propagate HLS credentials to SDK requests (P1)
+### N03 — Complete live YouTube acceptance (P2)
 
-- **Evidence, source and installed SDK:** `crossOrigin: use-credentials` reaches
-  the video element, while `src/adapters/hls/hls-managed-runtime.ts:11` constructs
-  Hls without loader credential settings. The installed SDK's XHR path has no
-  configured withCredentials, and its Fetch loader defaults to same-origin.
-  Cross-origin authenticated manifests/segments therefore lack the requested
-  credential policy; same-origin delivery may still work.
-- **Owner:** managed HLS runtime boundary.
-- **Acceptance:** explicit credentialed sources configure manifest, segment and
-  key requests; default/anonymous sources retain their policy. Test SDK options
-  and a disposable two-origin browser fixture with matching credentialed CORS.
-  Browser cookie restrictions remain an external constraint.
+**Verified coverage gap:** official SDK behavior is tested through controlled
+boundaries. Live playback remains unconfirmed; the earlier session timed out
+and browser-tool document interception was observed. Its cause is not proven.
 
-### T05 — Normalize terminal media errors and preserve native details (P1)
+Use an official public sample in an ordinary browser and verify readiness,
+play/pause, supported rates, blocked-autoplay signaling and repeated mounting.
+Keep this network-dependent smoke separate from deterministic CI. Record the
+actual origin/browser and any restrictions without guessing their cause.
 
-- **Evidence, real adapter/controller probes:** fatal HLS network failure leaves
-  snapshot state playing while error details say `fatal: true`. Stage status
-  only renders unavailable for snapshot error. Native MediaError code 4 and
-  message "Unsupported codec" become generic "Playback failed." without details.
-  See `src/adapters/hls/hls-adapter-load.ts:54`,
-  `src/adapters/native/native-video-dom.ts:69`, and
-  `src/ui/vibe-player-stage-status.tsx:68`.
-- **Owner:** provider error-to-snapshot translation and normalized diagnostics.
-- **Acceptance:** terminal failure reaches error state and unavailable UI;
-  recoverable HLS faults preserve viable playback. Native code/message reach
-  the host. Keep classification distinct from any retry policy.
+### N04 — Verify physical keyboard and assistive technology (P2)
 
-## Player surfaces
+**Verified automation limit:** CDP Escape does not exit fullscreen even on a bare
+page without package code, in both headless Chromium and headed Chromium under
+Xvfb. The maintained test proves F toggling and actual
+`document.exitFullscreen()` event/state synchronization. It does not claim a
+physical browser Escape test.
 
-### T06 — Complete modal accessibility and cleanup ownership (P1)
+Verify physical Escape and screen-reader behavior for native dialog, popovers,
+caption status/retry and fullscreen on target browsers. Automated roles, focus
+and native presentation assertions remain useful but do not replace that lane.
 
-- **Evidence, controlled component probe:** children-only Modal leaves focus on
-  its outside trigger; Escape never calls onClose. The component supplies ARIA,
-  presence and outside-pointer dismissal, without focus containment/restoration
-  or background interaction management. See `src/ui/vibe-player-modal.tsx:19`
-  and source-only autofocus in `src/ui/vibe-player-stage.tsx:70`.
-- **Owner:** modal assembly and its lifecycle binding.
-- **Acceptance:** focus enters and remains within the open modal; Escape closes
-  the appropriate surface; close restores the opener; background interaction
-  and scrolling are constrained. Cover both source and children composition,
-  nested popovers, immediate media disposal and the existing exit transition.
-  Verify keyboard/focus in an actual browser against the WAI dialog pattern.
+## Continue to defer
 
-### T07 — Fit complete controls into narrow player containers (P1)
+Multi-track caption selection, new providers, DRM/DASH, live DVR, a provider
+registry, monorepo/subpath split and a runtime skin engine still lack a concrete
+consumer requirement. Preserve opt-in persistence/telemetry, provider-neutral
+UI and explicit root/CSS exports. Do not upgrade the toolchain merely for novelty
+or bump/publish 0.2.0 as part of this work.
 
-- **Evidence, browser-reproduced:** at a 390px viewport, HLS Stage width was
-  325px and timeline width was 0px. Stage ended at x350; fullscreen extended
-  x349-373 and PiP x379-403. The fixed flex row clips capabilities. See
-  `src/styles/vibe-player-controls.css:25`, its mobile rules at line157,
-  `vibe-player-quality-control.css:9`, and `src/ui/vibe-player-bottom-controls.tsx:58`.
-- **Owner:** control assembly and responsive styles.
-- **Acceptance:** at 320/390/768px and narrow embedded-container widths, the
-  timeline is usable and every supported capability remains reachable through
-  layout or an accessible secondary menu. Confirm geometry and keyboard access
-  in a browser; do not remove functionality just to fit the row.
-
-### T08 — Make fullscreen/PiP presentation state truthful (P1)
-
-- **Evidence, source-confirmed:** toggle actions only enter; there is no matching
-  presentation state for native Escape or exit labels. Native fullscreen
-  targets the video, while package controls/captions are siblings. See
-  `src/ui/use-vibe-player-stage-actions.ts:62`,
-  `src/adapters/native/native-video-playback.ts:137`, and runtime snapshot types.
-- **Owner:** normalized presentation events/state and the stage media boundary.
-- **Acceptance:** fullscreen contains the intended chrome and captions; a second
-  button/F action exits; native Escape updates state; PiP exit is reflected.
-  Verify actual browser APIs and honest unsupported-platform behavior. Decide
-  container ownership explicitly before adding state fields.
-
-### T09 — Preserve the live YouTube iframe on repeated mount (P1)
-
-- **Evidence, faithful SDK-boundary probe:** the SDK replaces its supplied div
-  with an iframe. Repeating mount(target) clears that iframe and appends the
-  replaced div: connected iframe count changes from one to zero while snapshot
-  remains ready. See `src/adapters/youtube/create-youtube-adapter.ts:123`.
-- **Owner:** YouTube adapter mount ownership.
-- **Acceptance:** same-target remount is idempotent; another target receives the
-  existing live iframe without playback reset; final unmount destroys it.
-  Preserve the existing pending-creation and stale-ready protections.
-
-### T10 — Retry a failed YouTube API initialization (P1)
-
-- **Evidence, controlled script-boundary probe:** after script error, initialization
-  returns the same cached rejected promise and retains the failed script. See
-  `src/adapters/youtube/youtube-iframe-runtime.ts:24`.
-- **Owner:** shared YouTube API-script loader.
-- **Acceptance:** failure followed by successful initialization works on the
-  same page. Concurrent attempts share one active loader; only package-owned
-  failed scripts are replaced; host scripts/callbacks survive. Provide explicit
-  retry semantics without an unlimited automatic retry loop.
-
-### T11 — Distinguish autoplay blocking from slow YouTube startup (P2)
-
-- **Evidence, source and official protocol:** runtime types omit the SDK's
-  onAutoplayBlocked event. The watchdog labels no advancement after 2.5 seconds
-  as blocked, including an ordinarily buffering player. See
-  `src/adapters/youtube/youtube-iframe-types.ts:61` and
-  `youtube-playback-watchdog.ts:58` in that directory.
-- **Owner:** YouTube protocol translation and blocked-play notice.
-- **Acceptance:** confirmed SDK blocking drives the policy notice; slow buffering
-  alone does not claim permission failure. Keep timeouts distinct from policy
-  rejection and preserve cancellation, pause and stale-callback protections.
-
-### T12 — Cycle only playback rates supported by the provider (P2)
-
-- **Evidence, source and official protocol:** the common cycle requests 1.25
-  after 1; YouTube may expose only [1, 1.5, 2] and rounds unsupported requests
-  toward 1. The package then cannot reach 1.5 through that control. See
-  `src/core/vibe-player-playback-rate.ts:1`, YouTube capabilities at
-  `src/adapters/youtube/youtube-adapter-state.ts:28`, and its handle contract.
-- **Owner:** normalized rate choices and provider capability translation.
-- **Acceptance:** [1] exposes no misleading rate choice; [1, 1.5, 2] cycles through
-  those options; native playback retains appropriate package defaults. Derive
-  options from the provider rather than branching on provider names in UI.
-
-### T13 — Dispose ambient-preview work and observe motion preference (P2)
-
-- **Evidence, controlled observer probe:** invoking a captured observer after
-  unmount calls old video.play again. Cleanup disconnects without an active
-  guard. Reduced motion is sampled without listening for preference changes.
-  See `src/preview/vibe-player-background-layer.tsx:53`, line63 and line125.
-- **Owner:** decorative preview lifecycle.
-- **Acceptance:** late callbacks cannot restart disposed/paused media; the active
-  observer still resumes visible media. A motion-preference change follows an
-  explicit pause/resume policy. Preserve the poster and layer transitions.
-
-### T14 — Expose caption failure without failing video playback (P2)
-
-- **Evidence, source-confirmed:** the caption hook returns loading/error, but
-  Stage consumes activeLines only. A failed VTT can leave enabled CC with no
-  text and no host diagnostic. See `src/react/use-vibe-player-captions.ts:24`
-  and `src/ui/vibe-player-stage.tsx:52`.
-- **Owner:** caption status integration shared by ready-made and custom UI.
-- **Acceptance:** failure is observable and meaningful without marking playable
-  video unavailable. A successful retry/source change clears the failure;
-  stale/cancelled responses remain suppressed. Choose one coherent status seam.
-
-## Repeatable verification and delivery
-
-### T15 — Commit a deterministic real-browser acceptance lane (P1)
-
-- **Evidence:** Vitest runs happy-dom/Node; demo verification only typechecks and
-  builds. Browser proof exists as manual sessions and disposable probes, not a
-  maintained command. See `vitest.config.ts:9`, `package.json:76`, and CI workflow.
-- **Owner:** browser fixtures, packaged-demo acceptance and CI.
-- **Acceptance:** a documented Chromium lane uses local MP4/HLS/VTT fixtures and
-  fails on duplicate media, host-rerender resets, delayed close cleanup, broken
-  keyboard/focus or clipped controls. Cover headless playback, captions and
-  quality. Keep live YouTube smoke separate from deterministic CI; introduce
-  WebKit/native-HLS acceptance once that platform contract is established.
-
-### T16 — Maintain packed-consumer, recipe and minimum-version checks (P2)
-
-- **Evidence:** packaged demo removes source aliases but still self-references
-  repository dist; tarball guard checks file inventory rather than installation.
-  Manual consumer probes passed, but no maintained consumer fixture exists.
-  CI uses Node24 and development React19.3.1, while the manifest allows Node22
-  and React19.2.7. See `demo/vite/vite.config.ts:12`,
-  `scripts/assert-package-tarball.mjs:17`, and `.github/workflows/ci.yml:22`.
-- **Owner:** package consumer fixture and compatibility policy.
-- **Acceptance:** install the real archive outside the repository, typecheck
-  ready-made/headless/runtime recipes, render SSR without DOM globals, resolve
-  CSS, invoke the installed CLI and build a consumer. Check minimum and normal
-  supported versions without repeating all tests in every matrix cell. Wrong
-  public argument/prop types must fail even when export names are unchanged.
-  Treat the current minimum-version gap as unverified support, not proven breakage.
-
-### T17 — Bound media-audit network time and cancellation (P2)
-
-- **Evidence, source-confirmed:** fetch and streamed reads have byte limits but
-  no request/total deadline. See `scripts/media-delivery-audit-fetch.mjs:15` and
-  line67; CLI arguments expose no timeout contract.
-- **Owner:** audit fetch/stream boundary and runner.
-- **Acceptance:** disposable loopback fixtures independently stall headers and
-  body; both terminate, cancel resources, stop subsequent probes and return a
-  precise failure/nonzero CLI result. A valid response within budget succeeds.
-  Preserve existing sampling limits and origin/credential behavior.
-
-## Defer until a concrete consumer need
-
-- Multi-track caption selection is a genuine capability extension: today only
-  the default/first declared track is selectable. Prioritize failure visibility
-  before adding selection and optional persistence.
-- Live DVR, new providers, DRM/DASH, a provider registry, monorepo/subpath split,
-  runtime skin engines and broad animation changes have no demonstrated need in
-  this review. Current HLS live deliberately disables seek/duration controls.
-- Do not upgrade the toolchain merely for novelty or publish/bump 0.2.0 as part
-  of these tasks. Preserve opt-in storage/telemetry and provider-neutral UI.
-- Keep `docs/testing-audit.md` as historical evidence: its old "current tree"
-  counts and pre-move paths need an explicit historical checkpoint, not silent
-  replacement with newly passing totals. Fold that documentation cleanup into
-  the maintained verification work.
-
-## Authoritative references
-
-- [WAI modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/):
-  focus placement/containment/restoration, Escape and inert background behavior.
-- [MDN Storage.setItem](https://developer.mozilla.org/en-US/docs/Web/API/Storage/setItem):
-  writes can throw QuotaExceededError.
-- [MDN XMLHttpRequest.withCredentials](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/withCredentials):
-  cross-origin credential semantics; SDK loader defaults were checked locally.
-- [YouTube IFrame API](https://developers.google.com/youtube/iframe_api_reference):
-  replacement of the supplied element, readiness, onAutoplayBlocked and supported
-  playback-rate semantics. See its named event/function sections.
+[testing-audit.md](./testing-audit.md) remains a historical cleanup record, with
+its checkpoint and old counts explicitly labeled. Current behavior and commands
+are documented in [usage.md](./usage.md), [integration.md](./integration.md),
+[media-delivery.md](./media-delivery.md) and the maintained acceptance fixtures.

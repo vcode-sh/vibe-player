@@ -60,11 +60,17 @@ export function useVibePlayerStageActions({
     setCaptionsEnabled((value) => !value);
   }, [setCaptionsEnabled]);
   const toggleFullscreen = useCallback(() => {
-    controller.enterFullscreen().catch(() => undefined);
-  }, [controller]);
+    const command = snapshot.isFullscreen
+      ? controller.exitFullscreen()
+      : controller.enterFullscreen();
+    command.catch(() => undefined);
+  }, [controller, snapshot.isFullscreen]);
   const togglePictureInPicture = useCallback(() => {
-    controller.enterPictureInPicture().catch(() => undefined);
-  }, [controller]);
+    const command = snapshot.isPictureInPicture
+      ? controller.exitPictureInPicture()
+      : controller.enterPictureInPicture();
+    command.catch(() => undefined);
+  }, [controller, snapshot.isPictureInPicture]);
   const seekTo = useCallback(
     (seconds: number) => {
       controller.seekTo(seconds).catch(() => undefined);

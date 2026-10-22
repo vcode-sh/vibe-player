@@ -1,5 +1,7 @@
+import { parseMediaDeliveryAuditTimeoutMs } from "./media-delivery-audit-deadline.mjs";
+
 export const mediaDeliveryAuditUsage =
-  "Usage: vibe-player-media-audit <url> [--origin <origin>] [--max-size-mb <mb>] [--credentials] [--json] [--strict] [--require-direct-file-ready]";
+  "Usage: vibe-player-media-audit <url> [--origin <origin>] [--max-size-mb <mb>] [--timeout-ms <ms>] [--credentials] [--json] [--strict] [--require-direct-file-ready]";
 
 const booleanOptionKeys = {
   "--credentials": "credentials",
@@ -19,6 +21,7 @@ export function parseMediaDeliveryAuditArgs(rawArgs) {
     origins: [],
     requireDirectFileReady: false,
     strict: false,
+    timeoutMs: parseMediaDeliveryAuditTimeoutMs(),
     url: "",
   };
   for (let index = 0; index < rawArgs.length; index += 1) {
@@ -44,6 +47,14 @@ function parseMediaDeliveryAuditArg(args, rawArgs, index) {
   }
   if (arg === "--max-size-mb") {
     return parseMaxSizeArg(args, rawArgs, index);
+  }
+  if (arg === "--timeout-ms") {
+    const value = rawArgs[index + 1];
+    if (value === undefined) {
+      throw new Error("--timeout-ms requires a value.");
+    }
+    args.timeoutMs = parseMediaDeliveryAuditTimeoutMs(value);
+    return index + 1;
   }
   if (arg?.startsWith("-")) {
     throw new Error(`Unexpected option: ${arg}`);

@@ -80,6 +80,11 @@ class YouTubePlayerCreation {
     const { session } = this;
     return {
       events: {
+        onAutoplayBlocked: () => {
+          if (!session.signal?.aborted) {
+            session.onAutoplayBlocked?.();
+          }
+        },
         onError: (event) => {
           if (!session.signal?.aborted) {
             session.onError({

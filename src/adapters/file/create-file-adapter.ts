@@ -9,9 +9,6 @@ import type {
 } from "../../core/vibe-player-types";
 import {
   clearNativeVideoPlayback,
-  enterNativeVideoFullscreen,
-  enterNativeVideoPictureInPicture,
-  exitNativeVideoFullscreen,
   type NativeVideoCommandInput,
   pauseNativeVideo,
   playNativeVideo,
@@ -20,6 +17,7 @@ import {
   setNativeVideoPlaybackRate,
   setNativeVideoVolume,
 } from "../native/native-video-playback";
+import { NativeVideoPresentation } from "../native/native-video-presentation";
 import type { VibePlayerAdapterListener } from "../shared/adapter-listener";
 import { clearElement } from "../shared/clear-element";
 import {
@@ -37,17 +35,29 @@ export function createFileAdapter(): VibePlayerAdapter {
 class FileVibePlayerAdapter implements VibePlayerAdapter {
   readonly kind = "file";
   private readonly listeners = new Set<VibePlayerAdapterListener>();
+  private readonly presentation = new NativeVideoPresentation((type) =>
+    this.emit(type)
+  );
   private mounted = false;
   private playbackGeneration = 0;
   private source: VibePlayerFileSource | null = null;
   private video: HTMLVideoElement | null = null;
 
   get capabilities(): VibePlayerCapabilities {
-    return getFileVideoCapabilities(this.video, this.source);
+    const capabilities = getFileVideoCapabilities(this.video, this.source);
+    return {
+      ...capabilities,
+      canFullscreen:
+        capabilities.supportsPlayback &&
+        this.presentation.fullscreen.canFullscreen,
+    };
   }
 
   getSnapshot(): VibePlayerSnapshot {
-    return getFileVideoSnapshot(this.video);
+    return {
+      ...getFileVideoSnapshot(this.video),
+      ...this.presentation.getSnapshot(),
+    };
   }
 
   load(source: VibePlayerSource): Promise<void> {
@@ -73,9 +83,13 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     return Promise.resolve();
   }
 
-  mount(target: HTMLElement): Promise<void> {
+  mount(
+    target: HTMLElement,
+    presentationTarget: HTMLElement = target
+  ): Promise<void> {
     const video = this.ensureVideo();
     this.mounted = true;
+    this.presentation.mount(video, presentationTarget);
     if (video.parentElement === target) {
       return Promise.resolve();
     }
@@ -110,15 +124,19 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   async enterFullscreen(): Promise<void> {
-    await enterNativeVideoFullscreen(this.getNativeCommandInput());
+    await this.presentation.fullscreen.enter();
   }
 
   async enterPictureInPicture(): Promise<void> {
-    await enterNativeVideoPictureInPicture(this.getNativeCommandInput());
+    await this.presentation.enterPictureInPicture();
   }
 
   async exitFullscreen(): Promise<void> {
-    await exitNativeVideoFullscreen(this.getNativeCommandInput());
+    await this.presentation.fullscreen.exit();
+  }
+
+  exitPictureInPicture(): Promise<void> {
+    return this.presentation.exitPictureInPicture();
   }
 
   subscribe(listener: VibePlayerAdapterListener): () => void {
@@ -129,6 +147,7 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   unmount(): Promise<void> {
+    const cleanup = this.presentation.unmount();
     this.mounted = false;
     this.playbackGeneration += 1;
     if (this.video) {
@@ -136,11 +155,15 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     }
     this.source = null;
     this.video = null;
-    return Promise.resolve();
+    return cleanup;
   }
 
-  private emit(type: VibePlayerEventName): void {
+  private emit(
+    type: VibePlayerEventName,
+    payload?: VibePlayerAdapterEvent["payload"]
+  ): void {
     const event: VibePlayerAdapterEvent = {
+      ...(payload ? { payload } : {}),
       snapshot: this.getSnapshot(),
       type,
     };
@@ -167,9 +190,9 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     if (this.video) {
       return this.video;
     }
-    const video = createFileVideo((event) => {
+    const video = createFileVideo((event, payload) => {
       if (this.video === video) {
-        this.emit(event);
+        this.emit(event, payload);
       }
     });
     this.video = video;

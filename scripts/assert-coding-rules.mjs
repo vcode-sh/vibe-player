@@ -11,8 +11,14 @@ const scannedExtensions = new Set([
   ".ts",
   ".tsx",
 ]);
-const rootFiles = ["biome.json", "package.json", "tsconfig.json"];
-const scanRoots = ["scripts", "src", "demo/vite/src"];
+const rootFiles = [
+  "biome.json",
+  "package.json",
+  "playwright.config.ts",
+  "tsconfig.json",
+  "vitest.config.ts",
+];
+const scanRoots = ["scripts", "src", "test", "demo/vite/src"];
 const demoFiles = [
   "demo/vite/index.html",
   "demo/vite/tsconfig.json",

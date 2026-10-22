@@ -18,6 +18,7 @@ export interface YouTubeAdapterErrorPayload
 
 export interface YouTubePlayerSession {
   element: HTMLElement;
+  onAutoplayBlocked?: () => void;
   onError: (payload: YouTubeAdapterErrorPayload) => void;
   onPlaybackRateChange: () => void;
   onReady: () => void;
@@ -32,6 +33,7 @@ export interface YouTubePlayerSession {
 
 export interface YouTubePlayerHandle {
   destroy(): void;
+  getAvailablePlaybackRates?(): number[];
   getCurrentTime(): number;
   getDuration(): number;
   getIframe?(): HTMLIFrameElement;
@@ -60,6 +62,7 @@ export interface YouTubeIframeEvent {
 
 export interface YouTubeIframePlayerOptions {
   events: {
+    onAutoplayBlocked?: () => void;
     onError: (event: YouTubeIframeEvent) => void;
     onPlaybackRateChange: () => void;
     onReady: () => void;

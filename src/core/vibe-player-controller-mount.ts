@@ -10,6 +10,7 @@ export interface MountVibePlayerControllerAdapterInput {
   adapter: VibePlayerAdapter | null;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
   isCurrent: () => boolean;
+  presentationTarget: HTMLElement;
   source: VibePlayerSource | null;
   target: HTMLElement;
   targetChanged: boolean;
@@ -24,6 +25,7 @@ export async function mountVibePlayerControllerAdapter({
   isCurrent,
   source,
   target,
+  presentationTarget,
   targetChanged,
   updateState,
 }: MountVibePlayerControllerAdapterInput): Promise<void> {
@@ -31,7 +33,7 @@ export async function mountVibePlayerControllerAdapter({
     return;
   }
   try {
-    await adapter.mount(target);
+    await adapter.mount(target, presentationTarget);
     if (targetChanged && isCurrent()) {
       updateState({
         capabilities: adapter.capabilities,

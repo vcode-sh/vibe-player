@@ -34,6 +34,7 @@ export const publicApiExports = [
   "VibePlayerCaptionOverlay",
   "VibePlayerCaptionOverlayProps",
   "VibePlayerCaptionTextLoader",
+  "VibePlayerCaptionStatus",
   "VibePlayerCaptionTrack",
   "VibePlayerCaptionsState",
   "VibePlayerChromeState",

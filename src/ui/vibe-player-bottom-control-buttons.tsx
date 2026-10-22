@@ -7,6 +7,7 @@ import {
 import {
   CaptionsIcon,
   EnterFullscreenIcon,
+  ExitFullscreenIcon,
   MuteIcon,
   PauseIcon,
   PictureInPictureIcon,
@@ -82,7 +83,10 @@ export function VibePlayerRateControl({
         className="vibe-player-controls__rate"
         onClick={() =>
           onSetPlaybackRate(
-            getNextVibePlayerPlaybackRate(snapshot.playbackRate)
+            getNextVibePlayerPlaybackRate(
+              snapshot.playbackRate,
+              snapshot.playbackRates
+            )
           )
         }
         type="button"
@@ -122,11 +126,13 @@ export function VibePlayerCaptionsControl({
 
 interface VibePlayerFullscreenControlProps {
   capabilities: VibePlayerCapabilities;
+  isFullscreen?: boolean | undefined;
   onToggleFullscreen: (() => void) | undefined;
 }
 
 export function VibePlayerFullscreenControl({
   capabilities,
+  isFullscreen = false,
   onToggleFullscreen,
 }: VibePlayerFullscreenControlProps) {
   if (!(capabilities.canFullscreen && onToggleFullscreen)) {
@@ -134,23 +140,26 @@ export function VibePlayerFullscreenControl({
   }
   return (
     <VibePlayerToggleButton
-      label="Full screen"
+      active={isFullscreen}
+      label={isFullscreen ? "Exit full screen" : "Full screen"}
       onClick={onToggleFullscreen}
       shortcut="F"
       tooltipAlign="end"
     >
-      <EnterFullscreenIcon />
+      {isFullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
     </VibePlayerToggleButton>
   );
 }
 
 interface VibePlayerPictureInPictureControlProps {
   capabilities: VibePlayerCapabilities;
+  isPictureInPicture?: boolean | undefined;
   onTogglePictureInPicture: (() => void) | undefined;
 }
 
 export function VibePlayerPictureInPictureControl({
   capabilities,
+  isPictureInPicture = false,
   onTogglePictureInPicture,
 }: VibePlayerPictureInPictureControlProps) {
   if (!(capabilities.canPictureInPicture && onTogglePictureInPicture)) {
@@ -158,7 +167,10 @@ export function VibePlayerPictureInPictureControl({
   }
   return (
     <VibePlayerToggleButton
-      label="Picture in picture"
+      active={isPictureInPicture}
+      label={
+        isPictureInPicture ? "Exit picture in picture" : "Picture in picture"
+      }
       onClick={onTogglePictureInPicture}
       tooltipAlign="end"
     >

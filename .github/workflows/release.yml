@@ -13,7 +13,12 @@ permissions:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
+  consumer-compatibility:
+    if: ${{ vars.ENABLE_NPM_PUBLISH == 'true' }}
+    uses: ./.github/workflows/consumer-compatibility.yml
+
   release:
+    needs: consumer-compatibility
     if: ${{ vars.ENABLE_NPM_PUBLISH == 'true' }}
     runs-on: ubuntu-latest
 
@@ -35,6 +40,9 @@ jobs:
 
       - name: Install
         run: bun install --frozen-lockfile
+
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
 
       - name: Release quality gates
         run: bun run ci

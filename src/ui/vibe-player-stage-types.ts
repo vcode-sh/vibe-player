@@ -2,16 +2,21 @@ import type { ReactNode } from "react";
 import type { VibePlayerControllerState, VibePlayerSource } from "../core";
 import type {
   UseVibePlayerOptions,
+  VibePlayerCaptionStatus,
   VibePlayerCaptionTextLoader,
 } from "../react";
 
 /** Playback options shared by full-stage, inline and modal assemblies. */
 export interface VibePlayerPlaybackOptions
-  extends Omit<UseVibePlayerOptions, "source" | "open"> {
+  extends Omit<UseVibePlayerOptions, "source" | "open" | "presentationTarget"> {
   /** Keep controls visible when false; provider visibility requirements still apply. */
   autoHideControls?: boolean | undefined;
   /** Host caption loader; defaults to a cancellable fetch. */
   loadCaptionText?: VibePlayerCaptionTextLoader | undefined;
+  /** Observe caption availability without treating it as a video failure. */
+  onCaptionStatusChange?:
+    | ((status: VibePlayerCaptionStatus) => void)
+    | undefined;
   /** Observe normalized playback state without assembling a custom player. */
   onStateChange?: ((state: VibePlayerControllerState) => void) | undefined;
   /** Host actions rendered in the top control chrome. */

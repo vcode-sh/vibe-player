@@ -82,6 +82,7 @@ describe("media delivery audit credentialed CORS", () => {
         allowOrigin: "*",
         credentialsRequired: true,
         origin: "https://wildcard.example.com",
+        status: 206,
       },
       {
         allowCredentials: "true",
@@ -89,6 +90,7 @@ describe("media delivery audit credentialed CORS", () => {
         allowOrigin: "https://secure.example.com",
         credentialsRequired: true,
         origin: "https://secure.example.com",
+        status: 206,
       },
     ]);
   });
@@ -121,6 +123,7 @@ describe("media delivery audit credentialed CORS", () => {
           allowOrigin,
           credentialsRequired: credentials,
           origin: "https://app.example.com",
+          status: 206,
         },
       ]);
       expect(report.findings.map((finding) => finding.code)).toEqual(

@@ -66,6 +66,14 @@ export function EnterFullscreenIcon(props: VibePlayerIconProps) {
   );
 }
 
+export function ExitFullscreenIcon(props: VibePlayerIconProps) {
+  return (
+    <VibePlayerIconBase {...props}>
+      <path d="M3 8h5V3M16 3v5h5M3 16h5v5M16 21v-5h5" />
+    </VibePlayerIconBase>
+  );
+}
+
 export function MuteIcon(props: VibePlayerIconProps) {
   return (
     <VibePlayerIconBase {...props}>

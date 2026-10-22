@@ -40,7 +40,7 @@ export interface VibePlayerError {
   cause?: unknown;
   details?: Readonly<VibePlayerAdapterEvent["payload"]>;
   message: string;
-  phase: "create" | "mount" | "load" | "playback";
+  phase: "create" | "mount" | "load" | "playback" | "integration";
   provider: VibePlayerSource["type"];
   sourceId: string;
 }

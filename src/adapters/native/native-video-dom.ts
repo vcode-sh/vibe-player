@@ -3,12 +3,16 @@ import {
   getFiniteVibePlayerDuration,
 } from "../../core/vibe-player-time";
 import type {
+  VibePlayerAdapterEvent,
   VibePlayerCaptionTrack,
   VibePlayerEventName,
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
 
-type NativeVideoEventEmitter = (event: VibePlayerEventName) => void;
+type NativeVideoEventEmitter = (
+  event: VibePlayerEventName,
+  payload?: VibePlayerAdapterEvent["payload"]
+) => void;
 
 interface NativeEventBinding {
   nativeEvent: keyof HTMLVideoElementEventMap;
@@ -70,7 +74,17 @@ export function createNativeVideo(
       if (binding.playerEvent === "buffering" && video.paused) {
         return;
       }
-      emit(binding.playerEvent);
+      const error = binding.playerEvent === "error" ? video.error : null;
+      emit(
+        binding.playerEvent,
+        error
+          ? {
+              code: error.code,
+              fatal: true,
+              message: error.message || "Native video playback failed.",
+            }
+          : undefined
+      );
     });
   }
   return video;

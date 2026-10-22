@@ -7,10 +7,13 @@ without archaeology.
 ## Before Opening A PR
 
 1. Run `bun install`.
-2. Run `bun run ci`.
-3. If you changed package output, run `npm pack --dry-run --json`.
-4. If you changed media delivery logic, add or update focused Vitest coverage.
-5. If you changed public APIs, update README/docs and public-surface guards.
+2. Install browser acceptance dependencies with
+   `bunx playwright install --with-deps chromium`.
+3. Run `bun run ci`.
+4. If you changed package output, run `npm pack --dry-run --json`.
+5. If you changed media delivery logic, add or update focused Vitest coverage.
+6. If you changed public APIs, update [usage](docs/usage.md),
+   [integration](docs/integration.md), and public-surface guards.
 
 ## Development Rules
 
@@ -32,10 +35,19 @@ include a short testing note and screenshots or browser evidence for UI work.
 
 ## Toolchain
 
-`package.json#packageManager` pins Bun for local work and both CI workflows.
-`bun run ci` checks the package and builds both source and packaged demos.
-`bun run demo:vite:verify` expects the package to have been built first.
-Vitest runs CLI tests in Node and browser-facing tests in Happy DOM.
+Use Node 24 for repository development and build tooling.
+`package.json#packageManager` pins Bun for local work and CI workflows.
+The package supports Node 22 independently of the development toolchain; CI
+checks an isolated tarball consumer on Node 22.0.0 with React 19.2.7 and on
+Node 24 with the development React version.
+
+`bun run ci` checks the package, both demo builds, an isolated packed consumer,
+and Chromium acceptance. Install Chromium before running it locally; Playwright
+also installs required system libraries on Linux with `--with-deps`.
+`bun run demo:vite:verify`, `bun run package:consumer`, and
+`bun run test:browser` expect the package to have been built first.
+Vitest runs CLI tests in Node and component tests in Happy DOM. Playwright owns
+the real browser lane; DOM emulation does not prove playback or focus geometry.
 
 Ultracite 8.0.1 needs the checked-in Bun patch to use Biome 2.6's renamed
 Tailwind rule and shared Tailwind settings. Bun applies it during installation.

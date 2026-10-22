@@ -19,6 +19,7 @@ export interface LoadVibePlayerControllerSourceInput {
   handleAdapterEvent: (event: VibePlayerAdapterEvent) => void;
   isCurrentOperation: (operationGeneration: number) => boolean;
   operationGeneration: number;
+  presentationTarget: HTMLElement | null;
   resumeStore: VibePlayerControllerOptions["resumeStore"] | undefined;
   setAdapter: (adapter: VibePlayerAdapter) => void;
   setAdapterUnsubscribe: (unsubscribe: () => void) => void;
@@ -112,7 +113,10 @@ async function mountAndLoadControllerAdapter(
   let phase: VibePlayerError["phase"] = "mount";
   try {
     if (input.target) {
-      await adapter.mount(input.target);
+      await adapter.mount(
+        input.target,
+        input.presentationTarget ?? input.target
+      );
     }
     if (!input.isCurrentOperation(input.operationGeneration)) {
       return;

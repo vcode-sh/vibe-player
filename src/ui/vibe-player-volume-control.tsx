@@ -94,7 +94,7 @@ export function VibePlayerVolumeControl({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && popover.open) {
       event.preventDefault();
       popover.closePopover(true);
     }

@@ -159,10 +159,10 @@ describe("createFileAdapter", () => {
     expect(video.paused).toBe(true);
   });
 
-  it("uses fullscreen only when the mounted video supports it", async () => {
-    const { adapter, video } = await createLoadedFileAdapter();
+  it("uses fullscreen only when the mounted container supports it", async () => {
+    const { adapter, target } = await createLoadedFileAdapter();
     const requestFullscreen = vi.fn(() => Promise.resolve());
-    video.requestFullscreen = requestFullscreen;
+    target.requestFullscreen = requestFullscreen;
     expect(adapter.capabilities.canFullscreen).toBe(true);
     await adapter.enterFullscreen?.();
     expect(requestFullscreen).toHaveBeenCalledOnce();

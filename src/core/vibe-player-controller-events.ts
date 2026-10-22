@@ -6,21 +6,19 @@ import type {
   VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
   VibePlayerControllerState,
-  VibePlayerEventName,
   VibePlayerResumeStore,
-  VibePlayerSnapshot,
   VibePlayerSource,
 } from "./vibe-player-types";
 
 export interface HandleVibePlayerAdapterEventInput {
   adapter: VibePlayerAdapter | null;
   analyticsSession: VibePlayerAnalyticsSession;
-  currentSnapshot: VibePlayerSnapshot;
   currentSource: VibePlayerSource | null;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
   event: VibePlayerAdapterEvent;
-  lastEvent: VibePlayerEventName | null;
+  isCurrent: () => boolean;
   playbackBlocked: boolean;
+  preservePausedIntent: boolean;
   resumeStore?: VibePlayerResumeStore | undefined;
   updateState: (next: Partial<VibePlayerControllerState>) => void;
 }
@@ -29,19 +27,15 @@ export function handleVibePlayerAdapterEvent({
   adapter,
   analyticsSession,
   currentSource,
-  currentSnapshot,
   emitAnalytics,
   event,
-  lastEvent,
+  isCurrent,
   playbackBlocked,
+  preservePausedIntent,
   resumeStore,
   updateState,
 }: HandleVibePlayerAdapterEventInput): void {
-  const stateEvent = getControllerStateEvent({
-    currentSnapshot,
-    event,
-    lastEvent,
-  });
+  const stateEvent = getControllerStateEvent(event, preservePausedIntent);
   updateState({
     capabilities: adapter?.capabilities ?? createIdleCapabilities(),
     ...(stateEvent.type === "error" && currentSource
@@ -57,15 +51,14 @@ export function handleVibePlayerAdapterEvent({
     playbackBlocked: getNextPlaybackBlocked(stateEvent, playbackBlocked),
     snapshot: stateEvent.snapshot,
   });
-  if (stateEvent !== event) {
-    return;
-  }
-  if (!currentSource) {
+  if (stateEvent !== event || !currentSource || !isCurrent()) {
     return;
   }
   if (event.type === "timeupdate") {
     resumeStore?.set(currentSource.id, event.snapshot.currentTime);
-    analyticsSession.recordProgress(currentSource, event.snapshot);
+    if (isCurrent()) {
+      analyticsSession.recordProgress(currentSource, event.snapshot);
+    }
     return;
   }
   if (event.type === "play") {
@@ -80,6 +73,9 @@ export function handleVibePlayerAdapterEvent({
   }
   if (event.type === "ended") {
     resumeStore?.clear(currentSource.id);
+    if (!isCurrent()) {
+      return;
+    }
     analyticsSession.emitOnce({
       currentTime: event.snapshot.currentTime,
       duration: event.snapshot.duration,
@@ -113,41 +109,16 @@ function getNextPlaybackBlocked(
   return playbackBlocked;
 }
 
-interface GetControllerStateEventInput {
-  currentSnapshot: VibePlayerSnapshot;
-  event: VibePlayerAdapterEvent;
-  lastEvent: VibePlayerEventName | null;
-}
-
-function getControllerStateEvent({
-  currentSnapshot,
-  event,
-  lastEvent,
-}: GetControllerStateEventInput): VibePlayerAdapterEvent {
-  if (!shouldPreservePausedIntent({ currentSnapshot, event, lastEvent })) {
+function getControllerStateEvent(
+  event: VibePlayerAdapterEvent,
+  preservePausedIntent: boolean
+): VibePlayerAdapterEvent {
+  if (!preservePausedIntent) {
     return event;
   }
   return {
     ...event,
-    snapshot: {
-      ...event.snapshot,
-      paused: true,
-      readyState: "ready",
-    },
+    snapshot: { ...event.snapshot, paused: true, readyState: "ready" },
     type: "pause",
   };
-}
-
-function shouldPreservePausedIntent({
-  currentSnapshot,
-  event,
-  lastEvent,
-}: GetControllerStateEventInput): boolean {
-  if (!(lastEvent === "pause" && currentSnapshot.paused)) {
-    return false;
-  }
-  if (event.snapshot.paused) {
-    return false;
-  }
-  return !(event.type === "ended" || event.type === "error");
 }

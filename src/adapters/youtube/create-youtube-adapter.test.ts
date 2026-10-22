@@ -21,6 +21,7 @@ describe("createYouTubeAdapter", () => {
     const { probe, runtime } = createYouTubeRuntime();
     const adapter = createYouTubeAdapter(runtime);
     const target = document.createElement("div");
+    target.requestFullscreen = () => Promise.resolve();
 
     await adapter.mount(target);
     await adapter.load(youtubeSource);
@@ -86,27 +87,9 @@ describe("createYouTubeAdapter", () => {
     probe.currentTime = 12.2;
     getYouTubeSession(probe).onStateChange(youtubePlayerStates.paused);
     await vi.advanceTimersByTimeAsync(2500);
+    getYouTubeSession(probe).onAutoplayBlocked?.();
 
     expect(events.at(-1)?.type).toBe("pause");
-  });
-
-  it("emits playblocked when YouTube stalls after a play command", async () => {
-    vi.useFakeTimers();
-    const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
-    const target = document.createElement("div");
-    const events = collectYouTubeAdapterEvents(adapter);
-
-    await adapter.mount(target);
-    await adapter.load(youtubeSource);
-    await adapter.play();
-    getYouTubeSession(probe).onStateChange(youtubePlayerStates.playing);
-    getYouTubeSession(probe).onStateChange(youtubePlayerStates.paused);
-    getYouTubeSession(probe).onStateChange(youtubePlayerStates.buffering);
-    await vi.advanceTimersByTimeAsync(2500);
-
-    expect(events.at(-1)?.type).toBe("playblocked");
-    expect(events.at(-1)?.snapshot.readyState).toBe("buffering");
   });
 
   it("forwards commands and clamps seek and volume values", async () => {

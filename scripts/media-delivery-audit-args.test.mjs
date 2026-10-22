@@ -25,6 +25,7 @@ describe("media delivery audit args", () => {
       origins: ["https://app.example.com", "https://www.example.com"],
       requireDirectFileReady: true,
       strict: true,
+      timeoutMs: 30_000,
       url: "https://cdn.example.com/video.mp4",
     });
   });
@@ -43,6 +44,7 @@ describe("media delivery audit args", () => {
       origins: [],
       requireDirectFileReady: false,
       strict: true,
+      timeoutMs: 30_000,
       url: "https://cdn.example.com/video.mp4",
     });
   });
@@ -56,6 +58,7 @@ describe("media delivery audit args", () => {
       origins: [],
       requireDirectFileReady: false,
       strict: false,
+      timeoutMs: 30_000,
       url: "",
     });
   });

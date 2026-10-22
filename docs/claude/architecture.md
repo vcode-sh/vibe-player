@@ -57,7 +57,7 @@ Provider runtimes translate their APIs into package events, snapshots and
 capabilities. Shared rendering consumes those normalized contracts. HLS keeps
 managed playback, native fallback, live behavior, quality selection and pending
 load ownership inside its bridge. YouTube owns its iframe runtime, state
-translation, playback watchdog and time polling.
+translation, official autoplay-blocked events and time polling.
 
 Use composition for shared browser operations. A common adapter superclass is
 not required merely because several providers implement the same methods.
@@ -74,6 +74,14 @@ The core controller receives an adapter factory by injection. React and UI
 composition may select the default package factory. Callback updates do not
 create a new playback session; factory/store changes define a new controller.
 Source content changes, including URLs under the same ID, remain observable.
+The media mount and optional presentation container have separate ownership;
+changing fullscreen chrome does not restart playback. Presentation state and
+provider rate choices are optional normalized adapter snapshot fields.
+
+Host persistence, analytics and controller listeners are isolated at the core
+observer boundary. Their failures remain observable as nonfatal integration
+errors. Caption request status/retry belongs to the React caption binding and
+has a separate ready-made UI observer; it never becomes a playback failure.
 
 Skin tokens describe the preset. Runtime styling uses the bundled stylesheet and
 its CSS custom properties; changing a metadata object does not restyle a player.
@@ -103,7 +111,12 @@ check alongside publint and ATTW.
 
 Behavior belongs to the layer that owns it. Use the testing-patterns skill for
 regressions. Browser evidence owns playback, focus, rendering and motion claims;
-DOM emulation proves state and interaction contracts only.
+DOM emulation proves state and interaction contracts only. `test:browser` uses
+built package exports and local MP4/HLS/VTT in Chromium; see
+[test/browser/README.md](../../test/browser/README.md). `package:consumer`
+installs a real archive outside the repository and checks documentation recipes,
+strict types, SSR, CSS, the installed CLI and a consumer build. The compatibility
+workflow checks exact minimum Node/React separately from development tooling.
 
 See [architecture-dx.md](../architecture-dx.md) for the decisions and acceptance
 criteria behind this structure.

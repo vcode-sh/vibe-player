@@ -98,6 +98,7 @@ function createYouTubePlayerHandle(
   return {
     destroy: () => {
       probe.destroyed = true;
+      probe.iframe.remove();
     },
     getCurrentTime: () => probe.currentTime,
     getDuration: () => probe.duration,

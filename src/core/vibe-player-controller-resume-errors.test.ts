@@ -7,43 +7,60 @@ function createResumeStore() {
 }
 
 describe("controller resume diagnostics", () => {
-  it.each(["store", "seek"] as const)(
-    "reports a resume %s failure during loading",
-    async (boundary) => {
-      const adapter = new TestAdapter();
-      const cause = new Error(`Resume ${boundary} unavailable`);
-      const resumeStore = createResumeStore();
-      if (boundary === "store") {
-        resumeStore.get = () => {
-          throw cause;
-        };
-      } else {
-        adapter.seekTo = () => Promise.reject(cause);
-      }
-      const onError = vi.fn();
-      const controller = new VibePlayerController({
-        adapterFactory: () => adapter,
-        onError,
-        resumeStore,
-      });
+  it("continues playback while reporting an unavailable resume store", async () => {
+    const adapter = new TestAdapter();
+    const cause = new Error("Resume store unavailable");
+    const resumeStore = {
+      ...createResumeStore(),
+      get: () => {
+        throw cause;
+      },
+    };
+    const onError = vi.fn();
+    const controller = new VibePlayerController({
+      adapterFactory: () => adapter,
+      onError,
+      resumeStore,
+    });
 
-      await expect(controller.load(fileSource)).rejects.toBe(cause);
+    await controller.load(fileSource);
+    await controller.play();
 
-      expect(controller.getState()).toMatchObject({
-        currentSource: { id: "video-1" },
-        error: {
-          cause,
-          message: `Resume ${boundary} unavailable`,
-          phase: "load",
-          sourceId: "video-1",
-        },
-        lastEvent: "error",
-        snapshot: { readyState: "error" },
-      });
-      expect(onError).toHaveBeenCalledTimes(1);
-      await controller.teardown();
-    }
-  );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cause,
+        details: { operation: "resume-get" },
+        phase: "integration",
+        sourceId: "video-1",
+      })
+    );
+    expect(adapter.calls).toContain("play");
+    expect(controller.getState().snapshot.readyState).toBe("buffering");
+    await controller.teardown();
+  });
+
+  it("reports a failed provider resume seek during loading", async () => {
+    const adapter = new TestAdapter();
+    const cause = new Error("Resume seek unavailable");
+    adapter.seekTo = () => Promise.reject(cause);
+    const onError = vi.fn();
+    const controller = new VibePlayerController({
+      adapterFactory: () => adapter,
+      onError,
+      resumeStore: createResumeStore(),
+    });
+
+    await expect(controller.load(fileSource)).rejects.toBe(cause);
+
+    expect(controller.getState()).toMatchObject({
+      currentSource: { id: "video-1" },
+      error: { cause, phase: "load", sourceId: "video-1" },
+      lastEvent: "error",
+      snapshot: { readyState: "error" },
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+    await controller.teardown();
+  });
 
   it("does not attribute a superseded resume rejection to the replacement source", async () => {
     const old = new TestAdapter();

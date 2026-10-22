@@ -4,10 +4,12 @@ import type { HlsAdapterLoadSession } from "./hls-adapter-load-session";
 export interface HlsAdapterSessionState {
   beginLoad: (source: VibePlayerHlsSource) => HlsAdapterLoadSession;
   close: () => void;
+  readonly failed: boolean;
   incrementPlaybackGeneration: () => number;
   isCurrentLoadSession: (loadSession: HlsAdapterLoadSession) => boolean;
   readonly isSeekable: boolean;
   readonly live: boolean;
+  markFailed: () => void;
   markMounted: () => void;
   readonly mounted: boolean;
   readonly playbackGeneration: number;
@@ -25,6 +27,11 @@ class MutableHlsAdapterSessionState implements HlsAdapterSessionState {
   private currentSource: VibePlayerHlsSource | null = null;
   private mountedState = false;
   private liveState = false;
+  private failureState = false;
+
+  get failed(): boolean {
+    return this.failureState;
+  }
 
   get isSeekable(): boolean {
     return !this.liveState;
@@ -47,6 +54,7 @@ class MutableHlsAdapterSessionState implements HlsAdapterSessionState {
   }
 
   beginLoad(source: VibePlayerHlsSource): HlsAdapterLoadSession {
+    this.failureState = false;
     this.currentSource = source;
     this.currentLoadGeneration += 1;
     this.currentPlaybackGeneration += 1;
@@ -58,6 +66,7 @@ class MutableHlsAdapterSessionState implements HlsAdapterSessionState {
     this.mountedState = false;
     this.currentLoadGeneration += 1;
     this.currentPlaybackGeneration += 1;
+    this.failureState = false;
     this.currentSource = null;
     this.liveState = false;
   }
@@ -69,6 +78,10 @@ class MutableHlsAdapterSessionState implements HlsAdapterSessionState {
 
   isCurrentLoadSession(loadSession: HlsAdapterLoadSession): boolean {
     return this.currentLoadGeneration === loadSession.generation;
+  }
+
+  markFailed(): void {
+    this.failureState = true;
   }
 
   markMounted(): void {

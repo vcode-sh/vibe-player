@@ -144,3 +144,31 @@
     transform: rotate(360deg);
   }
 }
+
+.vibe-player-stage__caption-status {
+  position: absolute;
+  inset-block-start: 3.5rem;
+  inset-inline: 1rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0.5rem 0.75rem;
+  margin-inline: auto;
+  font-size: 0.875rem;
+  color: white;
+  background: rgb(0 0 0 / 80%);
+  border-radius: 0.375rem;
+}
+
+.vibe-player-stage__caption-status button {
+  padding: 0.25rem 0.5rem;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 0.25rem;
+}

@@ -122,6 +122,12 @@ const source = {
 Pass `loadCaptionText` to `VibePlayerStage` when captions should load through a
 host-owned fetch/cache path. Otherwise the package uses `fetch`.
 
+Caption failures leave video playback available. The stage shows a retry action;
+`onCaptionStatusChange` reports `{ error, loading, track }` without firing on
+every playback tick. Custom controls can use `useVibePlayerCaptions`, which
+exposes the same status, `activeLines`, and a stable `retry()` action. Selection
+currently uses the default track or the first declared track.
+
 ## Autoplay And Audio
 
 `autoPlay` asks the package to start playback after the source loads. By
@@ -201,10 +207,24 @@ Give the media mount a size in your own layout. Add `autoPlay`, `open`,
 `onAnalyticsEvent`, `onError`, or `resumeStore` when needed. Volume and quality
 helpers remain available for controls that follow normalized capabilities.
 
+For fullscreen that includes custom chrome, pass its container element as
+`presentationTarget` to `useVibePlayer`; it defaults to the media mount.
+Changing only that container preserves the current source. Built-in assemblies
+use the stage root. `snapshot.isFullscreen` and `snapshot.isPictureInPicture`
+reflect browser presentation; matching controller enter/exit methods support
+custom toggles. Custom adapters can add these optional fields and methods.
+
+`snapshot.playbackRates` supplies provider-supported rate choices when present.
+Pass it as the second argument to `getNextVibePlayerPlaybackRate`; omitted choices
+use package defaults. Always honor the normalized capability flags.
+
 `useVibePlayerController` is the lower-level binding for integrations that own
 mounting and source loading themselves. Its default adapter factory is optional;
 a custom factory or resume store defines a new controller, while callback
-updates do not restart playback.
+updates do not restart playback. Resume-store and telemetry failures are
+nonfatal integration errors: `onError` receives `phase: "integration"` and
+`details.operation`. A failed host error reporter is contained to avoid a
+reporting loop.
 
 The default UI intentionally stays dependency-light. Base UI is a good host
 layer for custom sliders, menus, and popovers, but it is not a required runtime
@@ -216,6 +236,13 @@ dependency of the package.
 `presentation: "external"` renders a package-owned handoff surface and opens
 YouTube. It does not fake hidden YouTube playback, raw streams, captions, PiP,
 or quality controls.
+
+Autoplay blocking follows the official SDK event; slow buffering alone does not
+produce a policy warning. Repeating a mount on the same target preserves the
+live iframe. Moving it to another target preserves its browsing context when
+`Element.moveBefore` is available; older browsers fall back to moving the node
+and may reload embedded content. After SDK initialization fails, a later load
+can retry without refreshing the page.
 
 ## Media Audit
 

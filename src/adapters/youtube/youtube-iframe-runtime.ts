@@ -5,6 +5,7 @@ import type {
 import { createReadyYouTubePlayer } from "./youtube-player-creation";
 
 let youtubeApiPromise: Promise<YouTubeIframeApi> | null = null;
+const failedApiScripts = new WeakSet<HTMLScriptElement>();
 
 const youtubeIframeApiSrc = "https://www.youtube.com/iframe_api";
 const youtubeIframeApiTimeoutMs = 8000;
@@ -21,7 +22,12 @@ export function loadYouTubeIframeApi(): Promise<YouTubeIframeApi> {
   if (window.YT?.Player) {
     return Promise.resolve(window.YT);
   }
-  youtubeApiPromise ??= createYouTubeIframeApiPromise();
+  youtubeApiPromise ??= createYouTubeIframeApiPromise().catch(
+    (error: unknown) => {
+      youtubeApiPromise = null;
+      throw error;
+    }
+  );
   return youtubeApiPromise;
 }
 
@@ -29,9 +35,12 @@ function createYouTubeIframeApiPromise(): Promise<YouTubeIframeApi> {
   return new Promise((resolve, reject) => {
     const previousReady = window.onYouTubeIframeAPIReady;
     let completed = false;
-    let script: HTMLScriptElement | null = document.querySelector(
-      `script[src="${youtubeIframeApiSrc}"]`
-    );
+    let ownedScript = false;
+    let script = Array.from(
+      document.querySelectorAll<HTMLScriptElement>(
+        `script[src="${youtubeIframeApiSrc}"]`
+      )
+    ).find((candidate) => !failedApiScripts.has(candidate));
     const pollId = window.setInterval(
       () => resolveIfReady(),
       youtubeIframeApiPollMs
@@ -69,6 +78,12 @@ function createYouTubeIframeApiPromise(): Promise<YouTubeIframeApi> {
       }
       completed = true;
       cleanup();
+      if (script) {
+        failedApiScripts.add(script);
+        if (ownedScript) {
+          script.remove();
+        }
+      }
       reject(error);
     }
 
@@ -87,6 +102,7 @@ function createYouTubeIframeApiPromise(): Promise<YouTubeIframeApi> {
     window.onYouTubeIframeAPIReady = handleReady;
 
     if (!script) {
+      ownedScript = true;
       script = document.createElement("script");
       script.src = youtubeIframeApiSrc;
       script.async = true;

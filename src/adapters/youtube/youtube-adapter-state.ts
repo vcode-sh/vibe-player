@@ -1,3 +1,4 @@
+import { vibePlayerPlaybackRates } from "../../core/vibe-player-playback-rate";
 import {
   createIdleCapabilities,
   createIdleSnapshot,
@@ -15,17 +16,17 @@ import { youtubePlayerStates } from "./youtube-iframe-types";
 
 export function getYouTubeCapabilities(
   player: YouTubePlayerHandle | null,
-  source: VibePlayerYouTubeSource | null
+  source: VibePlayerYouTubeSource | null,
+  canFullscreen: boolean
 ): VibePlayerCapabilities {
   if (!source) {
     return createIdleCapabilities();
   }
-  const iframe = player?.getIframe?.() ?? null;
   return {
-    canFullscreen: Boolean(iframe?.requestFullscreen),
+    canFullscreen,
     canPictureInPicture: false,
     canSeek: true,
-    canSetPlaybackRate: true,
+    canSetPlaybackRate: getYouTubePlaybackRates(player).length > 1,
     canShowCaptions: false,
     hasNativeCaptionsMenu: true,
     isLive: false,
@@ -53,6 +54,7 @@ export function getYouTubeSnapshot(
     muted: player.isMuted(),
     paused: playerState !== youtubePlayerStates.playing,
     playbackRate: getPlaybackRate(player),
+    playbackRates: getYouTubePlaybackRates(player),
     readyState: getReadyState(playerState),
     volume: getVolume(player),
   };
@@ -109,4 +111,15 @@ function getVolume(player: YouTubePlayerHandle): number {
     return Math.min(1, Math.max(0, volume));
   }
   return 1;
+}
+
+function getYouTubePlaybackRates(player: YouTubePlayerHandle | null): number[] {
+  if (!player) {
+    return [];
+  }
+  const rates = player.getAvailablePlaybackRates?.() ?? vibePlayerPlaybackRates;
+  const normalized = [
+    ...new Set(rates.filter((rate) => Number.isFinite(rate) && rate > 0)),
+  ].sort((left, right) => left - right);
+  return normalized.length > 0 ? normalized : [getPlaybackRate(player)];
 }

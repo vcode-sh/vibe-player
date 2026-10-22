@@ -4,7 +4,6 @@ import type {
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
 import { clearElement } from "../shared/clear-element";
-import { enterNativePictureInPicture } from "./native-picture-in-picture";
 
 export interface NativePlaybackResolution {
   activeVideo: HTMLVideoElement | null;
@@ -129,26 +128,6 @@ export function setNativeVideoVolume(
     input.emit("volumechange");
   }
   return Promise.resolve();
-}
-
-export async function enterNativeVideoFullscreen(
-  input: NativeVideoCommandInput
-): Promise<void> {
-  await input.getVideo()?.requestFullscreen();
-  input.emit("fullscreenchange");
-}
-
-export async function exitNativeVideoFullscreen(
-  input: NativeVideoCommandInput
-): Promise<void> {
-  await document.exitFullscreen?.();
-  input.emit("fullscreenchange");
-}
-
-export async function enterNativeVideoPictureInPicture(
-  input: NativeVideoCommandInput
-): Promise<void> {
-  await enterNativePictureInPicture(input.getVideo());
 }
 
 export function shouldPauseResolvedNativePlayback({

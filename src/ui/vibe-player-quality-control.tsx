@@ -99,17 +99,19 @@ export function VibePlayerQualityControl({
     }
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (event.key === "Escape" && open && !event.defaultPrevented) {
+      event.preventDefault();
+      closeMenu();
+      triggerRef.current?.focus();
+    }
+  }
+
   function handleOptionKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
     index: number,
     qualityId: string
   ): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeMenu();
-      triggerRef.current?.focus();
-      return;
-    }
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const offset = event.key === "ArrowDown" ? 1 : -1;
@@ -128,8 +130,12 @@ export function VibePlayerQualityControl({
   }
 
   return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions lint/a11y/noStaticElementInteractions: the wrapper closes this composite button/listbox when focus leaves its owned controls.
-    <div className="vibe-player-quality-control" onBlur={handleBlur}>
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions lint/a11y/noStaticElementInteractions: the wrapper owns focus-exit and Escape for this button/listbox composite.
+    <div
+      className="vibe-player-quality-control"
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+    >
       <VibePlayerTooltip align="end" label="Quality">
         <button
           aria-controls={open ? menuId : undefined}

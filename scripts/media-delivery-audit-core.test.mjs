@@ -67,6 +67,7 @@ describe("media delivery audit core", () => {
         allowOrigin: "https://app.example.com",
         credentialsRequired: false,
         origin: "https://app.example.com",
+        status: 206,
       },
       {
         allowCredentials: null,
@@ -74,6 +75,7 @@ describe("media delivery audit core", () => {
         allowOrigin: null,
         credentialsRequired: false,
         origin: "https://missing.example.com",
+        status: 206,
       },
     ]);
     expect(report.failures).toEqual([

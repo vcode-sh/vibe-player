@@ -22,6 +22,10 @@ export class DelayedYouTubePlayer implements YouTubePlayerHandle {
     this.options.events.onReady();
   }
 
+  signalAutoplayBlocked(): void {
+    this.options.events.onAutoplayBlocked?.();
+  }
+
   destroy(): void {
     this.destroyed = true;
     this.iframe.remove();
