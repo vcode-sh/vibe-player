@@ -151,7 +151,6 @@ stable. Do not duplicate existing lifecycle suites or mock internal helpers to
 prove implementation order.
 
 Acceptance must establish:
-
 - Custom mode passes the correct SDK parameters and shows one host playback bar.
   Native mode shows no duplicate host playback controls. Startup caption options
   reach the SDK, including omission semantics, and same-ID configuration changes
