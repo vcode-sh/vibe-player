@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-Development version: **0.2.0**. This version has not been released.
+## [0.2.0] - 2026-10-22
 
 ### Added
 

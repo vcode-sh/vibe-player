@@ -1,6 +1,6 @@
 # Accessibility acceptance
 
-Verification checkpoint: **2026-10-22**. Version remains **0.2.0, unreleased**.
+Verification checkpoint: **2026-10-22**. Version **0.2.0**, released 2026-10-22.
 
 The maintained browser and Linux assistive-technology checks pass. Physical
 keyboard hardware and human screen-reader listening remain separate manual

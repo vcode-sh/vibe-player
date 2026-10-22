@@ -1,6 +1,6 @@
 # Development Status and Next Tasks
 
-Release target: **0.2.0, unreleased**. The original T01–T17 backlog and the N01–N04 implementation and available
+Current release: **0.2.0**, released 2026-10-22. The original T01–T17 backlog and the N01–N04 implementation and available
 acceptance lanes are complete. Physical-platform limits remain explicit below. This checkpoint extends the modular-provider work in `ca6882f`;
 it does not prepare a release or change package ownership.
 
@@ -154,7 +154,7 @@ Multi-track caption selection, new providers, DRM/DASH, live DVR, a provider
 registry, monorepo/subpath split and a runtime skin engine still lack a concrete
 consumer requirement. Preserve opt-in persistence/telemetry, provider-neutral
 UI and explicit root/CSS exports. Do not upgrade the toolchain merely for novelty
-or bump/publish 0.2.0 as part of this work.
+or bump/publish a release as part of this work.
 
 [testing-audit.md](./testing-audit.md) remains a historical cleanup record, with
 its checkpoint and old counts explicitly labeled. Current behavior and commands
