@@ -1,26 +1,21 @@
 name: Release
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
-  pull-requests: write
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
 
 jobs:
-  consumer-compatibility:
-    if: ${{ vars.ENABLE_NPM_PUBLISH == 'true' }}
-    uses: ./.github/workflows/consumer-compatibility.yml
-
   release:
-    needs: consumer-compatibility
-    if: ${{ vars.ENABLE_NPM_PUBLISH == 'true' }}
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -47,12 +42,21 @@ jobs:
       - name: Release quality gates
         run: bun run ci
 
-      - name: Create release PR or publish
-        uses: changesets/action@v1
+      - name: Setup minimum consumer Node
+        uses: actions/setup-node@v6
         with:
-          commit: "chore: version packages"
-          title: "chore: version packages"
-          version: bun run release:version
-          publish: bun run release:publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          node-version: "22.0.0"
+          package-manager-cache: false
+
+      - name: Verify minimum Node and React
+        run: node scripts/assert-packed-consumer.mjs --react-version 19.2.7 --skip-build
+
+      - name: Restore publishing Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Publish committed version to npm
+        run: bun run release:publish --no-git-tag

@@ -3,7 +3,8 @@
 ## Current state
 
 - Package: `vibe-player`
-- Current version: `0.2.0`, released 2026-10-22
+- Repository version: `0.2.0`; check `npm view vibe-player version` for the
+  published stable version.
 - License: `Apache-2.0`
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
 - Output: ESM-only, built into `dist`
@@ -21,33 +22,51 @@ Consumers must use `vibe-player` and
 Local `file:` dependencies are for active package work only. Stable consumers
 should use the npm package or a real workspace boundary.
 
-## GitHub release workflow
+## GitHub workflows
 
-The release workflow is gated by `vars.ENABLE_NPM_PUBLISH`.
+Pull requests run one lightweight CI job: formatting/lint, TypeScript, unit
+tests and build. New PR updates cancel superseded runs. Pushes to `main` do not
+start CI or publish packages.
 
-Before `changesets/action` can create a version PR or publish, it runs
-`bun run ci`, including package rules, boundaries, dependency guard,
+Release runs only through `workflow_dispatch` on `main`. It runs `bun run ci`
+once on Node 24, including package rules, boundaries, dependency guard,
 release-state guard, TypeScript, tests, build, styles, size, public surface,
 tarball, publint, ATTW, the packaged consumer, and deterministic Chromium/WebKit
-acceptance. CI and release also call a consumer-compatibility workflow for exact
-Node 22.0.0 / React 19.2.7 and normal Node 24. Minimum-runtime checks skip the
-Vite consumer build, whose toolchain requires a newer Node than package runtime.
+acceptance. The same job then checks the built package on exact Node 22.0.0 /
+React 19.2.7, restores Node 24, and runs
+`bun run release:publish --no-git-tag` to publish the committed version.
+The minimum-runtime check skips the Vite consumer build,
+whose toolchain requires a newer Node than package runtime. Node 24 consumer
+coverage already belongs to `bun run ci`.
+
+Changesets prepares versions and changelogs locally. There is no automatic
+version PR or `ENABLE_NPM_PUBLISH` repository variable to maintain.
+GitHub tags and releases are separate manual steps; this workflow only
+validates and publishes to npm.
 
 The workflow uses npm Trusted Publishing through GitHub Actions OIDC. It does
 not require a long-lived `NPM_TOKEN`. Keep `id-token: write` in workflow
 permissions and keep `publishConfig.provenance: true` for public releases.
 
-## Before enabling npm publish
+## Prepare and publish a release
 
 1. Confirm the GitHub repository is public.
 2. Confirm the npm package is public and owned by the expected npm account/org.
-3. Configure npm Trusted Publishing for `.github/workflows/release.yml`.
-4. Add a changeset for the release.
-5. Run `bun run ci`.
-6. Run `npm publish --dry-run --tag alpha --json`.
-7. Run `bun run package:consumer` to verify the installed archive, documented
-   recipes, strict types, SSR, CSS, CLI, and consumer build.
-8. Set `vars.ENABLE_NPM_PUBLISH=true` only when publish should run.
+3. Configure npm Trusted Publishing with owner `vcode-sh`, repository
+   `vibe-player`, workflow filename `release.yml`, and permission for
+   `npm publish`. Leave the environment field empty; the workflow does not use
+   a GitHub environment. Preserve this filename when editing the workflow.
+4. Add a changeset with `bunx changeset`, then run `bun run release:version`.
+5. Review the version, changelog and lockfile changes, then commit and push the
+   prepared release to `main`.
+6. In GitHub Actions, select **Release**, choose **Run workflow** on `main`, and
+   start it. This validates the selected commit and publishes its prepared
+   version. Concurrent releases are serialized.
+7. Confirm the published version with `npm view vibe-player version` for a
+   stable release, or `npm view vibe-player dist-tags` for a prerelease.
+
+Saving the npm Trusted Publisher settings does not verify authentication or
+publish a version. A successful publish confirms the complete integration.
 
 ## Prereleases
 
@@ -65,25 +84,15 @@ dist tag.
 
 Install browser engines once with
 `bunx playwright install --with-deps chromium webkit`.
-Run these before any publish:
+For local release validation, run the same full gate as the release workflow:
 
 ```bash
-bun run check
-bun run check-types
-bun run test
-bun run build
-bun run package:release-state
-bun run package:styles
-bun run package:size
-bun run package:surface
-bun run package:tarball
-bun run package:publint
-bun run package:attw
-bun run package:consumer
-bun run test:youtube:check
-bun run test:browser:check
-bun run test:browser
+bun run ci
 ```
+
+Before publishing, the workflow also verifies the minimum Node/React runtime;
+it reuses the built package instead of installing and building it in another
+job.
 
 The live YouTube lane is intentionally separate from deterministic CI. Before
 claiming target-platform acceptance, record a successful `bun run test:youtube`

@@ -115,8 +115,8 @@ DOM emulation proves state and interaction contracts only. `test:browser` uses
 built package exports and local MP4/HLS/VTT in Chromium and native-HLS WebKit; see
 [test/browser/README.md](../../test/browser/README.md). `package:consumer`
 installs a real archive outside the repository and checks documentation recipes,
-strict types, SSR, CSS, the installed CLI and a consumer build. The compatibility
-workflow checks exact minimum Node/React separately from development tooling.
+strict types, SSR, CSS, the installed CLI and a consumer build. The manual release
+workflow also checks exact minimum Node/React against the same built package.
 The opt-in `test:youtube` lane exercises the official SDK in installed Chrome
 without network stubs. Accessibility-tree assertions and isolated native
 keyboard/AT-SPI checks have explicit platform boundaries; see
