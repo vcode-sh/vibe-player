@@ -34,3 +34,8 @@ All repo rules live in `CLAUDE.md` and `docs/claude/*`.
 - Apache-2.0 public release stance
 - Product-grade motion quality is a hard requirement
 - Product apps are consumers, not architectural owners
+
+<!-- entire-agent:begin -->
+Read .entire/agent-guide.md for this repository's workflow, source inspection, and verification guidance.
+@.entire/agent-guide.md
+<!-- entire-agent:end -->
