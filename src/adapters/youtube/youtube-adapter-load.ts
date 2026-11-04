@@ -44,7 +44,8 @@ export async function loadYouTubePlayer({
       onAutoplayBlocked: handleAutoplayBlocked,
       onError: (payload) => emit("error", payload),
       onPlaybackRateChange: () => emit("ratechange"),
-      onReady: () => emit("ready"),
+      // The adapter publishes readiness after committing the returned handle.
+      onReady: () => undefined,
       onStateChange: handleStateChange,
       ...(source.showCaptionsByDefault ? { showCaptionsByDefault: true } : {}),
       signal: abortController.signal,
@@ -74,17 +75,33 @@ function withYouTubePlayerCreationTimeout(
   abortController: AbortController
 ): Promise<YouTubePlayerHandle> {
   return new Promise((resolve, reject) => {
+    const { signal } = abortController;
     const timeoutId = window.setTimeout(() => {
+      cleanup();
       reject(new Error("Timed out creating YouTube player."));
       abortController.abort();
     }, youtubePlayerCreationTimeoutMs);
+    function cleanup(): void {
+      window.clearTimeout(timeoutId);
+      signal.removeEventListener("abort", handleAbort);
+    }
+    function handleAbort(): void {
+      cleanup();
+      reject(
+        new DOMException("YouTube player creation cancelled.", "AbortError")
+      );
+    }
+    signal.addEventListener("abort", handleAbort, { once: true });
+    if (signal.aborted) {
+      handleAbort();
+    }
     playerPromise
       .then((player) => {
-        window.clearTimeout(timeoutId);
+        cleanup();
         resolve(player);
       })
       .catch((error: unknown) => {
-        window.clearTimeout(timeoutId);
+        cleanup();
         reject(error);
       });
   });

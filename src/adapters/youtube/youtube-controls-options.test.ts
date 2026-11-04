@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerYouTubeSource } from "../../core/vibe-player-types";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
 import {
   createStalledYouTubeRuntime,
   createYouTubeRuntime,
+  createYouTubeTestAdapter,
   getYouTubeSession,
   youtubeSource,
 } from "./youtube-adapter-test-helpers";
@@ -70,7 +70,7 @@ async function loadPlayerVars(
   source: VibePlayerYouTubeSource
 ): Promise<YouTubeIframePlayerOptions["playerVars"]> {
   const { options, runtime } = createRecordingSdk();
-  const adapter = createYouTubeAdapter(runtime);
+  const adapter = createYouTubeTestAdapter(runtime);
   await adapter.mount(document.createElement("div"));
   await adapter.load(source);
   await adapter.unmount();
@@ -146,7 +146,7 @@ describe("YouTube control and caption configuration", () => {
     "advertises $presentation controls for $sessionControls mode without custom caption or quality selection",
     async ({ controls, nativeMenu, presentation, sessionControls }) => {
       const { probe, runtime } = createYouTubeRuntime();
-      const adapter = createYouTubeAdapter(runtime);
+      const adapter = createYouTubeTestAdapter(runtime);
       await adapter.mount(document.createElement("div"));
       await adapter.load({
         ...youtubeSource,
@@ -167,7 +167,7 @@ describe("YouTube control and caption configuration", () => {
 
   it("publishes layout before SDK readiness without advertising commands", async () => {
     vi.useFakeTimers();
-    const adapter = createYouTubeAdapter(createStalledYouTubeRuntime());
+    const adapter = createYouTubeTestAdapter(createStalledYouTubeRuntime());
     await adapter.mount(document.createElement("div"));
     const pending = adapter
       .load(youtubeSource)

@@ -24,30 +24,33 @@ describe("native media error diagnostics", () => {
           kind === "hls" ? createHlsAdapter(runtime) : createFileAdapter(),
         onError: (error) => errors.push(error),
       });
-      const target = document.createElement("div");
-      await controller.mount(target);
-      await controller.load(source);
-      const video = getMountedNativeVideo(target);
-      Object.defineProperty(video, "error", {
-        configurable: true,
-        value: { code: 4, message: "Unsupported codec" },
-      });
-      video.dispatchEvent(new Event("error"));
+      try {
+        const target = document.createElement("div");
+        await controller.mount(target);
+        await controller.load(source);
+        const video = getMountedNativeVideo(target);
+        Object.defineProperty(video, "error", {
+          configurable: true,
+          value: { code: 4, message: "Unsupported codec" },
+        });
+        video.dispatchEvent(new Event("error"));
 
-      expect(errors).toEqual([
-        expect.objectContaining({
-          details: expect.objectContaining({
-            code: 4,
+        expect(errors).toEqual([
+          expect.objectContaining({
+            details: expect.objectContaining({
+              code: 4,
+              message: "Unsupported codec",
+            }),
             message: "Unsupported codec",
+            phase: "playback",
+            provider: kind,
+            sourceId: source.id,
           }),
-          message: "Unsupported codec",
-          phase: "playback",
-          provider: kind,
-          sourceId: source.id,
-        }),
-      ]);
-      expect(controller.getState().snapshot.readyState).toBe("error");
-      await controller.teardown();
+        ]);
+        expect(controller.getState().snapshot.readyState).toBe("error");
+      } finally {
+        await controller.teardown();
+      }
     }
   );
 });

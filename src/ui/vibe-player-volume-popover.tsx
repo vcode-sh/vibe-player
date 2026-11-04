@@ -1,9 +1,10 @@
-import type {
-  CSSProperties,
-  KeyboardEvent,
-  MutableRefObject,
-  PointerEvent,
-  RefObject,
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type MutableRefObject,
+  type PointerEvent,
+  type RefObject,
+  useRef,
 } from "react";
 import { clampVibePlayerVolumePercent } from "./vibe-player-volume-percent";
 
@@ -61,6 +62,8 @@ export function VibePlayerVolumePopover({
   sliderRef,
   valueText,
 }: VibePlayerVolumePopoverProps) {
+  const pointerIdRef = useRef<number | null>(null);
+
   function setVolumeFromPointer(event: PointerEvent<HTMLDivElement>): void {
     const nextPercent = getPercentFromPointer(event, orientation);
     if (nextPercent !== null) {
@@ -69,10 +72,15 @@ export function VibePlayerVolumePopover({
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>): void {
-    if (event.isPrimary === false) {
+    if (
+      event.isPrimary === false ||
+      event.button !== 0 ||
+      pointerIdRef.current !== null
+    ) {
       return;
     }
     event.preventDefault();
+    pointerIdRef.current = event.pointerId;
     pointerActiveRef.current = true;
     setActive(true);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -81,12 +89,16 @@ export function VibePlayerVolumePopover({
   }
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>): void {
-    if (pointerActiveRef.current) {
+    if (pointerActiveRef.current && pointerIdRef.current === event.pointerId) {
       setVolumeFromPointer(event);
     }
   }
 
   function stopPointer(event: PointerEvent<HTMLDivElement>): void {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+    pointerIdRef.current = null;
     pointerActiveRef.current = false;
     setActive(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -118,6 +130,7 @@ export function VibePlayerVolumePopover({
         onBlur={() => setActive(false)}
         onFocus={() => setActive(true)}
         onKeyDown={onSliderKeyDown}
+        onLostPointerCapture={stopPointer}
         onPointerCancel={stopPointer}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

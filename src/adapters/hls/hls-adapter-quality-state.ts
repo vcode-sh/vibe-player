@@ -40,6 +40,9 @@ class MutableHlsAdapterQualityState implements HlsAdapterQualityState {
   }
 
   select(qualityId: string, controller: ManagedHlsController | null): boolean {
+    if (!this.currentOptions.some((option) => option.id === qualityId)) {
+      return false;
+    }
     const levelIndex = parseHlsQualityId(qualityId);
     if (!(controller && levelIndex !== null)) {
       return false;

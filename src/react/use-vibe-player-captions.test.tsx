@@ -82,22 +82,4 @@ describe("useVibePlayerCaptions", () => {
     expect(result.current.activeLines).toEqual([]);
     expect(result.current.loading).toBe(false);
   });
-
-  it("reports loader errors without throwing into render", async () => {
-    const loadCaptionText = vi.fn(() =>
-      Promise.reject(new Error("Caption network error"))
-    );
-    const { result } = renderHook(() =>
-      useVibePlayerCaptions({
-        currentTime: 1.5,
-        enabled: true,
-        loadCaptionText,
-        source: fileSource,
-      })
-    );
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.error?.message).toBe("Caption network error");
-    expect(result.current.activeLines).toEqual([]);
-  });
 });

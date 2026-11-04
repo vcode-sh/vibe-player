@@ -88,6 +88,7 @@ export class VibePlayerController {
     await loadVibePlayerControllerSource({
       adapterFactory: this.adapterFactory,
       analyticsSession: this.analyticsSession,
+      beginSession: () => this.observers.beginSession(),
       currentState: this.observers.state,
       emitAnalytics: this.observers.emitAnalytics,
       handleAdapterEvent: (event) => this.handleAdapterEvent(event),

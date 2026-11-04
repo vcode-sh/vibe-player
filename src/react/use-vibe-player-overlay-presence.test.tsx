@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useVibePlayerOverlayPresence } from "./use-vibe-player-overlay-presence";
 
@@ -8,7 +8,10 @@ describe("useVibePlayerOverlayPresence", () => {
   });
 
   afterEach(() => {
+    cleanup();
+    const remainingTimers = vi.getTimerCount();
     vi.useRealTimers();
+    expect(remainingTimers).toBe(0);
   });
 
   it("keeps the overlay rendered while closing", () => {

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferredPlayback } from "../native/native-video-test-helpers";
 import { createAdapterFullscreen } from "./adapter-fullscreen";
+import { createAdapterTestScope } from "./adapter-test-helpers";
+
+const adapterScope = createAdapterTestScope();
 
 const originalElement = Object.getOwnPropertyDescriptor(
   document,
@@ -34,7 +37,8 @@ describe("fullscreen lifecycle ownership", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await adapterScope.cleanup();
     for (const [key, descriptor] of [
       ["fullscreenElement", originalElement],
       ["exitFullscreen", originalExit],
@@ -50,7 +54,9 @@ describe("fullscreen lifecycle ownership", () => {
   });
 
   it("releases the former fullscreen container when the target changes", async () => {
-    const presentation = createAdapterFullscreen(() => undefined);
+    const presentation = adapterScope.track(
+      createAdapterFullscreen(() => undefined)
+    );
     const former = createTarget();
     const current = createTarget();
     presentation.mount(former);
@@ -68,7 +74,7 @@ describe("fullscreen lifecycle ownership", () => {
 
   it("releases a disposed container if its fullscreen request finishes late", async () => {
     const emit = vi.fn();
-    const presentation = createAdapterFullscreen(emit);
+    const presentation = adapterScope.track(createAdapterFullscreen(emit));
     const target = createTarget();
     const deferred = createDeferredPlayback();
     target.requestFullscreen = vi.fn(async () => {
@@ -86,8 +92,12 @@ describe("fullscreen lifecycle ownership", () => {
   });
 
   it("does not exit a newer fullscreen target after a stale request settles", async () => {
-    const previous = createAdapterFullscreen(() => undefined);
-    const current = createAdapterFullscreen(() => undefined);
+    const previous = adapterScope.track(
+      createAdapterFullscreen(() => undefined)
+    );
+    const current = adapterScope.track(
+      createAdapterFullscreen(() => undefined)
+    );
     const formerTarget = createTarget();
     const currentTarget = createTarget();
     const deferred = createDeferredPlayback();
@@ -109,8 +119,12 @@ describe("fullscreen lifecycle ownership", () => {
   });
 
   it("preserves a reused container claimed by another presentation owner", async () => {
-    const previous = createAdapterFullscreen(() => undefined);
-    const current = createAdapterFullscreen(() => undefined);
+    const previous = adapterScope.track(
+      createAdapterFullscreen(() => undefined)
+    );
+    const current = adapterScope.track(
+      createAdapterFullscreen(() => undefined)
+    );
     const target = createTarget();
     const deferred = createDeferredPlayback();
     vi.mocked(target.requestFullscreen).mockImplementationOnce(async () => {

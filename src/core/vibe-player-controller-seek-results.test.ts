@@ -11,10 +11,8 @@ function createDeferredSeek() {
 }
 
 describe("controller seek outcomes", () => {
-  it("persists and reports the finite position accepted by its adapter", async () => {
+  it("clamps the dispatched seek before persisting and reporting the accepted target", async () => {
     const adapter = new TestAdapter();
-    const seek = adapter.seekTo.bind(adapter);
-    adapter.seekTo = (seconds) => seek(Math.max(0, Math.min(100, seconds)));
     const store = { clear: vi.fn(), get: () => null, set: vi.fn() };
     const onAnalyticsEvent = vi.fn();
     const controller = new VibePlayerController({
@@ -26,12 +24,44 @@ describe("controller seek outcomes", () => {
 
     await controller.seekTo(250);
 
+    expect(adapter.calls).toContain("seek:100");
+    expect(adapter.calls).not.toContain("seek:250");
     expect(controller.getState().snapshot.currentTime).toBe(100);
     expect(store.set).toHaveBeenLastCalledWith("video-1", 100);
     expect(onAnalyticsEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({ currentTime: 100, duration: 100, type: "seek" })
     );
     await controller.teardown();
+  });
+
+  it("uses the accepted target when the provider snapshot still reports the old position", async () => {
+    const adapter = new TestAdapter();
+    const seekTo = vi.spyOn(adapter, "seekTo").mockResolvedValue();
+    const store = { clear: vi.fn(), get: () => null, set: vi.fn() };
+    const onAnalyticsEvent = vi.fn();
+    const controller = new VibePlayerController({
+      adapterFactory: () => adapter,
+      onAnalyticsEvent,
+      resumeStore: store,
+    });
+    try {
+      await controller.load(fileSource);
+      await controller.seekTo(37);
+
+      expect(seekTo).toHaveBeenCalledExactlyOnceWith(37);
+      expect(controller.getState().snapshot.currentTime).toBe(0);
+      expect(store.set).toHaveBeenCalledExactlyOnceWith("video-1", 37);
+      expect(onAnalyticsEvent).toHaveBeenLastCalledWith({
+        currentTime: 37,
+        duration: 100,
+        provider: "file",
+        sourceId: "video-1",
+        type: "seek",
+      });
+    } finally {
+      await controller.teardown();
+      seekTo.mockRestore();
+    }
   });
 
   it("does not pretend to seek a source without seeking capability", async () => {

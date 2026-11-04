@@ -1,171 +1,120 @@
 ---
 
 name: testing-patterns
-description: Write, review, rewrite, or delete Vibe Player tests using independently derived behavior contracts and discriminating challenge cases. Use for regressions, fixtures, assertions, test-layer selection, and test-quality audits in this repository.
+description: Write, review, rewrite, or prune Vibe Player tests, and decide when existing protection is sufficient. Use for regressions, fixtures, assertions, test boundaries, and test-quality audits; not for unrelated edits or an unsolicited suite cleanup.
 ---
 
 # Testing patterns
 
-A challenge test fails when a requirement is broken. A confirmation test copies
-the implementation's assumptions and merely detects edits. Keep the former;
-replace or delete the latter. Passing counts and coverage percentages are not
-evidence that behavior is correct.
+A test earns its place by protecting a justified contract or deliberate
+compatibility baseline, detecting a meaningful failure, and contributing
+protection worth its maintenance and execution cost.
 
-Read [CLAUDE.md](../../../CLAUDE.md) and the affected behavior's immediate
-consumer. Repository rules own scope and verification; this skill owns test
-quality. Adapted from WUN and Spreadoo, with Vibe Player's actual lanes and
-provider boundaries. Do not import those applications' infrastructure rules.
+Follow [CLAUDE.md](../../../CLAUDE.md) and the task's scope. Before selecting a
+lane or fixture, consult [repository guidance](references/repository.md) for
+local owners, commands, isolation, examples, and source provenance. This skill
+does not authorize production fixes, test deletion, or broader audits.
 
-## Establish an independent expectation
+## Decide what needs protection
 
-Each retained case must identify a requirement, a plausible defect, and an
-observable result that distinguishes correct behavior from that defect.
-- Use the user's requirement, documented package contract, external protocol,
-  or hand-checked example. Existing output alone is not a specification.
-- Derive expected values before consulting implementation output. Do not reuse
-  the production helper, constant, or a copied algorithm as the oracle.
-- Keep fixtures small and asymmetric: distinct sources, times, qualities, or
-  payloads make a stale result or wrong branch observable.
-- Preserve a valid case when it discriminates against always rejecting,
-  disabling, or returning nothing. Challenge does not mean only invalid input.
-- Use reachable invalid input at real untyped boundaries: media events, network
-  responses, storage, captions, CLI arguments, and provider callbacks. Do not
-  invent impossible typed states just to exercise defensive branches.
-- Label compatibility characterization honestly; do not call it independent
-  correctness evidence. Review snapshot meaning before updating snapshots.
+For the affected behavior, identify the contract, plausible failure, boundary
+that owns it, and additional protection beyond existing tests and static checks.
+A small task needs a small decision, not a compulsory plan or whole-suite audit.
+**Add no new test when existing protection is adequate.** Keep required project
+and task acceptance gates; tests at different levels can be complementary.
+- Derive expectations from accepted requirements, package/protocol contracts,
+  independently checked examples, domain properties, or a reviewed reference.
+  Reading implementation is useful, but current output is fallible evidence of
+  intent. If an essential requirement is unknown, report it rather than inventing
+  an oracle or weakening an assertion to match the code.
+- Do not compute the expected answer with the calculation being tested. Sharing
+  setup builders or unrelated utilities is legitimate when it does not share the
+  fault under examination.
+- A reviewed golden file, snapshot, or recorded legacy output can deliberately
+  protect compatibility during a refactor. Label and review that baseline; it
+  does not establish business correctness. Do not update it merely to get green.
 
-For example, WebVTT's end time is exclusive. For a cue spanning 1 to 2 seconds,
-check 1, 1.999, and 2 against literal expected text/absence. A parser round-trip
-alone could preserve the same timestamp defect in both directions.
+## Exercise the failure mechanism
 
-## Test the owner, keep its behavior real
+- Execute the actual behavior owner, not a copied implementation in the test.
+  A helper test does not establish that its consumer calls or enforces it.
+  Choose the narrowest boundary that preserves the risk. Use a real engine,
+  browser, device, or stateful dependency when its semantics are the claim.
+- Keep other dependencies controllable. Mocks, fakes, private-unit tests, and
+  white-box checks are not categorically wrong. Meaningful request payloads,
+  cancellation, duplicate-call limits, and prohibited effects can be contracts.
+  Do not replace the behavior you claim to prove with its configured mock answer.
+- Select reachable inputs that distinguish plausible mistakes: exact thresholds,
+  relevant state/role partitions, asymmetric values, or old work completing after
+  new work. Include valid behavior when it rejects always-deny/no-op solutions.
+  Do not enumerate speculative cases or demand every technique for every rule.
+- Assert promised outputs and relevant effects: state, events, errors, requests,
+  user observations, or prohibited actions. A denial must reach the decision and
+  show the relevant absence of effects, not fail because the fixture is invalid.
+  One coherent behavior can need several assertions; avoid freezing unrelated
+  fields and internal call sequences.
+- Presence, smoke, type, source, and architecture checks can protect explicit
+  interface, startup, artifact, or dependency policies. State their limited
+  assurance; a source string does not prove runtime behavior. Never decide test
+  value by matcher syntax alone.
+- For properties, review the input domain, generator, preconditions, and filters
+  alongside the property. Avoid vacuous assertions and preserve replay inputs.
+  Round trips can share cancelling faults; differential agreement depends on the
+  reference. Add independent examples when another dimension needs protection.
 
-| Contract                                                        | Owner and evidence                                                                                                                         |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Controller transitions, stale loads, commands, subscriptions    | Real `core` controller with a controllable adapter boundary; assert state/events and forbidden side effects                                |
-| Time, volume, quality, resume, shortcut rules                   | Real pure functions or store with explicit inputs and independent expected results                                                         |
-| File, HLS, YouTube translation and lifecycle                    | Real adapter; substitute only browser media/provider SDK boundary; emit provider events and inspect normalized results                     |
-| WebVTT parsing and cue selection                                | Real parser/selector with hand-authored valid, malformed, overlapping, and boundary fixtures                                               |
-| React subscription, cleanup, stale responses                    | Real hooks/controller with controlled external completion and rerenders/unmounts                                                           |
-| Controls, captions, modal, keyboard, accessibility              | Real component and owner logic; interact through roles, names, keyboard, and pointer events                                                |
-| Geometry, focus in actual browsers, rendering, playback, motion | Browser evidence against the relevant demo; DOM emulation cannot prove these                                                               |
-| Media audit HTTP/CORS/ranges and CLI results                    | Real audit logic with controlled Fetch responses or disposable loopback HTTP; assert findings/output, not only fetch calls                 |
-| Package/release guard decisions                                 | Real rule functions with independently constructed valid/invalid manifests or tarball entries; built package gates verify actual artifacts |
+## Establish proportionate sensitivity
 
-One owner per rule: a UI test owns the interaction or presentation of an error,
-not a duplicate of the parser or controller algorithm. Keep package/provider
-boundaries intact. Do not expose production APIs just for tests.
+For a confirmed bug or invariant, prefer a focused regression that fails before
+the fix when a stable, economical RED is available. Inspect the failure reason:
+missing imports, compilation errors, or broken setup are not behavioral RED.
+Do not manufacture RED for documentation or a behavior-preserving refactor.
 
-Mock calls can be meaningful protocol evidence: seek position, credential
-policy, provider unsubscribe, cancellation, and prohibited requests. A call
-count with no contract or observable consequence is not sufficient.
+Ask whether a plausible no-op, wrong branch, stale result, or missing cleanup
+would pass. If sensitivity remains uncertain for an important assertion, use a
+targeted fault probe in a disposable copy. Verify reachability and that a
+contract-violating effect triggers the assertion. Restore only owned changes
+and verify restoration; never probe production or overwrite concurrent work.
 
-Browser/provider doubles do not prove real autoplay policy, decoding, adaptive
-streaming, compositor animation, native fullscreen/PiP, or focus geometry.
-Report those limits. Do not claim live-provider acceptance from happy-dom.
+A surviving mutant can be equivalent, irrelevant, unreachable, or evidence of
+weak protection. A killed mutant does not validate the oracle. Broad mutation
+campaigns need justified scope and cost. Coverage and mutation scores are
+diagnostics, not correctness certificates or universal quotas. Honor existing
+thresholds without gaming counts, exclusions, assertions, or gates.
 
-## Choose discriminating cases
+## Keep results reliable
 
-- Put cases on both sides of meaningful thresholds, including the exact edge.
-- Where a rule requires A and B, include reachable inputs where they disagree.
-- For lifecycle risk, complete old work after a new source, detach, or unmount;
-  assert it cannot replace current output or emit stale events.
-- For cleanup, trigger the former callback/event after disposal and prove the
-  effect is absent. Checking `removeEventListener` alone is usually weaker.
-- For timers, advance to just before and at the deadline; verify cancellation
-  and restart only where the contract needs them.
-- Assert precise errors/findings and required or forbidden side effects. A
-  generic rejection may pass because the fixture itself is broken.
-- For ordering, bounds, and normalization, use hand-checked edge tables and
-  invariants. No property-testing dependency is currently configured; do not
-  add one merely for an audit.
-- Prefer one behavior per case. Related assertions may show a transition or
-  distinguish both always-accept and always-reject defects.
-- Await completion or observable outcomes; do not use arbitrary sleeps.
+- Await asynchronous work and eventual assertions. Use bounded observable waits;
+  coordinate races with barriers or controlled completion, not arbitrary sleeps
+  or merely starting two promises. Control unrelated time, randomness, and state.
+- Investigate intermittent failures before blaming tests. Do not rerun until
+  green as a substitute for diagnosis. A quarantine needs a visible reason,
+  owner, resolution path, and retained risk in the report.
+- Use test-owned state. Release owned processes, files, listeners, timers,
+  connections, and environments after success, failure, cancellation, or timeout.
+  Verify cleanup while preserving shared services and other sessions.
+- Run applicable checks on the final tree. Reuse still-valid evidence and rerun
+  only lanes whose files or assumptions changed. Required browser/surface
+  acceptance remains required even when focused tests pass.
 
-## Remove tests that do not earn their place
+## Review and prune within the authorized scope
 
-Inspect meaning before deleting; assertion signatures are only leads.
-- Delete constant mirrors, static token/config snapshots, source-text checks
-  masquerading as runtime tests, empty renders, and type-system restatements.
-- Delete orphaned or duplicate cases only after identifying where their unique
-  protection lives. Do not delete an incident regression because it is green.
-- Replace `toBeDefined`, `toBeTruthy`, bare `not.toThrow`, or unqualified mock
-  calls when a precise result is available. Presence/absence is valid when it
-  is the actual accessibility or lifecycle contract.
-- Avoid class names, child order, private attributes, and stubbed component
-  trees as proxies for interaction or layout.
-- Explicit package architecture and publish-policy checks belong in existing
-  guard scripts. Their rule tests may exercise real structural contracts;
-  do not delete those solely because their input is a file name or manifest.
-- Do not mechanically rewrite a strong test. Retain its independent protection
-  and record why it qualifies when performing a whole-suite audit.
+Inspect the test, its callers, fixtures, and relevant contract before deciding:
 
-## Prove sensitivity without damaging shared work
+| Decision       | Reason                                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **KEEP**       | Useful contract, reviewed baseline, or distinct boundary at acceptable cost.                                                                                                   |
+| **REWRITE**    | Real risk, but inadequate oracle, inputs, assertions, boundary, or reliability.                                                                                                |
+| **DELETE**     | Obsolete/no useful role, or remaining tests provide the same relevant protection at an appropriate boundary. Check callers, fixtures, registrations, and required gates first. |
+| **UNRESOLVED** | Evidence is insufficient. Retain the test and identify what would settle the decision.                                                                                         |
 
-Ask whether a no-op, default result, wrong branch, stale completion, or missing
-cleanup would pass. Tighten the fixture/assertion if it would.
+Equal line coverage or killed mutants does not prove equivalent future
+protection. Do not retain weak tests for counts, delete useful ones for a
+reduction target, or mechanically rewrite strong tests. For an authorized
+whole-suite audit, inspect all in-scope files and separate acceptance lanes;
+grep matches are only leads, not completed review.
 
-For an economical bug regression, establish a focused RED for the actual defect
-before fixing it. Existing correct behavior may pass immediately; never remove
-working code just to manufacture a TDD history.
-
-For subtle existing behavior, use a targeted mutation probe if reading cannot
-settle sensitivity. Prefer a disposable copy. Never mutate shared production
-files while another agent, test lane, or dev server uses them. Restore exactly
-the pre-probe bytes and verify restoration; a failing unrelated test is not a
-successful probe. Broad mutation infrastructure is not required.
-
-For test-only assignments, preserve production behavior. Report a newly exposed
-implementation defect with its evidence; do not weaken expectations to get green
-or silently broaden the task into a product rewrite.
-
-## Repository mechanics
-
-- Vitest is the runner; Bun runs scripts. Never use `bun test` here.
-- `src/**/*.test.ts(x)` runs in the `dom` project with happy-dom and
-  `test/setup.ts` loading jest-dom. `scripts/**/*.test.mjs` runs in `node`.
-- Import Vitest APIs explicitly. Use Testing Library for React interaction;
-  use `act` from `@testing-library/react` for state updates and fake clocks.
-- Restore mocks, globals, fake timers, provider listeners, storage, mounted
-  trees, and disposable servers. Deferred promises must be settled or cancelled.
-- Keep existing test helpers focused on fixtures/provider boundaries. Do not
-  put expected business behavior in helpers that the implementation also uses.
-- Source/config hard limits and coding rules apply to test files too. Split
-  by real behavior ownership, not arbitrary numbered batches.
-- No production network, credentials, persistent browser data, or live CDN is
-  required by unit tests. Network acceptance must have an explicit safe target.
-
-```bash
-# Focused behavior or file (verify that the intended cases actually ran).
-bun run test --project dom src/core/vibe-player-controller.test.ts
-bun run test --project node scripts/media-delivery-audit-range.test.mjs
-bun run test src/react/use-vibe-player-captions-lifecycle.test.tsx -t 'superseded'
-
-# Broad test-suite changes: run once on the final tree.
-bun run check
-bun run lint
-bun run package:rules
-bun run check-types
-bun run test
-```
-
-Use scoped checks for bounded edits. Run package/build/browser gates when their
-boundary changed or acceptance explicitly requires them; a test-only audit does
-not automatically require a release or live-provider test. Reuse successful
-evidence until its files, assumptions, or environment change.
-
-## Whole-suite audit and report
-
-Discover tests, runner includes/excludes, helpers, and any separate acceptance
-scripts. Inspect every test file, its owner, and the relevant contract. Record
-keep/rewrite/delete decisions with the protection retained or removed. A grep
-for weak matchers is not a completed audit.
-
-Use parallel agents for independent owners when useful; centralize integration
-and final checks. Preserve unrelated WIP and do not restore files from HEAD.
-
-For added/rewritten tests, name the defect caught and the lane that ran them.
-For deletions, explain the absent or duplicate protection. A concise audit
-document can carry per-file details instead of flooding the chat. Report actual
-counts, failures, skipped checks, and browser/provider limitations honestly.
+Report the protected contract/baseline, meaningful failure caught, additional
+role, verified boundary, actual checks, limitations, and cleanup as relevant.
+A short justification suffices, not mandatory per-test boilerplate. In test-only
+work, report exposed product defects without silently changing production or
+weakening expectations.

@@ -4,6 +4,7 @@ import { createIdleCapabilities, createIdleSnapshot } from "../core";
 import { VibePlayerControls } from "./vibe-player-controls";
 
 const highQualityOptionNamePattern = /1080p/;
+const muteOrVolumeName = /mute|volume/i;
 
 const capabilities = {
   ...createIdleCapabilities(),
@@ -135,7 +136,8 @@ describe("VibePlayerControls", () => {
 
     expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();
     expect(screen.getByRole("slider", { name: "Seek" })).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Mute" })).toBeNull();
+    expect(screen.queryByRole("button", { name: muteOrVolumeName })).toBeNull();
+    expect(screen.queryByRole("slider", { name: "Volume" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Quality Auto" })).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Playback speed 1x" })

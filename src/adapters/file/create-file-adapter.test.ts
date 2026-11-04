@@ -5,6 +5,7 @@ import {
   defineNativeVideoBooleanProperty,
   defineNativeVideoNumberProperty,
 } from "../native/native-video-test-helpers";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { createFileAdapter } from "./create-file-adapter";
 import {
   createLoadedFileAdapter,
@@ -14,14 +15,24 @@ import {
   hlsSource,
 } from "./file-adapter-test-helpers";
 
+const adapterScope = createAdapterTestScope();
+
+function loadFileAdapter(source = fileSource) {
+  return createLoadedFileAdapter(
+    adapterScope.track(createFileAdapter()),
+    source
+  );
+}
+
 describe("createFileAdapter", () => {
-  afterEach(() => {
+  afterEach(async () => {
+    await adapterScope.cleanup();
     document.body.replaceChildren();
     vi.restoreAllMocks();
   });
 
   it("mounts a native video element with sources, poster, and captions", async () => {
-    const { adapter, video } = await createLoadedFileAdapter();
+    const { adapter, video } = await loadFileAdapter();
     const sources = Array.from(video.querySelectorAll("source"));
     const tracks = Array.from(video.querySelectorAll("track"));
     expect(video.poster).toBe(fileSource.posterUrl);
@@ -44,14 +55,14 @@ describe("createFileAdapter", () => {
   });
 
   it("uses the native video src for a single file source", async () => {
-    const { video } = await createLoadedFileAdapter(createSingleFileSource());
+    const { video } = await loadFileAdapter(createSingleFileSource());
     expect(video.autoplay).toBe(true);
     expect(video.src).toBe("https://example.com/video.mp4");
     expect(video.querySelector("source")).toBeNull();
   });
 
   it("keeps cross-origin configurable for file sources", async () => {
-    const { video } = await createLoadedFileAdapter({
+    const { video } = await loadFileAdapter({
       ...fileSource,
       crossOrigin: "anonymous",
     });
@@ -59,7 +70,7 @@ describe("createFileAdapter", () => {
   });
 
   it("normalizes native media events into adapter events", async () => {
-    const { adapter, video } = await createLoadedFileAdapter();
+    const { adapter, video } = await loadFileAdapter();
     const events: VibePlayerAdapterEvent[] = [];
     adapter.subscribe((event) => {
       events.push(event);
@@ -76,7 +87,7 @@ describe("createFileAdapter", () => {
   });
 
   it("does not show buffering chrome for ordinary seek starts", async () => {
-    const { adapter, video } = await createLoadedFileAdapter();
+    const { adapter, video } = await loadFileAdapter();
     const events: VibePlayerAdapterEvent[] = [];
     adapter.subscribe((event) => {
       events.push(event);
@@ -95,7 +106,7 @@ describe("createFileAdapter", () => {
   });
 
   it("forwards playback commands and clamps seek and volume values", async () => {
-    const { adapter, target, video } = await createLoadedFileAdapter();
+    const { adapter, target, video } = await loadFileAdapter();
     document.body.append(target);
     defineNativeVideoNumberProperty(video, "duration", 100);
     const play = vi.fn(() => Promise.resolve());
@@ -119,7 +130,7 @@ describe("createFileAdapter", () => {
   });
 
   it("stops a pending playback request after unmount", async () => {
-    const { adapter, target, video } = await createLoadedFileAdapter();
+    const { adapter, target, video } = await loadFileAdapter();
     document.body.append(target);
     const playback = createDeferredPlayback();
     video.play = () =>
@@ -142,7 +153,7 @@ describe("createFileAdapter", () => {
   });
 
   it("stops a pending playback request after pause", async () => {
-    const { adapter, target, video } = await createLoadedFileAdapter();
+    const { adapter, target, video } = await loadFileAdapter();
     document.body.append(target);
     const playback = createDeferredPlayback();
     video.play = () =>
@@ -160,7 +171,7 @@ describe("createFileAdapter", () => {
   });
 
   it("uses fullscreen only when the mounted container supports it", async () => {
-    const { adapter, target } = await createLoadedFileAdapter();
+    const { adapter, target } = await loadFileAdapter();
     const requestFullscreen = vi.fn(() => Promise.resolve());
     target.requestFullscreen = requestFullscreen;
     expect(adapter.capabilities.canFullscreen).toBe(true);
@@ -171,7 +182,7 @@ describe("createFileAdapter", () => {
   });
 
   it("rejects unsupported and empty file sources", async () => {
-    const adapter = createFileAdapter();
+    const adapter = adapterScope.track(createFileAdapter());
 
     await expect(adapter.load(hlsSource)).rejects.toThrow(
       "File adapter cannot load hls sources."

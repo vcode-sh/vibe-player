@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
 import {
   collectYouTubeAdapterEvents,
   createYouTubeRuntime,
+  createYouTubeTestAdapter,
   youtubeSource,
 } from "./youtube-adapter-test-helpers";
 
@@ -22,7 +22,7 @@ describe("YouTube presentation ownership", () => {
 
   it("keeps package controls in fullscreen and observes browser exit", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
     const stage = document.createElement("section");
     stage.append(target, document.createElement("button"));
@@ -54,7 +54,7 @@ describe("YouTube presentation ownership", () => {
 
   it("reports unsupported host fullscreen and stops events after unmount", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load(youtubeSource);

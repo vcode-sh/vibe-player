@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerAdapterEvent } from "../../core/vibe-player-types";
 import { createFileAdapter } from "../file/create-file-adapter";
 import { createSingleFileSource } from "../file/file-adapter-test-helpers";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { getMountedNativeVideo } from "./native-video-test-helpers";
 
 function setPictureElement(element: Element | null): void {
@@ -22,17 +23,32 @@ async function createPresentationVideo() {
   vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
     () => undefined
   );
-  const adapter = createFileAdapter();
+  const adapter = adapterScope.track(createFileAdapter());
   const target = document.createElement("div");
   await adapter.mount(target);
   await adapter.load(createSingleFileSource());
   return { adapter, video: getMountedNativeVideo(target) };
 }
 
+const adapterScope = createAdapterTestScope();
+const originalDocumentProperties = [
+  "pictureInPictureElement",
+  "pictureInPictureEnabled",
+] as const;
+const documentDescriptors = originalDocumentProperties.map(
+  (key) => [key, Object.getOwnPropertyDescriptor(document, key)] as const
+);
+
 describe("native picture presentation state", () => {
-  afterEach(() => {
-    setPictureElement(null);
-    setPictureEnabled(false);
+  afterEach(async () => {
+    await adapterScope.cleanup();
+    for (const [key, descriptor] of documentDescriptors) {
+      if (descriptor) {
+        Object.defineProperty(document, key, descriptor);
+      } else {
+        Reflect.deleteProperty(document, key);
+      }
+    }
     vi.restoreAllMocks();
   });
 

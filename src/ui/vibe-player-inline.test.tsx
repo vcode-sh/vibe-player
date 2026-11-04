@@ -1,15 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type {
-  VibePlayerAdapter,
-  VibePlayerAdapterEvent,
-  VibePlayerCapabilities,
-  VibePlayerFileSource,
-  VibePlayerSnapshot,
-  VibePlayerSource,
-} from "../core";
-import { createIdleCapabilities, createIdleSnapshot } from "../core";
+import type { VibePlayerFileSource } from "../core";
 import { VibePlayerInline } from "./vibe-player-inline";
+import {
+  createStageAdapterFactory,
+  getStageAdapter,
+} from "./vibe-player-stage-test-helpers";
 
 const fileSource: VibePlayerFileSource = {
   captions: [
@@ -28,105 +24,14 @@ const fileSource: VibePlayerFileSource = {
   type: "file",
 };
 
-class TestInlineAdapter implements VibePlayerAdapter {
-  readonly calls: string[] = [];
-  readonly capabilities: VibePlayerCapabilities = {
-    ...createIdleCapabilities(),
-    canFullscreen: true,
-    canSeek: true,
-    canSetPlaybackRate: true,
-    canShowCaptions: true,
-    supportsDuration: true,
-    supportsMute: true,
-    supportsPlayback: true,
-  };
-  readonly kind = "file";
-  private snapshot: VibePlayerSnapshot = {
-    ...createIdleSnapshot(),
-    currentTime: 1.5,
-    duration: 100,
-    readyState: "ready",
-  };
-
-  enterFullscreen(): Promise<void> {
-    this.calls.push("fullscreen");
-    return Promise.resolve();
-  }
-
-  getSnapshot(): VibePlayerSnapshot {
-    return this.snapshot;
-  }
-
-  load(source: VibePlayerSource): Promise<void> {
-    this.calls.push(`load:${source.id}`);
-    return Promise.resolve();
-  }
-
-  mount(target: HTMLElement): Promise<void> {
-    this.calls.push("mount");
-    const element = document.createElement("div");
-    element.dataset.testid = "mounted-media";
-    target.append(element);
-    return Promise.resolve();
-  }
-
-  pause(): Promise<void> {
-    this.calls.push("pause");
-    return Promise.resolve();
-  }
-
-  play(): Promise<void> {
-    this.calls.push("play");
-    return Promise.resolve();
-  }
-
-  seekTo(seconds: number): Promise<void> {
-    this.calls.push(`seek:${seconds}`);
-    this.snapshot = { ...this.snapshot, currentTime: seconds };
-    return Promise.resolve();
-  }
-
-  setMuted(value: boolean): Promise<void> {
-    this.calls.push(`muted:${String(value)}`);
-    return Promise.resolve();
-  }
-
-  setPlaybackRate(value: number): Promise<void> {
-    this.calls.push(`rate:${value}`);
-    return Promise.resolve();
-  }
-
-  setVolume(value: number): Promise<void> {
-    this.calls.push(`volume:${value}`);
-    return Promise.resolve();
-  }
-
-  subscribe(_listener: (event: VibePlayerAdapterEvent) => void): () => void {
-    return () => undefined;
-  }
-
-  unmount(): Promise<void> {
-    this.calls.push("unmount");
-    return Promise.resolve();
-  }
-}
-
-function getAdapter(adapters: TestInlineAdapter[]): TestInlineAdapter {
-  const [adapter] = adapters;
-  if (!adapter) {
-    throw new Error("Missing inline test adapter.");
-  }
-  return adapter;
-}
-
 describe("VibePlayerInline", () => {
   it("connects caption controls and releases playback when its source is removed", async () => {
-    const adapters: TestInlineAdapter[] = [];
-    const adapterFactory = () => {
-      const adapter = new TestInlineAdapter();
-      adapters.push(adapter);
-      return adapter;
-    };
+    const { adapterFactory, adapters } = createStageAdapterFactory({
+      configure: (adapter) => {
+        adapter.capabilities.canShowCaptions = true;
+        adapter.setSnapshot({ ...adapter.getSnapshot(), currentTime: 1.5 });
+      },
+    });
     const loadCaptionText = vi.fn(() =>
       Promise.resolve(`WEBVTT
 
@@ -143,13 +48,13 @@ Caption line`)
     );
 
     await waitFor(() =>
-      expect(getAdapter(adapters).calls).toContain("load:file-video")
+      expect(getStageAdapter(adapters).calls).toContain("load:file-video")
     );
     await waitFor(() =>
       expect(screen.getByText("Caption line")).toBeInTheDocument()
     );
 
-    expect(getAdapter(adapters).calls).not.toContain("play");
+    expect(getStageAdapter(adapters).calls).not.toContain("play");
     fireEvent.click(screen.getByRole("button", { name: "Hide captions" }));
     expect(screen.queryByText("Caption line")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Show captions" }));
@@ -162,17 +67,20 @@ Caption line`)
     fireEvent.click(screen.getByRole("button", { name: "Playback speed 1x" }));
     fireEvent.click(screen.getByRole("button", { name: "Full screen" }));
 
-    expect(getAdapter(adapters).calls).toEqual(
+    expect(getStageAdapter(adapters).calls).toEqual(
       expect.arrayContaining(["play", "muted:true", "rate:1.25", "fullscreen"])
     );
 
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Pause" })).toBeVisible()
+    );
     rerender(
       <VibePlayerInline adapterFactory={adapterFactory}>
         Choose a video
       </VibePlayerInline>
     );
     await waitFor(() =>
-      expect(getAdapter(adapters).calls).toContain("unmount")
+      expect(getStageAdapter(adapters).calls).toContain("unmount")
     );
     expect(screen.getByText("Choose a video")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Play" })).toBeNull();

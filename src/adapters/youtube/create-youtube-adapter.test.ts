@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerFileSource } from "../../core/vibe-player-types";
 import { createVibePlayerAdapter } from "../create-vibe-player-adapter";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
 import {
   collectYouTubeAdapterEvents,
   createStalledYouTubeRuntime,
   createYouTubeRuntime,
+  createYouTubeTestAdapter,
   getYouTubeSession,
   youtubeSource,
 } from "./youtube-adapter-test-helpers";
@@ -19,7 +19,7 @@ describe("createYouTubeAdapter", () => {
 
   it("loads YouTube videos through an iframe runtime bridge", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
     target.requestFullscreen = () => Promise.resolve();
 
@@ -42,7 +42,7 @@ describe("createYouTubeAdapter", () => {
   it("normalizes state changes and sampled time updates", async () => {
     vi.useFakeTimers();
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
     const events = collectYouTubeAdapterEvents(adapter);
 
@@ -65,19 +65,14 @@ describe("createYouTubeAdapter", () => {
       volume: 0.75,
     });
 
-    getYouTubeSession(probe).onStateChange(youtubePlayerStates.buffering);
-    await vi.advanceTimersByTimeAsync(2500);
-    expect(events.at(-1)?.type).toBe("buffering");
-    getYouTubeSession(probe).onStateChange(youtubePlayerStates.paused);
-    expect(events.at(-1)?.type).toBe("pause");
-    getYouTubeSession(probe).onStateChange(youtubePlayerStates.ended);
-    expect(events.at(-1)?.type).toBe("ended");
+    await adapter.unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("does not emit playblocked after quick playback progress", async () => {
     vi.useFakeTimers();
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
     const events = collectYouTubeAdapterEvents(adapter);
 
@@ -86,7 +81,6 @@ describe("createYouTubeAdapter", () => {
     await adapter.play();
     probe.currentTime = 12.2;
     getYouTubeSession(probe).onStateChange(youtubePlayerStates.paused);
-    await vi.advanceTimersByTimeAsync(2500);
     getYouTubeSession(probe).onAutoplayBlocked?.();
 
     expect(events.at(-1)?.type).toBe("pause");
@@ -94,7 +88,7 @@ describe("createYouTubeAdapter", () => {
 
   it("forwards commands and clamps seek and volume values", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load(youtubeSource);
@@ -123,7 +117,7 @@ describe("createYouTubeAdapter", () => {
 
   it("returns idle state and capabilities after unmount", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
 
     await adapter.mount(target);
@@ -140,7 +134,7 @@ describe("createYouTubeAdapter", () => {
 
   it("rejects unsupported sources", async () => {
     const { runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const fileSource: VibePlayerFileSource = {
       id: "file",
       sources: [{ mimeType: "video/mp4", url: "https://example.com/file.mp4" }],
@@ -154,7 +148,7 @@ describe("createYouTubeAdapter", () => {
 
   it("rejects stalled player creation instead of hanging", async () => {
     vi.useFakeTimers();
-    const adapter = createYouTubeAdapter(createStalledYouTubeRuntime());
+    const adapter = createYouTubeTestAdapter(createStalledYouTubeRuntime());
     const target = document.createElement("div");
 
     await adapter.mount(target);

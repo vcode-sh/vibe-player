@@ -106,7 +106,11 @@ async function collectMediaDeliveryAuditReport(input) {
     first.status === 206 ? null : contentLength,
     first.bytes.length
   );
-  const rangeOk = first.status === 206 && contentRange?.start === 0;
+  const rangeOk =
+    first.status === 206 &&
+    contentRange?.start === 0 &&
+    contentRange.end < firstSampleSize &&
+    first.bytes.length === contentRange.end + 1;
   const tailStart = Math.max(0, totalSize - tailSampleSize);
   const tailBytes =
     rangeOk && totalSizeKnown

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { YouTubeTimeUpdates } from "./youtube-time-updates";
 
 describe("YouTubeTimeUpdates", () => {
@@ -10,6 +10,7 @@ describe("YouTubeTimeUpdates", () => {
     vi.useFakeTimers();
     const onTimeUpdate = vi.fn();
     const timeUpdates = new YouTubeTimeUpdates({ onTimeUpdate });
+    onTestFinished(() => timeUpdates.stop());
 
     timeUpdates.start();
     vi.advanceTimersByTime(499);
@@ -20,12 +21,14 @@ describe("YouTubeTimeUpdates", () => {
     vi.advanceTimersByTime(500);
     expect(onTimeUpdate).toHaveBeenCalledTimes(2);
     timeUpdates.stop();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("stops sampling and starts a fresh interval when playback resumes", () => {
     vi.useFakeTimers();
     const onTimeUpdate = vi.fn();
     const timeUpdates = new YouTubeTimeUpdates({ onTimeUpdate });
+    onTestFinished(() => timeUpdates.stop());
 
     timeUpdates.start();
     vi.advanceTimersByTime(500);
@@ -39,5 +42,6 @@ describe("YouTubeTimeUpdates", () => {
     vi.advanceTimersByTime(1);
     expect(onTimeUpdate).toHaveBeenCalledTimes(2);
     timeUpdates.stop();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

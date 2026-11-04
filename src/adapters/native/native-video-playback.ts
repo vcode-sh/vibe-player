@@ -5,6 +5,9 @@ import type {
 } from "../../core/vibe-player-types";
 import { clearElement } from "../shared/clear-element";
 
+// An earlier play resolution must preserve a newer play on the same video.
+const latestPlaybackGenerations = new WeakMap<HTMLVideoElement, number>();
+
 export interface NativePlaybackResolution {
   activeVideo: HTMLVideoElement | null;
   currentGeneration: number;
@@ -38,12 +41,14 @@ export async function playGuardedNativeVideo({
   isMounted,
   video,
 }: PlayGuardedNativeVideoInput): Promise<void> {
+  latestPlaybackGenerations.set(video, expectedGeneration);
   await video.play();
   if (
     shouldPauseResolvedNativePlayback({
       activeVideo: getActiveVideo(),
       currentGeneration: getCurrentGeneration(),
-      expectedGeneration,
+      expectedGeneration:
+        latestPlaybackGenerations.get(video) ?? expectedGeneration,
       mounted: isMounted(),
       video,
     })

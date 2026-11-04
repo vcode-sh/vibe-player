@@ -4,6 +4,7 @@ import {
   defineNativeVideoNumberProperty,
   getMountedNativeVideo,
 } from "../native/native-video-test-helpers";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { createHlsAdapter } from "./create-hls-adapter";
 import {
   createHlsRuntime,
@@ -11,15 +12,20 @@ import {
   hlsSource,
 } from "./hls-adapter-test-helpers";
 
+const adapterScope = createAdapterTestScope();
+
 describe("HLS media failure translation", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(async () => {
+    await adapterScope.cleanup();
+    vi.restoreAllMocks();
+  });
 
   it("keeps recoverable playback and persists terminal failure until another load", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
     const { runtime, probe } = createHlsRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load(hlsSource);

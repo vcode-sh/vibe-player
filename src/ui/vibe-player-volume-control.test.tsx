@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   createIdleCapabilities,
@@ -116,7 +122,7 @@ describe("VibePlayerVolumeControl", () => {
     }
   );
 
-  it("auto-dismisses the volume popover after inactivity", () => {
+  it("keeps the popover while hovered and dismisses after a commit when the pointer leaves", () => {
     vi.useFakeTimers();
     try {
       render(
@@ -161,6 +167,7 @@ describe("VibePlayerVolumeControl", () => {
       act(() => vi.advanceTimersByTime(1));
       expect(screen.queryByRole("dialog", { name: "Volume" })).toBeNull();
     } finally {
+      cleanup();
       vi.useRealTimers();
     }
   });

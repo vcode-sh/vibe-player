@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import type { VibePlayerFileSource } from "../../core/index";
 import { createVibePlayerAdapter } from "../create-vibe-player-adapter";
 import { createYouTubeExternalAdapter } from "./create-youtube-external-adapter";
@@ -18,6 +18,7 @@ const externalYouTubeSource = {
 describe("createYouTubeExternalAdapter", () => {
   it("renders a compliant external handoff without an iframe", async () => {
     const adapter = createYouTubeExternalAdapter();
+    onTestFinished(() => adapter.unmount());
     const events = collectYouTubeAdapterEvents(adapter);
     const target = document.createElement("div");
 
@@ -43,6 +44,7 @@ describe("createYouTubeExternalAdapter", () => {
 
   it("uses the external factory branch without loading an iframe", async () => {
     const adapter = createVibePlayerAdapter(externalYouTubeSource);
+    onTestFinished(() => adapter.unmount());
 
     const target = document.createElement("div");
     await adapter.mount(target);
@@ -56,6 +58,7 @@ describe("createYouTubeExternalAdapter", () => {
 
   it("rejects unsupported source shapes", async () => {
     const adapter = createYouTubeExternalAdapter();
+    onTestFinished(() => adapter.unmount());
     const fileSource: VibePlayerFileSource = {
       id: "file",
       sources: [{ mimeType: "video/mp4", url: "https://example.com/file.mp4" }],

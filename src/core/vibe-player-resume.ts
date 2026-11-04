@@ -13,7 +13,15 @@ export function shouldRestoreVibePlayerResumePosition({
   isCurrentOperation,
   resumeTime,
 }: ShouldRestoreVibePlayerResumePositionInput): boolean {
-  if (!(resumeTime && resumeTime > 0 && canSeek && isCurrentOperation)) {
+  if (
+    !(
+      resumeTime &&
+      Number.isFinite(resumeTime) &&
+      resumeTime > 0 &&
+      canSeek &&
+      isCurrentOperation
+    )
+  ) {
     return false;
   }
   if (!(Number.isFinite(duration) && duration > 0)) {

@@ -22,14 +22,20 @@ describe("controller capabilities during source loading", () => {
     });
 
     const loading = controller.load(fileSource);
-    await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
-
-    expect(controller.getState().capabilities?.controlsPresentation).toBe(
-      "outside"
-    );
-    expect(controller.getState().lastEvent).toBeNull();
-    finishLoad();
-    await loading;
-    expect(controller.getState().lastEvent).toBe("ready");
+    try {
+      await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
+      expect(controller.getState().capabilities?.controlsPresentation).toBe(
+        "outside"
+      );
+      expect(controller.getState().lastEvent).toBeNull();
+      finishLoad();
+      await loading;
+      expect(controller.getState().lastEvent).toBe("ready");
+    } finally {
+      finishLoad();
+      await loading;
+      await controller.teardown();
+      load.mockRestore();
+    }
   });
 });

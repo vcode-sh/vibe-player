@@ -61,6 +61,23 @@ function getPreferredCaptionTrack(
   return tracks.find((track) => track.default) ?? tracks[0] ?? null;
 }
 
+function useStableCaptionTrack(source: VibePlayerSource | null) {
+  const next = getPreferredCaptionTrack(source);
+  const [current, setCurrent] = useState(next);
+  if (
+    current?.id !== next?.id ||
+    current?.url !== next?.url ||
+    current?.kind !== next?.kind ||
+    current?.language !== next?.language ||
+    current?.label !== next?.label ||
+    current?.default !== next?.default
+  ) {
+    setCurrent(next);
+    return next;
+  }
+  return current;
+}
+
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error("Failed to load captions.");
 }
@@ -119,7 +136,7 @@ export function useVibePlayerCaptions({
   loadCaptionText = defaultLoadCaptionText,
   source,
 }: UseVibePlayerCaptionsOptions): VibePlayerCaptionsState {
-  const track = useMemo(() => getPreferredCaptionTrack(source), [source]);
+  const track = useStableCaptionTrack(source);
   const [request, setRequest] = useState<CaptionRequestState | null>(null);
   const [attempt, setAttempt] = useState(0);
   const retry = useCallback(() => setAttempt((previous) => previous + 1), []);

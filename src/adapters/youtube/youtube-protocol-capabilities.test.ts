@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
 import {
   collectYouTubeAdapterEvents,
   createYouTubeRuntime,
+  createYouTubeTestAdapter,
   getYouTubeSession,
   youtubeSource,
 } from "./youtube-adapter-test-helpers";
@@ -15,7 +15,7 @@ describe("YouTube protocol capabilities", () => {
   it("keeps slow buffering distinct from a confirmed autoplay block", async () => {
     vi.useFakeTimers();
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     await adapter.mount(document.createElement("div"));
     await adapter.load(youtubeSource);
     const events = collectYouTubeAdapterEvents(adapter);
@@ -35,7 +35,7 @@ describe("YouTube protocol capabilities", () => {
 
   it("ignores late blocking after pause or confirmed playback", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     await adapter.mount(document.createElement("div"));
     await adapter.load(youtubeSource);
     const events = collectYouTubeAdapterEvents(adapter);
@@ -62,7 +62,7 @@ describe("YouTube protocol capabilities", () => {
     "exposes provider rates $rates and honest speed capability",
     async ({ rates, expected, canSetRate }) => {
       const { runtime } = createYouTubeRuntime();
-      const adapter = createYouTubeAdapter({
+      const adapter = createYouTubeTestAdapter({
         createPlayer: (session) => ({
           ...runtime.createPlayer(session),
           getAvailablePlaybackRates: () => rates,
@@ -75,4 +75,39 @@ describe("YouTube protocol capabilities", () => {
       await adapter.unmount();
     }
   );
+
+  it("normalizes invalid provider readings while preserving fractional values", async () => {
+    const { probe, runtime } = createYouTubeRuntime();
+    const adapter = createYouTubeTestAdapter(runtime);
+    await adapter.mount(document.createElement("div"));
+    await adapter.load(youtubeSource);
+    Object.assign(probe, {
+      currentTime: -3,
+      duration: Number.POSITIVE_INFINITY,
+      loadedFraction: 2,
+      playbackRate: 0,
+      volume: -20,
+    });
+    expect(adapter.getSnapshot()).toMatchObject({
+      bufferedPct: 100,
+      currentTime: 0,
+      duration: 0,
+      playbackRate: 1,
+      volume: 0,
+    });
+    Object.assign(probe, {
+      currentTime: 23.75,
+      duration: 93.5,
+      loadedFraction: Number.NaN,
+      playbackRate: 1.25,
+      volume: 140,
+    });
+    expect(adapter.getSnapshot()).toMatchObject({
+      bufferedPct: 0,
+      currentTime: 23.75,
+      duration: 93.5,
+      playbackRate: 1.25,
+      volume: 1,
+    });
+  });
 });

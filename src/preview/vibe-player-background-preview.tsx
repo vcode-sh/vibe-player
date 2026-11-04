@@ -21,9 +21,14 @@ export function VibePlayerBackgroundPreview({
   source,
 }: VibePlayerBackgroundPreviewProps) {
   const activeLayerId = getLayerId(source);
+  const { fallbackPosterUrl, posterUrl, previewVideoUrl } = source;
   const currentLayer = useMemo(
-    () => createLayerSnapshot(source, activeLayerId),
-    [activeLayerId, source]
+    () =>
+      createLayerSnapshot(
+        { fallbackPosterUrl, posterUrl, previewVideoUrl },
+        activeLayerId
+      ),
+    [activeLayerId, fallbackPosterUrl, posterUrl, previewVideoUrl]
   );
   const [layers, setLayers] = useState<VibePlayerBackgroundLayerState[]>(() =>
     getInitialLayers(currentLayer, preservePreviousLayer, preserveKey)

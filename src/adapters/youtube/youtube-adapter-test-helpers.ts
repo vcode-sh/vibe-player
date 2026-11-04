@@ -1,8 +1,10 @@
+import { onTestFinished } from "vitest";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
   VibePlayerYouTubeSource,
 } from "../../core/vibe-player-types";
+import { createYouTubeAdapter } from "./create-youtube-adapter";
 import type {
   YouTubeAdapterRuntime,
   YouTubePlayerHandle,
@@ -30,13 +32,23 @@ export interface YouTubeRuntimeProbe {
   volume: number;
 }
 
+export function createYouTubeTestAdapter(
+  runtime?: YouTubeAdapterRuntime
+): VibePlayerAdapter {
+  const adapter = createYouTubeAdapter(runtime);
+  onTestFinished(() => adapter.unmount());
+  return adapter;
+}
+
 export function collectYouTubeAdapterEvents(
   adapter: VibePlayerAdapter
 ): VibePlayerAdapterEvent[] {
   const events: VibePlayerAdapterEvent[] = [];
-  adapter.subscribe((event) => {
-    events.push(event);
-  });
+  onTestFinished(
+    adapter.subscribe((event) => {
+      events.push(event);
+    })
+  );
   return events;
 }
 

@@ -68,6 +68,9 @@ describe("VibePlayerTimeline", () => {
 
     expect(pointerDown.defaultPrevented).toBe(true);
     expect(input).toHaveFocus();
+    fireEvent.pointerMove(timeline, { clientX: 190, pointerId: 2 });
+    fireEvent.pointerUp(timeline, { pointerId: 2 });
+    expect(onSeek.mock.calls).toEqual([[25]]);
     fireEvent.pointerMove(timeline, { clientX: -10, pointerId: 1 });
     fireEvent.pointerMove(timeline, { clientX: 250, pointerId: 1 });
     expect(onSeek.mock.calls).toEqual([[25], [0], [100]]);
@@ -75,6 +78,45 @@ describe("VibePlayerTimeline", () => {
     fireEvent.pointerMove(timeline, { clientX: 100, pointerId: 1 });
     expect(onSeek.mock.calls).toEqual([[25], [0], [100]]);
     expect(timeline.releasePointerCapture).toHaveBeenCalledWith(1);
+  });
+
+  it("stops a captured drag when seeking becomes unavailable", () => {
+    const onSeek = vi.fn();
+    const { container, rerender } = render(
+      <VibePlayerTimeline currentTime={0} duration={100} onSeek={onSeek} />
+    );
+    const timeline = container.querySelector<HTMLElement>(
+      "[data-vibe-player-timeline]"
+    );
+    if (!timeline) {
+      throw new Error("Timeline root missing");
+    }
+    timeline.setPointerCapture = vi.fn();
+    timeline.hasPointerCapture = () => true;
+    timeline.releasePointerCapture = vi.fn();
+    timeline.getBoundingClientRect = () => new DOMRect(10, 0, 200, 32);
+    fireEvent.pointerDown(timeline, {
+      clientX: 60,
+      isPrimary: true,
+      pointerId: 1,
+    });
+    expect(onSeek.mock.calls).toEqual([[25]]);
+    rerender(
+      <VibePlayerTimeline
+        currentTime={25}
+        disabled
+        duration={100}
+        onSeek={onSeek}
+      />
+    );
+    fireEvent.pointerMove(timeline, { clientX: 110, pointerId: 1 });
+    expect(onSeek.mock.calls).toEqual([[25]]);
+    expect(timeline.releasePointerCapture).toHaveBeenCalledWith(1);
+    rerender(
+      <VibePlayerTimeline currentTime={25} duration={100} onSeek={onSeek} />
+    );
+    fireEvent.pointerMove(timeline, { clientX: 160, pointerId: 1 });
+    expect(onSeek.mock.calls).toEqual([[25]]);
   });
 
   it.each([

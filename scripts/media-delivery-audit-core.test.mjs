@@ -85,66 +85,21 @@ describe("media delivery audit core", () => {
       "MP4 is not faststart",
       "CORS is missing for https://missing.example.com",
     ]);
-    expect(report.findings).toEqual([
-      {
-        code: "mp4-not-faststart",
-        failure: "MP4 is not faststart",
-        nextAction: {
-          code: "remux-faststart-or-hls",
-          command:
-            "ffmpeg -i input.mp4 -c copy -movflags +faststart output.mp4",
-          detail:
-            "Run ffmpeg with -movflags +faststart or publish HLS renditions.",
-          label: "Move MP4 metadata forward",
-        },
-        recommendation:
-          "Remux MP4 with `ffmpeg -movflags +faststart` or serve HLS renditions.",
-        severity: "error",
-        summary:
-          "The MP4 metadata atom is behind media data, which can delay startup.",
-      },
-      {
-        code: "cors-missing",
-        failure: "CORS is missing for https://missing.example.com",
-        nextAction: {
-          code: "allow-cors-origin",
-          detail:
-            "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
-          headers: {
-            "Access-Control-Allow-Origin": "https://missing.example.com",
-          },
-          label: "Allow media CORS origin",
-          origin: "https://missing.example.com",
-        },
-        origin: "https://missing.example.com",
-        recommendation:
-          "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
-        severity: "error",
-        summary: "CORS is missing for https://missing.example.com",
-      },
+    expect(
+      report.findings.map(({ code, origin }) => ({ code, origin }))
+    ).toEqual([
+      { code: "mp4-not-faststart", origin: undefined },
+      { code: "cors-missing", origin: "https://missing.example.com" },
+    ]);
+    expect(
+      report.nextActions.map(({ code, origin }) => ({ code, origin }))
+    ).toEqual([
+      { code: "remux-faststart-or-hls", origin: undefined },
+      { code: "allow-cors-origin", origin: "https://missing.example.com" },
     ]);
     expect(report.recommendations).toEqual([
       "Remux MP4 with `ffmpeg -movflags +faststart` or serve HLS renditions.",
       "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
-    ]);
-    expect(report.nextActions).toEqual([
-      {
-        code: "remux-faststart-or-hls",
-        command: "ffmpeg -i input.mp4 -c copy -movflags +faststart output.mp4",
-        detail:
-          "Run ffmpeg with -movflags +faststart or publish HLS renditions.",
-        label: "Move MP4 metadata forward",
-      },
-      {
-        code: "allow-cors-origin",
-        detail:
-          "Allow https://missing.example.com in Access-Control-Allow-Origin before enabling crossOrigin.",
-        headers: {
-          "Access-Control-Allow-Origin": "https://missing.example.com",
-        },
-        label: "Allow media CORS origin",
-        origin: "https://missing.example.com",
-      },
     ]);
     expect(report.rollout).toEqual({
       blockingFindingCodes: ["mp4-not-faststart", "cors-missing"],

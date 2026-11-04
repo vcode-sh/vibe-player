@@ -1,10 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { VibePlayerModal } from "./vibe-player-modal";
+
+const openers = new Set<HTMLButtonElement>();
 
 function createOpener() {
   const opener = document.createElement("button");
   opener.textContent = "Open player";
+  openers.add(opener);
   document.body.append(opener);
   opener.focus();
   return opener;
@@ -12,6 +15,11 @@ function createOpener() {
 
 describe("modal accessibility lifecycle", () => {
   afterEach(() => {
+    cleanup();
+    for (const opener of openers) {
+      opener.remove();
+    }
+    openers.clear();
     document.body.style.overflow = "";
   });
 

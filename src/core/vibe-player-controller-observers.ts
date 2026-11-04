@@ -15,6 +15,7 @@ type StateListener = (state: VibePlayerControllerState) => void;
 export class VibePlayerControllerObservers {
   private readonly listeners = new Set<StateListener>();
   private reporting = false;
+  private session = 0;
   private readonly options: VibePlayerControllerOptions;
   private currentState = createInitialControllerState();
 
@@ -24,6 +25,10 @@ export class VibePlayerControllerObservers {
 
   get state(): VibePlayerControllerState {
     return this.currentState;
+  }
+
+  beginSession(): void {
+    this.session += 1;
   }
 
   reset(isMounted = false): void {
@@ -58,7 +63,7 @@ export class VibePlayerControllerObservers {
 
   notify(state: VibePlayerControllerState): void {
     const failures: unknown[] = [];
-    const { reporting } = this;
+    const { reporting, session } = this;
     for (const listener of this.listeners) {
       if (state !== this.currentState) {
         break;
@@ -66,7 +71,12 @@ export class VibePlayerControllerObservers {
       try {
         observeHostRejection(listener(state), (cause) => {
           if (!reporting) {
-            this.reportFailure("state-listener", cause, state.currentSource);
+            this.reportFailure(
+              "state-listener",
+              cause,
+              state.currentSource,
+              session
+            );
           }
         });
       } catch (cause) {
@@ -74,7 +84,7 @@ export class VibePlayerControllerObservers {
       }
     }
     for (const cause of failures) {
-      this.reportFailure("state-listener", cause, state.currentSource);
+      this.reportFailure("state-listener", cause, state.currentSource, session);
     }
   }
 
@@ -117,17 +127,17 @@ export class VibePlayerControllerObservers {
     fallback?: T,
     source = this.currentState.currentSource
   ): T | undefined {
-    const { reporting } = this;
+    const { reporting, session } = this;
     try {
       const result = execute();
       observeHostRejection(result, (cause) => {
         if (!reporting) {
-          this.reportFailure(operation, cause, source);
+          this.reportFailure(operation, cause, source, session);
         }
       });
       return result;
     } catch (cause) {
-      this.reportFailure(operation, cause, source);
+      this.reportFailure(operation, cause, source, session);
       return fallback;
     }
   }
@@ -135,10 +145,12 @@ export class VibePlayerControllerObservers {
   private reportFailure(
     operation: string,
     cause: unknown,
-    source: VibePlayerSource | null
+    source: VibePlayerSource | null,
+    session: number
   ): void {
     if (
       this.reporting ||
+      session !== this.session ||
       !source ||
       this.currentState.currentSource !== source
     ) {

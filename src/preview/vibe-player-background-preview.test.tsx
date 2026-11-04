@@ -107,6 +107,24 @@ describe("VibePlayerBackgroundPreview", () => {
     expect(replacement).toBeInTheDocument();
   });
 
+  it("keeps frame readiness and retirement when the host reconstructs the same source", () => {
+    vi.useFakeTimers();
+    const { container, rerender } = render(
+      <VibePlayerBackgroundPreview source={previewSource} />
+    );
+    const original = getVideo(container, "/loop.mp4");
+    fireEvent.loadedData(original);
+    act(() => vi.advanceTimersByTime(300));
+    rerender(<VibePlayerBackgroundPreview source={nextSource} />);
+    const replacement = getVideo(container, "/loop-two.mp4");
+    fireEvent.loadedData(replacement);
+    act(() => vi.advanceTimersByTime(150));
+    rerender(<VibePlayerBackgroundPreview source={{ ...nextSource }} />);
+    act(() => vi.advanceTimersByTime(150));
+    expect(original).not.toBeInTheDocument();
+    expect(replacement).toHaveAttribute("data-visible", "true");
+  });
+
   it("does not inherit another preview when no preserve key is supplied", () => {
     const first = render(
       <VibePlayerBackgroundPreview

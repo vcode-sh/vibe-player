@@ -18,7 +18,12 @@ export async function fetchMediaDeliveryRangeSample({
   signal?.throwIfAborted();
   const response = await fetchResponse(url, headers, signal);
   const limit = Math.max(0, end - start + 1);
-  const bytes = await readResponsePrefix(response, limit, signal);
+  // One extra byte exposes an overlong 206 body even at the sampling limit.
+  const bytes = await readResponsePrefix(
+    response,
+    response.status === 206 ? limit + 1 : limit,
+    signal
+  );
   return {
     bytes,
     headers: response.headers,

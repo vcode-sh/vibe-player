@@ -10,6 +10,7 @@ export class DelayedYouTubePlayer implements YouTubePlayerHandle {
   readonly actions: string[] = [];
   destroyed = false;
   private ready = false;
+  private playbackRate = 1;
   private readonly options: YouTubeIframePlayerOptions;
 
   constructor(element: HTMLElement, options: YouTubeIframePlayerOptions) {
@@ -24,6 +25,15 @@ export class DelayedYouTubePlayer implements YouTubePlayerHandle {
 
   signalAutoplayBlocked(): void {
     this.options.events.onAutoplayBlocked?.();
+  }
+
+  signalError(code: number): void {
+    this.options.events.onError({ data: code });
+  }
+
+  signalPlaybackRateChange(rate: number): void {
+    this.playbackRate = rate;
+    this.options.events.onPlaybackRateChange();
   }
 
   destroy(): void {
@@ -41,7 +51,7 @@ export class DelayedYouTubePlayer implements YouTubePlayerHandle {
     return this.read(this.iframe);
   }
   getPlaybackRate(): number {
-    return this.read(1);
+    return this.read(this.playbackRate);
   }
   getVolume(): number {
     return this.read(67);

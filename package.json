@@ -1,6 +1,6 @@
 {
   "name": "vibe-player",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Cinematic, provider-agnostic React video player primitives and skins.",
   "keywords": [
     "video-player",
@@ -66,7 +66,7 @@
     "scripts/media-delivery-audit-runner.mjs"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --format esm --dts --clean --out-dir dist --platform neutral --target es2022 --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
+    "build": "tsdown src/index.ts --format esm --dts --minify --clean --out-dir dist --platform neutral --target es2022 --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
     "check": "biome check .",
     "check-types": "tsc --noEmit",
     "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw && bun run demo:vite:verify && bun run package:consumer && bun run test:youtube:check && bun run test:browser:check && bun run test:browser",

@@ -19,6 +19,10 @@ it.each([
   ["&unknown; &#0; &copy legacy", "&unknown; � © legacy"],
   ["&am<b>p;</b> &#<i>65;</i> &<b>copy;</b>", "&amp; &#65; &copy;"],
   ["<v Speaker> &nbsp; text &nbsp; </v>", " \u00a0 text \u00a0 "],
+  [
+    "  Plain indentation  \n\tSecond line\t",
+    "  Plain indentation  \n\tSecond line\t",
+  ],
 ])(
   "decodes cue text once without losing literal content: %s",
   (input, text) => {

@@ -7,6 +7,32 @@ function createResumeStore() {
 }
 
 describe("controller resume diagnostics", () => {
+  it("does not seek to an infinite stored position before duration metadata arrives", async () => {
+    const adapter = new TestAdapter();
+    adapter.load = () => {
+      adapter.emit("ready", { duration: 0, readyState: "ready" });
+      return Promise.resolve();
+    };
+    const controller = new VibePlayerController({
+      adapterFactory: () => adapter,
+      resumeStore: {
+        ...createResumeStore(),
+        get: () => Number.POSITIVE_INFINITY,
+      },
+    });
+    try {
+      await controller.load(fileSource);
+
+      expect(adapter.calls).not.toContain("seek:Infinity");
+      expect(controller.getState().snapshot).toMatchObject({
+        currentTime: 0,
+        readyState: "ready",
+      });
+    } finally {
+      await controller.teardown();
+    }
+  });
+
   it("continues playback while reporting an unavailable resume store", async () => {
     const adapter = new TestAdapter();
     const cause = new Error("Resume store unavailable");

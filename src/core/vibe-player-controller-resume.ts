@@ -22,6 +22,9 @@ export async function restoreVibePlayerResumePosition({
   source,
   syncFromAdapter,
 }: RestoreVibePlayerResumePositionInput): Promise<void> {
+  if (!isCurrentOperation(operationGeneration)) {
+    return;
+  }
   const resumeTime = resumeStore?.get(source.id);
   const shouldRestore = shouldRestoreVibePlayerResumePosition({
     canSeek: adapter.capabilities.canSeek,

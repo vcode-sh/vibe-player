@@ -99,4 +99,49 @@ describe("caption loader updates", () => {
     expect(firstLoader).toHaveBeenCalledOnce();
     expect(nextLoader).toHaveBeenCalledOnce();
   });
+
+  it("retains an equal reconstructed track but reloads a changed delivery URL", async () => {
+    let finish: (text: string) => void = () => undefined;
+    const pending = new Promise<string>((resolve) => {
+      finish = resolve;
+    });
+    const loadCaptionText = vi.fn<VibePlayerCaptionTextLoader>(async (track) =>
+      track.url === "/en.vtt" ? pending : nextCaption
+    );
+    const { result, rerender } = renderHook(
+      ({ selectedSource }) =>
+        useVibePlayerCaptions({
+          currentTime: 1.5,
+          enabled: true,
+          loadCaptionText,
+          source: selectedSource,
+        }),
+      { initialProps: { selectedSource: source } }
+    );
+    rerender({
+      selectedSource: {
+        ...source,
+        captions: (source.captions ?? []).map((track) => ({ ...track })),
+      },
+    });
+    await act(async () => finish(firstCaption));
+    expect(loadCaptionText).toHaveBeenCalledOnce();
+    expect(loadCaptionText.mock.calls[0]?.[1].aborted).toBe(false);
+    expect(result.current.activeLines).toEqual(["Original request"]);
+
+    await act(async () =>
+      rerender({
+        selectedSource: {
+          ...source,
+          captions: (source.captions ?? []).map((track) => ({
+            ...track,
+            url: "/new.vtt",
+          })),
+        },
+      })
+    );
+    expect(loadCaptionText).toHaveBeenCalledTimes(2);
+    expect(result.current.track?.url).toBe("/new.vtt");
+    expect(result.current.activeLines).toEqual(["Latest loader"]);
+  });
 });

@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-04
+
+We went looking for weak tests and found a few bugs hiding behind green
+checkmarks. Awkward for us; smoother playback for you.
+
+### Fixed
+
+- Rapid play, pause, and play again now follows your latest action. An older
+  playback request no longer gets the last word.
+- Switching videos retires old subscriptions and callbacks before they can
+  interfere with the new source. Invalid saved playback positions are ignored.
+- YouTube reports ready only once its player is usable, and cancelled loads
+  release their timers promptly.
+- Captions keep valid cue identifiers and spacing, reject malformed timestamps,
+  and avoid repeat downloads when a host recreates an equivalent caption track.
+- Seeking and volume changes follow the pointer that started the drag. Tooltips
+  stay inside the player after resize and scroll events.
+- Ambient previews release the previous video on schedule, even across host
+  rerenders. Closed players stop scheduling control-hide timers.
+- HLS quality selection accepts only options the stream actually offers.
+- The media audit catches incomplete or oversized range responses instead of
+  declaring a file ready on the strength of optimistic HTTP headers.
+
+### Improved
+
+- A smaller, minified runtime with the same public API and readable type
+  declarations. Existing package size limits remain in place.
+- Stronger regression tests, fewer duplicate checks, and more reliable cleanup
+  of timers, listeners, media, and test environments.
+
 ## [0.2.0] - 2026-10-22
 
 ### Added

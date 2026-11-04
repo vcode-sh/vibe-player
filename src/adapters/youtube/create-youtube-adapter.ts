@@ -128,6 +128,7 @@ class YouTubeVibePlayerAdapter
       if (isCurrent()) {
         this.loadAbortController = null;
         this.player = player;
+        this.emit("ready");
       } else {
         player.destroy();
       }

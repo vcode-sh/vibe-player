@@ -6,10 +6,21 @@ import type {
 import { createFileAdapter } from "../file/create-file-adapter";
 import { createHlsAdapter } from "../hls/create-hls-adapter";
 import type { HlsAdapterRuntime } from "../hls/hls-runtime-types";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import {
   canUseNativePictureInPicture,
   enterNativePictureInPicture,
 } from "./native-picture-in-picture";
+
+const adapterScope = createAdapterTestScope();
+const originalDocumentProperties = [
+  "exitPictureInPicture",
+  "pictureInPictureElement",
+  "pictureInPictureEnabled",
+] as const;
+const documentDescriptors = originalDocumentProperties.map(
+  (key) => [key, Object.getOwnPropertyDescriptor(document, key)] as const
+);
 
 const fileSource: VibePlayerFileSource = {
   id: "file-pip",
@@ -59,28 +70,20 @@ function getMountedVideo(target: HTMLElement): HTMLVideoElement {
   return video;
 }
 
-function clearDocumentOverrides(): void {
-  Object.defineProperty(document, "exitPictureInPicture", {
-    configurable: true,
-    value: undefined,
-  });
-  Object.defineProperty(document, "pictureInPictureElement", {
-    configurable: true,
-    value: null,
-  });
-  Object.defineProperty(document, "pictureInPictureEnabled", {
-    configurable: true,
-    value: false,
-  });
-}
-
 function createPictureInPictureWindow(): PictureInPictureWindow {
   return { height: 180, width: 320 } as PictureInPictureWindow;
 }
 
 describe("native picture-in-picture", () => {
-  afterEach(() => {
-    clearDocumentOverrides();
+  afterEach(async () => {
+    await adapterScope.cleanup();
+    for (const [key, descriptor] of documentDescriptors) {
+      if (descriptor) {
+        Object.defineProperty(document, key, descriptor);
+      } else {
+        Reflect.deleteProperty(document, key);
+      }
+    }
     vi.restoreAllMocks();
   });
 
@@ -141,7 +144,7 @@ describe("native picture-in-picture", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const adapter = createFileAdapter();
+    const adapter = adapterScope.track(createFileAdapter());
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load(fileSource);
@@ -171,7 +174,7 @@ describe("native picture-in-picture", () => {
       }),
       canUseManagedHls: () => true,
     };
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load(hlsSource);

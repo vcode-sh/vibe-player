@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFileAdapter } from "../file/create-file-adapter";
 import { createSingleFileSource } from "../file/file-adapter-test-helpers";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { NativeVideoPresentation } from "./native-video-presentation";
 import {
   createDeferredPlayback,
   getMountedNativeVideo,
 } from "./native-video-test-helpers";
+
+const adapterScope = createAdapterTestScope();
 
 const originalPictureElement = Object.getOwnPropertyDescriptor(
   document,
@@ -28,7 +31,7 @@ function setPictureElement(element: Element | null): void {
 }
 
 async function createPlayer() {
-  const adapter = createFileAdapter();
+  const adapter = adapterScope.track(createFileAdapter());
   const target = document.createElement("div");
   document.body.append(target);
   await adapter.mount(target);
@@ -56,7 +59,8 @@ describe("picture in picture lifecycle ownership", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await adapterScope.cleanup();
     for (const [key, descriptor] of [
       ["pictureInPictureElement", originalPictureElement],
       ["pictureInPictureEnabled", originalPictureEnabled],
@@ -114,8 +118,12 @@ describe("picture in picture lifecycle ownership", () => {
   });
 
   it("preserves a video claimed by another presentation owner", async () => {
-    const previous = new NativeVideoPresentation(() => undefined);
-    const current = new NativeVideoPresentation(() => undefined);
+    const previous = adapterScope.track(
+      new NativeVideoPresentation(() => undefined)
+    );
+    const current = adapterScope.track(
+      new NativeVideoPresentation(() => undefined)
+    );
     const target = document.createElement("div");
     const video = document.createElement("video");
     const deferred = createDeferredPlayback();

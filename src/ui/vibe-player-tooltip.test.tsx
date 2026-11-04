@@ -71,13 +71,23 @@ describe("VibePlayerTooltip", () => {
       throw new Error("Missing player stage");
     }
     setRect(stage, createRect({ left: 0, right: 120 }));
-    setRect(bubble, createRect({ left: 80, right: 180 }));
+    Object.defineProperty(bubble, "getBoundingClientRect", {
+      configurable: true,
+      value: () => {
+        const offset = Number.parseFloat(bubble.style.marginLeft) || 0;
+        return createRect({ left: 80 + offset, right: 180 + offset });
+      },
+    });
 
     fireEvent.focus(screen.getByRole("button", { name: "Trigger" }));
 
     await waitFor(() => {
       expect(bubble).toHaveStyle({ marginLeft: "-68px" });
     });
+    fireEvent(window, new Event("resize"));
+    expect(bubble).toHaveStyle({ marginLeft: "-68px" });
+    fireEvent(window, new Event("scroll"));
+    expect(bubble).toHaveStyle({ marginLeft: "-68px" });
     setRect(stage, createRect({ left: 0, right: 240 }));
     fireEvent(window, new Event("resize"));
     expect(bubble.style.marginLeft).toBe("");

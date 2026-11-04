@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
 import {
   createYouTubeRuntime,
+  createYouTubeTestAdapter,
   getYouTubeSession,
   youtubeSource,
 } from "./youtube-adapter-test-helpers";
@@ -10,7 +10,7 @@ import { youtubePlayerStates } from "./youtube-iframe-types";
 describe("YouTube iframe mount ownership", () => {
   it("retains the SDK-replaced iframe when mounting the same target again", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const target = document.createElement("div");
     try {
       await adapter.mount(target);
@@ -35,7 +35,7 @@ describe("YouTube iframe mount ownership", () => {
 
   it("moves the current iframe to a new target without recreating playback", async () => {
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter(runtime);
+    const adapter = createYouTubeTestAdapter(runtime);
     const previous = document.createElement("div");
     const current = document.createElement("section");
     try {

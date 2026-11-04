@@ -1,57 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type {
-  VibePlayerAdapterEvent,
-  VibePlayerHlsSource,
-} from "../../core/index";
+import type { VibePlayerAdapterEvent } from "../../core/vibe-player-types";
 import { getMountedNativeVideo } from "../native/native-video-test-helpers";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { createHlsAdapter } from "./create-hls-adapter";
-import type { HlsAdapterRuntime, ManagedHlsSession } from "./hls-runtime-types";
+import {
+  createHlsRuntime,
+  getManagedSession,
+  hlsSource,
+} from "./hls-adapter-test-helpers";
 
-const hlsSource: VibePlayerHlsSource = {
-  id: "hls-quality",
-  manifestUrl: "https://example.com/stream.m3u8",
-  type: "hls",
-};
-
-interface RuntimeProbe {
-  qualityLevel: number;
-  session: ManagedHlsSession | null;
-}
-
-function createRuntime(): {
-  probe: RuntimeProbe;
-  runtime: HlsAdapterRuntime;
-} {
-  const probe: RuntimeProbe = {
-    qualityLevel: -1,
-    session: null,
-  };
-  return {
-    probe,
-    runtime: {
-      attachManagedHls(session) {
-        probe.session = session;
-        return {
-          destroy: () => undefined,
-          setQualityLevel: (levelIndex) => {
-            probe.qualityLevel = levelIndex;
-          },
-        };
-      },
-      canUseManagedHls: () => true,
-    },
-  };
-}
-
-function getManagedSession(probe: RuntimeProbe): ManagedHlsSession {
-  if (!probe.session) {
-    throw new Error("Expected managed HLS session.");
-  }
-  return probe.session;
-}
+const adapterScope = createAdapterTestScope();
 
 describe("HLS quality selection", () => {
-  afterEach(() => {
+  afterEach(async () => {
+    await adapterScope.cleanup();
     vi.restoreAllMocks();
   });
 
@@ -60,8 +22,8 @@ describe("HLS quality selection", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { probe, runtime } = createRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const { probe, runtime } = createHlsRuntime();
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const events: VibePlayerAdapterEvent[] = [];
     adapter.subscribe((event) => {
       events.push(event);
@@ -95,7 +57,13 @@ describe("HLS quality selection", () => {
       { id: "level:1", selected: false },
     ]);
     const eventCount = events.length;
-    await adapter.setQuality?.("unsupported");
+    const previousOptions = adapter.getSnapshot().qualityOptions;
+    await Promise.all(
+      ["unsupported", "level:1junk", "level:1.5", "level:9"].map((qualityId) =>
+        adapter.setQuality?.(qualityId)
+      )
+    );
+    expect(adapter.getSnapshot().qualityOptions).toEqual(previousOptions);
     expect(probe.qualityLevel).toBe(-1);
     expect(events).toHaveLength(eventCount);
   });
@@ -107,8 +75,8 @@ describe("HLS quality selection", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { probe, runtime } = createRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const { probe, runtime } = createHlsRuntime();
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
 
     await adapter.mount(document.createElement("div"));
     await adapter.load(hlsSource);
@@ -121,8 +89,8 @@ describe("HLS quality selection", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const { probe, runtime } = createRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const { probe, runtime } = createHlsRuntime();
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
 
     await adapter.mount(target);
@@ -152,12 +120,14 @@ describe("HLS quality selection", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const adapter = createHlsAdapter({
-      attachManagedHls: () => {
-        throw new Error("managed unavailable");
-      },
-      canUseManagedHls: () => true,
-    });
+    const adapter = adapterScope.track(
+      createHlsAdapter({
+        attachManagedHls: () => {
+          throw new Error("managed unavailable");
+        },
+        canUseManagedHls: () => true,
+      })
+    );
     const target = document.createElement("div");
 
     await adapter.mount(target);

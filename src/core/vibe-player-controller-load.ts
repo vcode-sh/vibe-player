@@ -14,6 +14,7 @@ import type {
 export interface LoadVibePlayerControllerSourceInput {
   adapterFactory: VibePlayerControllerOptions["adapterFactory"];
   analyticsSession: VibePlayerAnalyticsSession;
+  beginSession: () => void;
   currentState: VibePlayerControllerState;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
   handleAdapterEvent: (event: VibePlayerAdapterEvent) => void;
@@ -41,8 +42,15 @@ export async function loadVibePlayerControllerSource(
     return;
   }
   input.analyticsSession.clear();
+  input.beginSession();
   const adapter = createControllerAdapter(input);
+  if (!input.isCurrentOperation(input.operationGeneration)) {
+    return;
+  }
   const hasReportedError = subscribeControllerAdapter(input, adapter);
+  if (!input.isCurrentOperation(input.operationGeneration)) {
+    return;
+  }
   await mountAndLoadControllerAdapter(input, adapter, hasReportedError);
   if (!input.isCurrentOperation(input.operationGeneration)) {
     await adapter.unmount();
@@ -55,6 +63,9 @@ export async function loadVibePlayerControllerSource(
     playbackBlocked: false,
     snapshot: adapter.getSnapshot(),
   });
+  if (!input.isCurrentOperation(input.operationGeneration)) {
+    return;
+  }
   input.analyticsSession.emitOnce({
     provider: input.source.type,
     sourceId: input.source.id,
@@ -98,10 +109,15 @@ function subscribeControllerAdapter(
     errorReported ||= event.type === "error";
     input.handleAdapterEvent(event);
   });
-  input.setAdapterUnsubscribe(() => {
+  const dispose = () => {
     active = false;
     unsubscribe();
-  });
+  };
+  if (input.isCurrentOperation(input.operationGeneration)) {
+    input.setAdapterUnsubscribe(dispose);
+  } else {
+    dispose();
+  }
   return () => errorReported;
 }
 

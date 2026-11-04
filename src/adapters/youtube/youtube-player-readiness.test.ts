@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
 import {
   collectYouTubeAdapterEvents,
+  createYouTubeTestAdapter,
   youtubeSource,
 } from "./youtube-adapter-test-helpers";
 import { createDelayedYouTubeApi } from "./youtube-player-readiness-test-helpers";
@@ -9,7 +9,7 @@ import { createDelayedYouTubeApi } from "./youtube-player-readiness-test-helpers
 async function startDefaultAdapter() {
   const { api, getPlayer } = createDelayedYouTubeApi();
   window.YT = api;
-  const adapter = createYouTubeAdapter();
+  const adapter = createYouTubeTestAdapter();
   const target = document.createElement("div");
   await adapter.mount(target);
   const pending = adapter.load(youtubeSource);
@@ -21,13 +21,13 @@ async function startDefaultAdapter() {
 describe("official YouTube player readiness", () => {
   afterEach(() => {
     window.YT = undefined;
-    document.body.replaceChildren();
     vi.useRealTimers();
   });
 
   it("waits for SDK readiness before exposing handle reads or playback", async () => {
     vi.useFakeTimers();
     const { adapter, outcome, pending, player } = await startDefaultAdapter();
+    const events = collectYouTubeAdapterEvents(adapter);
     let loaded = false;
     pending
       .then(() => {
@@ -45,6 +45,16 @@ describe("official YouTube player readiness", () => {
       expect(player.actions).toEqual([]);
       player.signalReady();
       await pending;
+      expect(events).toEqual([
+        expect.objectContaining({
+          snapshot: expect.objectContaining({
+            currentTime: 23.5,
+            duration: 213,
+            readyState: "ready",
+          }),
+          type: "ready",
+        }),
+      ]);
       expect(adapter.getSnapshot()).toMatchObject({
         currentTime: 23.5,
         duration: 213,

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerAdapterEvent } from "../../core/vibe-player-types";
 import { getMountedNativeVideo } from "../native/native-video-test-helpers";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { createHlsAdapter } from "./create-hls-adapter";
 import {
   createDeferredManagedHlsController,
@@ -10,8 +11,11 @@ import {
   hlsSource,
 } from "./hls-adapter-test-helpers";
 
+const adapterScope = createAdapterTestScope();
+
 describe("createHlsAdapter load sessions", () => {
-  afterEach(() => {
+  afterEach(async () => {
+    await adapterScope.cleanup();
     vi.restoreAllMocks();
   });
 
@@ -28,7 +32,7 @@ describe("createHlsAdapter load sessions", () => {
       probe.session = pendingSession;
       return controller.promise;
     };
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
     adapter.subscribe((event) => {
       events.push(event);
@@ -74,7 +78,7 @@ describe("createHlsAdapter load sessions", () => {
       session.manifestUrl === hlsSource.manifestUrl
         ? pending.promise
         : attach(session);
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     await adapter.mount(document.createElement("div"));
     const oldLoad = adapter.load(hlsSource);
     await adapter.load({
@@ -122,7 +126,7 @@ describe("createHlsAdapter load sessions", () => {
         setQualityLevel: () => undefined,
       };
     };
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
 
     await adapter.mount(target);

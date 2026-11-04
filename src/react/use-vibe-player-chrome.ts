@@ -35,14 +35,14 @@ export function useVibePlayerChrome({
 
   const scheduleChromeHide = useCallback(() => {
     clearIdleTimer();
-    if (!autoHide || focusWithinRef.current) {
+    if (!(open && autoHide) || focusWithinRef.current) {
       return;
     }
     idleTimerRef.current = window.setTimeout(
       () => setChromeHidden(true),
       idleDelayMs
     );
-  }, [autoHide, clearIdleTimer, idleDelayMs]);
+  }, [autoHide, clearIdleTimer, idleDelayMs, open]);
 
   const holdChrome = useCallback(() => {
     focusWithinRef.current = true;

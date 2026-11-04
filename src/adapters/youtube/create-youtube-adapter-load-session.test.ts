@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { createYouTubeAdapter } from "./create-youtube-adapter";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import {
   collectYouTubeAdapterEvents,
   createYouTubeRuntime,
+  createYouTubeTestAdapter,
   getYouTubeSession,
   youtubeSource,
 } from "./youtube-adapter-test-helpers";
@@ -25,7 +25,7 @@ describe("YouTube asynchronous load ownership", () => {
     vi.useFakeTimers();
     const gate = createGate();
     const { probe, runtime } = createYouTubeRuntime();
-    const adapter = createYouTubeAdapter({
+    const adapter = createYouTubeTestAdapter({
       createPlayer: (session) => {
         const handle = runtime.createPlayer(session);
         return gate.promise.then(() => handle);
@@ -33,20 +33,29 @@ describe("YouTube asynchronous load ownership", () => {
     });
     await adapter.mount(document.createElement("div"));
     const pending = adapter.load(youtubeSource);
+    const outcome = pending.catch((error: unknown) => error);
     const events = collectYouTubeAdapterEvents(adapter);
     const obsoleteSession = getYouTubeSession(probe);
-    await adapter.unmount();
-    gate.resolve();
-    await pending;
-    obsoleteSession.onReady();
-    obsoleteSession.onStateChange(youtubePlayerStates.playing);
-    obsoleteSession.onError({ code: 100, message: "Deleted old video" });
-    vi.advanceTimersByTime(1000);
+    try {
+      await adapter.unmount();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(await outcome).toMatchObject({ name: "AbortError" });
+      gate.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      obsoleteSession.onReady();
+      obsoleteSession.onStateChange(youtubePlayerStates.playing);
+      obsoleteSession.onError({ code: 100, message: "Deleted old video" });
+      vi.advanceTimersByTime(1000);
 
-    expect(probe.destroyed).toBe(true);
-    expect(adapter.getSnapshot().readyState).toBe("idle");
-    expect(adapter.capabilities.supportsPlayback).toBe(false);
-    expect(events).toEqual([]);
+      expect(probe.destroyed).toBe(true);
+      expect(adapter.getSnapshot().readyState).toBe("idle");
+      expect(adapter.capabilities.supportsPlayback).toBe(false);
+      expect(events).toEqual([]);
+    } finally {
+      gate.resolve();
+      await outcome;
+      await adapter.unmount();
+    }
   });
 
   it.each(["resolve", "reject"] as const)(
@@ -56,18 +65,28 @@ describe("YouTube asynchronous load ownership", () => {
       const old = createYouTubeRuntime();
       const current = createYouTubeRuntime();
       current.probe.currentTime = 47;
-      const adapter = createYouTubeAdapter({
+      const adapter = createYouTubeTestAdapter({
         createPlayer: (session) => {
           if (session.videoId === "new-video") {
             return current.runtime.createPlayer(session);
           }
           const handle = old.runtime.createPlayer(session);
-          return gate.promise.then(() => handle);
+          return gate.promise.then(
+            () => handle,
+            async (error: unknown) => {
+              (await handle).destroy();
+              throw error;
+            }
+          );
         },
       });
       await adapter.mount(document.createElement("div"));
       const pending = adapter.load(youtubeSource);
       const outcome = pending.catch((error: unknown) => error);
+      onTestFinished(async () => {
+        gate.resolve();
+        await outcome;
+      });
       await adapter.load({ ...youtubeSource, youtubeVideoId: "new-video" });
       if (completion === "resolve") {
         gate.resolve();
@@ -95,6 +114,7 @@ describe("YouTube asynchronous load ownership", () => {
       expect(current.probe.destroyed).toBe(false);
       expect(current.probe.actions).toEqual(["play"]);
       expect(old.probe.actions).toEqual([]);
+      expect(old.probe.destroyed).toBe(true);
       await adapter.unmount();
       expect(current.probe.destroyed).toBe(true);
     }

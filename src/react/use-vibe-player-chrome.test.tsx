@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useVibePlayerChrome } from "./use-vibe-player-chrome";
 
@@ -8,7 +8,10 @@ describe("useVibePlayerChrome", () => {
   });
 
   afterEach(() => {
+    cleanup();
+    const remainingTimers = vi.getTimerCount();
     vi.useRealTimers();
+    expect(remainingTimers).toBe(0);
   });
 
   it("restarts the full idle delay after activity instead of using the old deadline", () => {
@@ -78,6 +81,9 @@ describe("useVibePlayerChrome", () => {
     expect(result.current.chromeHidden).toBe(false);
 
     act(() => {
+      result.current.releaseChrome();
+      result.current.showChrome();
+      result.current.scheduleChromeHide();
       vi.advanceTimersByTime(1000);
     });
     expect(result.current.chromeHidden).toBe(false);

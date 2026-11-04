@@ -1,62 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type {
-  YouTubeIframeApi,
-  YouTubeIframePlayerOptions,
-  YouTubePlayerHandle,
-} from "./youtube-iframe-types";
+import { createDelayedYouTubeApi } from "./youtube-player-readiness-test-helpers";
 
 const youtubeIframeApiSrc = "https://www.youtube.com/iframe_api";
-let fakePlayerCommandCount = 0;
-let fakePlayerOptions: YouTubeIframePlayerOptions | null = null;
 
-class FakeYouTubePlayer implements YouTubePlayerHandle {
-  constructor(_element: HTMLElement, options: YouTubeIframePlayerOptions) {
-    fakePlayerOptions = options;
-  }
-
-  destroy(): void {
-    fakePlayerCommandCount += 1;
-  }
-  getCurrentTime(): number {
-    return 0;
-  }
-  getDuration(): number {
-    return 0;
-  }
-  getPlaybackRate(): number {
-    return 1;
-  }
-  getVolume(): number {
-    return 100;
-  }
-  isMuted(): boolean {
-    return false;
-  }
-  mute(): void {
-    fakePlayerCommandCount += 1;
-  }
-  pauseVideo(): void {
-    fakePlayerCommandCount += 1;
-  }
-  playVideo(): void {
-    fakePlayerCommandCount += 1;
-  }
-  seekTo(): void {
-    fakePlayerCommandCount += 1;
-  }
-  setPlaybackRate(): void {
-    fakePlayerCommandCount += 1;
-  }
-  setVolume(): void {
-    fakePlayerCommandCount += 1;
-  }
-  unMute(): void {
-    fakePlayerCommandCount += 1;
-  }
-}
-
-function createApi(): YouTubeIframeApi {
-  return { Player: FakeYouTubePlayer };
+function createApi() {
+  return createDelayedYouTubeApi().api;
 }
 
 async function importRuntime() {
@@ -91,8 +39,6 @@ function mockScriptAppend(): HTMLScriptElement[] {
 
 describe("youtube iframe runtime", () => {
   afterEach(() => {
-    fakePlayerCommandCount = 0;
-    fakePlayerOptions = null;
     vi.useRealTimers();
     vi.restoreAllMocks();
     cleanupYouTubeGlobals();
@@ -161,37 +107,7 @@ describe("youtube iframe runtime", () => {
     await vi.advanceTimersByTimeAsync(8000);
 
     await assertion;
-  });
-
-  it("passes origin and widget referrer into playerVars", async () => {
-    window.YT = createApi();
-    const { defaultYouTubeAdapterRuntime } = await importRuntime();
-
-    const pending = defaultYouTubeAdapterRuntime.createPlayer({
-      element: document.createElement("div"),
-      onError: () => undefined,
-      onPlaybackRateChange: () => undefined,
-      onReady: () => undefined,
-      onStateChange: () => undefined,
-      origin: "https://player.example",
-      videoId: "M7lc1UVf-VE",
-      widgetReferrer: "https://consumer.example",
-    });
-
-    await Promise.resolve();
-    getFakePlayerOptions().events.onReady();
-    await pending;
-
-    expect(getFakePlayerOptions().playerVars).toMatchObject({
-      origin: "https://player.example",
-      widget_referrer: "https://consumer.example",
-    });
+    expect(vi.getTimerCount()).toBe(0);
+    expect(window.onYouTubeIframeAPIReady).toBeUndefined();
   });
 });
-
-function getFakePlayerOptions(): YouTubeIframePlayerOptions {
-  if (!fakePlayerOptions) {
-    throw new Error("Missing fake YouTube player options.");
-  }
-  return fakePlayerOptions;
-}

@@ -46,9 +46,14 @@ export function VibePlayerTooltip({
       if (!(root && bubble)) {
         return;
       }
+      const rect = bubble.getBoundingClientRect();
+      const appliedOffset = Number.parseFloat(bubble.style.marginLeft) || 0;
       setCollisionOffset(
         getVibePlayerTooltipCollisionOffset(
-          bubble.getBoundingClientRect(),
+          {
+            left: rect.left - appliedOffset,
+            right: rect.right - appliedOffset,
+          },
           getVibePlayerTooltipBoundaryRect(root)
         )
       );

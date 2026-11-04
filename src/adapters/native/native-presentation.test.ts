@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerAdapterEvent } from "../../core/vibe-player-types";
 import { createFileAdapter } from "../file/create-file-adapter";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { getMountedNativeVideo } from "./native-video-test-helpers";
+
+const adapterScope = createAdapterTestScope();
+const originalDocumentProperties = ["fullscreenElement"] as const;
+const documentDescriptors = originalDocumentProperties.map(
+  (key) => [key, Object.getOwnPropertyDescriptor(document, key)] as const
+);
 
 const source = {
   id: "presentation",
@@ -18,8 +25,15 @@ function setFullscreenElement(element: Element | null): void {
 }
 
 describe("native presentation ownership", () => {
-  afterEach(() => {
-    setFullscreenElement(null);
+  afterEach(async () => {
+    await adapterScope.cleanup();
+    for (const [key, descriptor] of documentDescriptors) {
+      if (descriptor) {
+        Object.defineProperty(document, key, descriptor);
+      } else {
+        Reflect.deleteProperty(document, key);
+      }
+    }
     vi.restoreAllMocks();
     document.body.replaceChildren();
   });
@@ -28,7 +42,7 @@ describe("native presentation ownership", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const adapter = createFileAdapter();
+    const adapter = adapterScope.track(createFileAdapter());
     const target = document.createElement("div");
     const stage = document.createElement("section");
     stage.append(target, document.createElement("button"));
@@ -59,7 +73,7 @@ describe("native presentation ownership", () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined
     );
-    const adapter = createFileAdapter();
+    const adapter = adapterScope.track(createFileAdapter());
     const target = document.createElement("div");
     const former = document.createElement("section");
     const current = document.createElement("section");

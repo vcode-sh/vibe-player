@@ -11,28 +11,21 @@ const CAPTION_CARRIAGE_RETURN = /\r/g;
 const CAPTION_LINE_BREAK = /\r\n/g;
 const CAPTION_SETTING_SEPARATOR = /\s+/;
 const CAPTION_TAG = /<[^>]+>/g;
+const CAPTION_TIMESTAMP = /^(?:(\d+):)?([0-5]\d):([0-5]\d)\.(\d{3})$/;
+const CAPTION_SIGNATURE = /^\uFEFF?WEBVTT(?:[ \t]|\n|$)/;
 
 function parseCaptionTimestamp(value: string): number | null {
-  const parts = value.trim().replace(",", ".").split(":");
-  if (parts.length !== 2 && parts.length !== 3) {
+  const match = CAPTION_TIMESTAMP.exec(value.trim().replace(",", "."));
+  if (!match) {
     return null;
   }
 
-  const seconds = Number(parts.at(-1));
-  const minutes = Number(parts.at(-2));
-  const hours = parts.length === 3 ? Number(parts[0]) : 0;
-
-  if (
-    !(
-      Number.isFinite(hours) &&
-      Number.isFinite(minutes) &&
-      Number.isFinite(seconds)
-    )
-  ) {
-    return null;
-  }
-
-  return hours * 3600 + minutes * 60 + seconds;
+  const hours = Number(match[1] ?? 0);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3]);
+  const milliseconds = Number(match[4]);
+  const timestamp = hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
+  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 function stripCaptionMarkup(text: string): string {
@@ -44,13 +37,10 @@ function stripCaptionMarkup(text: string): string {
 }
 
 function parseCaptionBlock(block: string): VibePlayerCaptionCue | null {
-  const lines = block
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+  const lines = block.split("\n").filter((line) => line.length > 0);
 
   const [firstLine] = lines;
-  if (!firstLine || firstLine.startsWith("WEBVTT") || firstLine === "NOTE") {
+  if (!firstLine || firstLine === "NOTE") {
     return null;
   }
 
@@ -104,7 +94,12 @@ export function parseWebVtt(content: string): VibePlayerCaptionCue[] {
     .replace(CAPTION_CARRIAGE_RETURN, "\n");
   const cues: VibePlayerCaptionCue[] = [];
 
-  for (const block of normalized.split(CAPTION_BLOCK_SEPARATOR)) {
+  for (const [index, block] of normalized
+    .split(CAPTION_BLOCK_SEPARATOR)
+    .entries()) {
+    if (index === 0 && CAPTION_SIGNATURE.test(block)) {
+      continue;
+    }
     const cue = parseCaptionBlock(block);
     if (cue) {
       cues.push(cue);

@@ -36,6 +36,37 @@ Valid cue`)
     ).toEqual([{ end: 6, start: 5, text: "Valid cue" }]);
   });
 
+  it.each([
+    "-00:01.000",
+    "00:60.000",
+    "00:60:00.000",
+    "1:02.000",
+    "00:01.00",
+    "00:01",
+  ])(
+    "rejects invalid WebVTT timestamp %s without dropping valid cues",
+    (start) => {
+      // WebVTT §6.3: unsigned components, minutes/seconds <=59, three decimals.
+      expect(
+        parseWebVtt(
+          `WEBVTT\n\n${start} --> 02:00:00.000\nInvalid\n\n100:01:02.003 --> 100:01:03.004\nValid`
+        )
+      ).toEqual([{ end: 360_063.004, start: 360_062.003, text: "Valid" }]);
+    }
+  );
+
+  it("preserves a valid cue identifier beginning with the file signature", () => {
+    expect(
+      parseWebVtt("WEBVTT\n\nWEBVTT-intro\n00:01.000 --> 00:02.000\nVisible")
+    ).toEqual([{ end: 2, start: 1, text: "Visible" }]);
+  });
+
+  it("retains the parser's existing comma-separated timestamp compatibility", () => {
+    expect(
+      parseWebVtt("WEBVTT\n\n00:01,500 --> 00:02,750\nCompatible")
+    ).toEqual([{ end: 2.75, start: 1.5, text: "Compatible" }]);
+  });
+
   it("uses inclusive starts and exclusive ends for adjacent and overlapping cues", () => {
     const cues = [
       { end: 2, start: 1, text: "First" },

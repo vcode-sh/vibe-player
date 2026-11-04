@@ -1,7 +1,10 @@
 import { type HlsConfig, type LoaderContext, LoaderContextType } from "hls.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { createHlsAdapter } from "./create-hls-adapter";
 import { defaultHlsAdapterRuntime } from "./hls-managed-runtime";
+
+const adapterScope = createAdapterTestScope();
 
 const probe = vi.hoisted(() => ({
   config: null as Partial<HlsConfig> | null,
@@ -41,7 +44,8 @@ function getConfig(): Partial<HlsConfig> {
 }
 
 describe("managed HLS request credentials", () => {
-  afterEach(() => {
+  afterEach(async () => {
+    await adapterScope.cleanup();
     probe.config = null;
     probe.constructed = false;
     vi.restoreAllMocks();
@@ -69,10 +73,12 @@ describe("managed HLS request credentials", () => {
       vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
         () => undefined
       );
-      const adapter = createHlsAdapter({
-        ...defaultHlsAdapterRuntime,
-        canUseManagedHls: () => true,
-      });
+      const adapter = adapterScope.track(
+        createHlsAdapter({
+          ...defaultHlsAdapterRuntime,
+          canUseManagedHls: () => true,
+        })
+      );
       await adapter.mount(document.createElement("div"));
       await adapter.load({
         id: "private-hls",

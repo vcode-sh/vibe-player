@@ -10,7 +10,7 @@ function createAutoplayController(muted = false): {
   controller: VibePlayerAutoplayController;
 } {
   const calls: string[] = [];
-  let state: VibePlayerControllerState = {
+  const state: VibePlayerControllerState = {
     capabilities: null,
     currentSource: null,
     error: null,
@@ -29,10 +29,6 @@ function createAutoplayController(muted = false): {
       },
       setMuted: (value) => {
         calls.push(`muted:${String(value)}`);
-        state = {
-          ...state,
-          snapshot: { ...state.snapshot, muted: value },
-        };
         return Promise.resolve();
       },
     },
@@ -63,7 +59,7 @@ describe("startVibePlayerAutoplay", () => {
     expect(play).not.toHaveBeenCalled();
   });
 
-  it("keeps muted bootstrap playback muted after start", async () => {
+  it("mutes before playback without automatically unmuting", async () => {
     const { calls, controller } = createAutoplayController(false);
 
     await startVibePlayerAutoplay({
@@ -73,7 +69,6 @@ describe("startVibePlayerAutoplay", () => {
     });
 
     expect(calls).toEqual(["muted:true", "play"]);
-    expect(controller.getState().snapshot.muted).toBe(true);
   });
 
   it("does not remute sources that are already muted", async () => {
@@ -98,6 +93,5 @@ describe("startVibePlayerAutoplay", () => {
     });
 
     expect(calls).toEqual(["play"]);
-    expect(controller.getState().snapshot.muted).toBe(false);
   });
 });

@@ -3,11 +3,11 @@
 ## Current state
 
 - Package: `vibe-player`
-- Repository version: `0.2.0`; check `npm view vibe-player version` for the
+- Repository version: `0.2.1`; check `npm view vibe-player version` for the
   published stable version.
 - License: `Apache-2.0`
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
-- Output: ESM-only, built into `dist`
+- Output: minified ESM with readable type declarations, built into `dist`
 - Versioning: Changesets
 - Publishing: public npm package with Trusted Publishing/provenance
 - Guard: `bun run package:release-state`

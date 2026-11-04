@@ -42,13 +42,16 @@ describe("useVibePlayerController", () => {
       .mockImplementation(() => undefined);
     const root = hydrateRoot(container, <PlayerState />);
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    try {
+      await act(async () => {
+        await Promise.resolve();
+      });
 
-    expect(container.textContent).toBe("idle");
-    expect(consoleError).not.toHaveBeenCalled();
-    await act(() => root.unmount());
+      expect(container.textContent).toBe("idle");
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      await act(() => root.unmount());
+    }
   });
 
   it("switches subscriptions to the replacement controller and releases both adapters", async () => {

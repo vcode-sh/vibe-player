@@ -10,6 +10,7 @@ import {
   defineNativeVideoNumberProperty,
   getMountedNativeVideo,
 } from "../native/native-video-test-helpers";
+import { createAdapterTestScope } from "../shared/adapter-test-helpers";
 import { createHlsAdapter } from "./create-hls-adapter";
 import {
   createHlsRuntime,
@@ -17,8 +18,11 @@ import {
   hlsSource,
 } from "./hls-adapter-test-helpers";
 
+const adapterScope = createAdapterTestScope();
+
 describe("createHlsAdapter", () => {
-  afterEach(() => {
+  afterEach(async () => {
+    await adapterScope.cleanup();
     document.body.replaceChildren();
     vi.restoreAllMocks();
   });
@@ -29,7 +33,7 @@ describe("createHlsAdapter", () => {
       () => undefined
     );
     const { probe, runtime } = createHlsRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
     const events: VibePlayerAdapterEvent[] = [];
     adapter.subscribe((event) => {
@@ -62,7 +66,7 @@ describe("createHlsAdapter", () => {
       () => undefined
     );
     const { probe, runtime } = createHlsRuntime(false);
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
 
     await adapter.mount(target);
@@ -80,7 +84,7 @@ describe("createHlsAdapter", () => {
       () => undefined
     );
     const { probe, runtime } = createHlsRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load({ ...hlsSource, live: true });
@@ -105,7 +109,7 @@ describe("createHlsAdapter", () => {
       () => undefined
     );
     const { probe, runtime } = createHlsRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
     const events: VibePlayerAdapterEvent[] = [];
     adapter.subscribe((event) => {
@@ -140,7 +144,7 @@ describe("createHlsAdapter", () => {
       () => undefined
     );
     const { runtime } = createHlsRuntime();
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const target = document.createElement("div");
     await adapter.mount(target);
     await adapter.load(hlsSource);
@@ -165,7 +169,7 @@ describe("createHlsAdapter", () => {
   it("rejects unsupported sources and unavailable HLS runtimes", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("");
     const { runtime } = createHlsRuntime(false);
-    const adapter = createHlsAdapter(runtime);
+    const adapter = adapterScope.track(createHlsAdapter(runtime));
     const fileSource: VibePlayerFileSource = {
       id: "file",
       sources: [{ mimeType: "video/mp4", url: "https://example.com/file.mp4" }],

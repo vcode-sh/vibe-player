@@ -73,33 +73,41 @@ describe("controller asynchronous host failures", () => {
     }
   );
 
-  it("does not attach an old callback rejection to a replacement source", async () => {
-    const first = new TestAdapter();
-    const second = new TestAdapter();
-    const failure = createRejection();
-    const onError = vi.fn();
-    const controller = new VibePlayerController({
-      adapterFactory: (source) => (source.id === "video-1" ? first : second),
-      onAnalyticsEvent: (event) => {
-        if (event.type === "started") {
-          return failure.promise;
-        }
-      },
-      onError,
-    });
-    await controller.load(fileSource);
-    first.emit("play", { paused: false, readyState: "playing" });
-    await controller.load({ ...fileSource, id: "video-2" });
+  it.each(["different", "same"] as const)(
+    "does not attach an old callback rejection to a new session with the %s source object",
+    async (identity) => {
+      const first = new TestAdapter();
+      const second = new TestAdapter();
+      const failure = createRejection();
+      const onError = vi.fn();
+      const controller = new VibePlayerController({
+        adapterFactory: vi
+          .fn()
+          .mockReturnValueOnce(first)
+          .mockReturnValue(second),
+        onAnalyticsEvent: (event) => {
+          if (event.type === "started") {
+            return failure.promise;
+          }
+        },
+        onError,
+      });
+      await controller.load(fileSource);
+      first.emit("play", { paused: false, readyState: "playing" });
+      const replacement =
+        identity === "same" ? fileSource : { ...fileSource, id: "video-2" };
+      await controller.load(replacement);
 
-    failure.reject(new Error("Previous telemetry request failed"));
-    await failure.promise.catch(() => undefined);
+      failure.reject(new Error("Previous telemetry request failed"));
+      await failure.promise.catch(() => undefined);
 
-    expect(onError).not.toHaveBeenCalled();
-    expect(controller.getState()).toMatchObject({
-      currentSource: { id: "video-2" },
-      error: null,
-      snapshot: { readyState: "ready" },
-    });
-    await controller.teardown();
-  });
+      expect(onError).not.toHaveBeenCalled();
+      expect(controller.getState()).toMatchObject({
+        currentSource: replacement,
+        error: null,
+        snapshot: { readyState: "ready" },
+      });
+      await controller.teardown();
+    }
+  );
 });

@@ -2,6 +2,7 @@ import {
   type FocusEvent,
   type PointerEvent,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -52,7 +53,7 @@ export function VibePlayerTimeline({
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pointerPositionRef = useRef<PointerPosition | null>(null);
-  const pointerSeekingRef = useRef(false);
+  const pointerSeekingRef = useRef<number | null>(null);
   const hasDuration = duration > 0 && !disabled;
   const progress = hasDuration
     ? clampPercent((currentTime / duration) * 100)
@@ -62,6 +63,18 @@ export function VibePlayerTimeline({
   const tooltipTime =
     hoverTime ?? (focused && hasDuration ? currentTime : null);
   const rawTooltipPercent = hoverPercent ?? progress;
+
+  useEffect(() => {
+    const pointerId = pointerSeekingRef.current;
+    if (hasDuration || pointerId === null) {
+      return;
+    }
+    pointerSeekingRef.current = null;
+    const root = inputRef.current?.parentElement;
+    if (root?.hasPointerCapture(pointerId)) {
+      root.releasePointerCapture(pointerId);
+    }
+  }, [hasDuration]);
 
   const updateHover = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const previous = pointerPositionRef.current;
@@ -86,7 +99,10 @@ export function VibePlayerTimeline({
   );
 
   const stopPointerSeek = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    pointerSeekingRef.current = false;
+    if (pointerSeekingRef.current !== event.pointerId) {
+      return;
+    }
+    pointerSeekingRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -94,7 +110,7 @@ export function VibePlayerTimeline({
 
   function handleInputBlur(event: FocusEvent<HTMLInputElement>): void {
     setFocused(false);
-    if (!pointerSeekingRef.current) {
+    if (pointerSeekingRef.current === null) {
       setHoverPercent(null);
     }
     event.currentTarget.blur();
@@ -105,27 +121,35 @@ export function VibePlayerTimeline({
       className="vibe-player-timeline"
       data-disabled={!hasDuration}
       data-vibe-player-timeline
+      onLostPointerCapture={stopPointerSeek}
       onPointerCancel={stopPointerSeek}
       onPointerDown={(event) => {
-        if (!hasDuration || event.isPrimary === false || event.button !== 0) {
+        if (
+          !hasDuration ||
+          pointerSeekingRef.current !== null ||
+          event.isPrimary === false ||
+          event.button !== 0
+        ) {
           return;
         }
         event.preventDefault();
-        pointerSeekingRef.current = true;
+        pointerSeekingRef.current = event.pointerId;
         inputRef.current?.focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
         seekFromPointer(event);
       }}
       onPointerEnter={updateHover}
       onPointerLeave={() => {
-        if (!pointerSeekingRef.current) {
+        if (pointerSeekingRef.current === null) {
           pointerPositionRef.current = null;
           setHoverPercent(null);
         }
       }}
       onPointerMove={(event) => {
-        if (pointerSeekingRef.current) {
-          seekFromPointer(event);
+        if (pointerSeekingRef.current !== null) {
+          if (pointerSeekingRef.current === event.pointerId && hasDuration) {
+            seekFromPointer(event);
+          }
           return;
         }
         updateHover(event);

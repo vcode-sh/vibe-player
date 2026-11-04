@@ -6,7 +6,11 @@ import type {
 } from "../../core/vibe-player-types";
 import { createFileAdapter } from "../file";
 import { createHlsAdapter } from "../hls";
-import { getMountedNativeVideo } from "./native-video-test-helpers";
+import {
+  createDeferredPlayback,
+  defineNativeVideoBooleanProperty,
+  getMountedNativeVideo,
+} from "./native-video-test-helpers";
 
 interface NativeAdapterCase {
   adapter: VibePlayerAdapter;
@@ -40,6 +44,51 @@ describe("native adapter mount sessions", () => {
     document.body.replaceChildren();
     vi.restoreAllMocks();
   });
+
+  it.each(["file", "hls"] as const)(
+    "preserves a newer %s play request when an earlier play settles",
+    async (kind) => {
+      vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue(
+        "probably"
+      );
+      vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+        () => undefined
+      );
+      const { adapter, source } = createAdapterCase(kind);
+      const target = document.createElement("div");
+      document.body.append(target);
+      const earlier = createDeferredPlayback();
+      let pending: Promise<void> | undefined;
+      try {
+        await adapter.mount(target);
+        await adapter.load(source);
+        const video = getMountedNativeVideo(target);
+        video.play = vi
+          .fn(async () => {
+            defineNativeVideoBooleanProperty(video, "paused", false);
+          })
+          .mockImplementationOnce(async () => {
+            await earlier.promise;
+            defineNativeVideoBooleanProperty(video, "paused", false);
+          });
+        video.pause = () =>
+          defineNativeVideoBooleanProperty(video, "paused", true);
+
+        pending = adapter.play();
+        await adapter.pause();
+        await adapter.play();
+        expect(video.paused).toBe(false);
+        earlier.resolve();
+        await pending;
+
+        expect(video.paused).toBe(false);
+      } finally {
+        earlier.resolve();
+        await pending;
+        await adapter.unmount();
+      }
+    }
+  );
 
   it.each(["file", "hls"] as const)(
     "ignores former %s media events after unmount and replacement",

@@ -5,7 +5,6 @@ import type {
   VibePlayerHlsSource,
 } from "../../core/vibe-player-types";
 import { getMountedNativeVideo } from "../native/native-video-test-helpers";
-import { createFileAdapter } from "./create-file-adapter";
 
 export interface LoadedFileAdapterHarness {
   adapter: VibePlayerAdapter;
@@ -66,10 +65,10 @@ export function createSingleFileSource(): VibePlayerFileSource {
 }
 
 export async function createLoadedFileAdapter(
+  adapter: VibePlayerAdapter,
   source: VibePlayerFileSource = fileSource
 ): Promise<LoadedFileAdapterHarness> {
   mockNativeVideoLoad();
-  const adapter = createFileAdapter();
   const target = document.createElement("div");
 
   await adapter.mount(target);

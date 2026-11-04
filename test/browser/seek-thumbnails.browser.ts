@@ -4,7 +4,7 @@ import { readMedia, waitForMedia } from "./helpers";
 for (const width of [240, 320, 390, 1100]) {
   test(`seek preview follows hover, drag and keyboard within a ${width}px player`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({
       height: 900,
       width: width < 400 ? Math.max(320, width) : 1200,
@@ -89,7 +89,7 @@ for (const width of [240, 320, 390, 1100]) {
     await expect(frame).toBeVisible();
     await page
       .locator(".vibe-player-stage")
-      .screenshot({ path: `test-results/seek-preview-${width}.png` });
+      .screenshot({ path: testInfo.outputPath(`seek-preview-${width}.png`) });
   });
 }
 
