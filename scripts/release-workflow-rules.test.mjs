@@ -8,10 +8,19 @@ const BROWSER = "run: bun run test:browser";
 const GATES = "run: bun run ci";
 const PUBLISH = "run: bun run release:publish --no-git-tag";
 
-function workflow(runLines) {
-  return runLines
-    .map((line) => `      - name: step\n        ${line}`)
+function step(...keyLines) {
+  return keyLines.map((line) => `        ${line}`).join("\n");
+}
+
+function workflow(steps) {
+  const body = steps
+    .map((stepText) => `      - name: step\n${stepText}`)
     .join("\n");
+  return `jobs:\n  release:\n    steps:\n${body}\n`;
+}
+
+function runs(runLines) {
+  return workflow(runLines.map((line) => step(line)));
 }
 
 describe("collectReleaseWorkflowIssues", () => {
@@ -25,14 +34,39 @@ describe("collectReleaseWorkflowIssues", () => {
   });
 
   it("accepts the gate ordered between quality gates and publish", () => {
-    const source = workflow([GATES, INSTALL, BROWSER, PUBLISH]);
+    const source = runs([GATES, INSTALL, BROWSER, PUBLISH]);
+
+    expect(collectReleaseWorkflowIssues(source)).toEqual([]);
+  });
+
+  it("accepts shorthand steps, trailing comments, extra flags and CRLF", () => {
+    const source = [
+      "jobs:",
+      "  release:",
+      "    steps:",
+      `      - ${GATES}`,
+      `      - ${INSTALL} # engines`,
+      `      - ${BROWSER} --reporter=line`,
+      `      - ${PUBLISH}`,
+    ].join("\r\n");
+
+    expect(collectReleaseWorkflowIssues(source)).toEqual([]);
+  });
+
+  it("accepts a gate command inside a run block scalar", () => {
+    const source = workflow([
+      step(GATES),
+      step("run: |", "  bunx playwright install --with-deps chromium webkit"),
+      step("run: |", "  bun run test:browser"),
+      step(PUBLISH),
+    ]);
 
     expect(collectReleaseWorkflowIssues(source)).toEqual([]);
   });
 
   it("reports a missing browser engine install", () => {
     const issues = collectReleaseWorkflowIssues(
-      workflow([GATES, BROWSER, PUBLISH])
+      runs([GATES, BROWSER, PUBLISH])
     );
 
     expect(issues).toHaveLength(1);
@@ -41,7 +75,7 @@ describe("collectReleaseWorkflowIssues", () => {
 
   it("reports a missing browser test run", () => {
     const issues = collectReleaseWorkflowIssues(
-      workflow([GATES, INSTALL, PUBLISH])
+      runs([GATES, INSTALL, PUBLISH])
     );
 
     expect(issues).toHaveLength(1);
@@ -49,7 +83,7 @@ describe("collectReleaseWorkflowIssues", () => {
   });
 
   it("does not accept a commented-out browser test run", () => {
-    const source = `${workflow([GATES, INSTALL, PUBLISH])}\n        # ${BROWSER}`;
+    const source = `${runs([GATES, INSTALL, PUBLISH])}        # ${BROWSER}\n`;
     const issues = collectReleaseWorkflowIssues(source);
 
     expect(issues).toHaveLength(1);
@@ -58,7 +92,7 @@ describe("collectReleaseWorkflowIssues", () => {
 
   it("reports gate steps that run before the quality gates", () => {
     const issues = collectReleaseWorkflowIssues(
-      workflow([INSTALL, BROWSER, GATES, PUBLISH])
+      runs([INSTALL, BROWSER, GATES, PUBLISH])
     );
 
     expect(issues).toHaveLength(2);
@@ -67,16 +101,70 @@ describe("collectReleaseWorkflowIssues", () => {
 
   it("reports gate steps that run after publishing", () => {
     const issues = collectReleaseWorkflowIssues(
-      workflow([GATES, PUBLISH, INSTALL, BROWSER])
+      runs([GATES, PUBLISH, INSTALL, BROWSER])
     );
 
     expect(issues).toHaveLength(2);
     expect(issues.every((issue) => issue.includes("after"))).toBe(true);
   });
 
+  it("reports a browser test step that can be skipped", () => {
+    const issues = collectReleaseWorkflowIssues(
+      workflow([
+        step(GATES),
+        step(INSTALL),
+        step("if: false", BROWSER),
+        step(PUBLISH),
+      ])
+    );
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("must not have an if: condition");
+    expect(issues[0]).toContain("test:browser");
+  });
+
+  it("reports a browser test step whose failure is ignored", () => {
+    const issues = collectReleaseWorkflowIssues(
+      workflow([
+        step(GATES),
+        step(INSTALL),
+        step("continue-on-error: true", BROWSER),
+        step(PUBLISH),
+      ])
+    );
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("continue-on-error");
+  });
+
+  it("accepts an explicit continue-on-error: false", () => {
+    const source = workflow([
+      step(GATES),
+      step(INSTALL),
+      step("continue-on-error: false", BROWSER),
+      step(PUBLISH),
+    ]);
+
+    expect(collectReleaseWorkflowIssues(source)).toEqual([]);
+  });
+
+  it("reports a publish step that can run after a failed gate", () => {
+    const issues = collectReleaseWorkflowIssues(
+      workflow([
+        step(GATES),
+        step(INSTALL),
+        step(BROWSER),
+        step("if: always()", PUBLISH),
+      ])
+    );
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("could publish after a failed gate");
+  });
+
   it("reports a missing quality gates step", () => {
     const issues = collectReleaseWorkflowIssues(
-      workflow([INSTALL, BROWSER, PUBLISH])
+      runs([INSTALL, BROWSER, PUBLISH])
     );
 
     expect(issues).toHaveLength(1);
@@ -85,7 +173,7 @@ describe("collectReleaseWorkflowIssues", () => {
 
   it("reports a missing publish step", () => {
     const issues = collectReleaseWorkflowIssues(
-      workflow([GATES, INSTALL, BROWSER])
+      runs([GATES, INSTALL, BROWSER])
     );
 
     expect(issues).toHaveLength(1);
