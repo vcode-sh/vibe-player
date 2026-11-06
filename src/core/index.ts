@@ -1,9 +1,21 @@
+export {
+  createVibePlayerAudioFocusParticipant,
+  type VibePlayerAudioFocusParticipant,
+} from "./vibe-player-audio-focus";
 export { VibePlayerController } from "./vibe-player-controller";
 export {
   getVibePlayerProgressMilestone,
   type VibePlayerProgressEventName,
   type VibePlayerProgressMilestone,
 } from "./vibe-player-events";
+export type {
+  VibePlayerCommandErrorEvent,
+  VibePlayerEvent,
+  VibePlayerIntegrationEvent,
+  VibePlayerPlaybackEvent,
+  VibePlayerRenewEvent,
+  VibePlayerStopEvent,
+} from "./vibe-player-host-events";
 export {
   formatVibePlayerPlaybackRate,
   getNextVibePlayerPlaybackRate,
@@ -50,12 +62,17 @@ export type {
   VibePlayerError,
   VibePlayerEventName,
   VibePlayerFileSource,
+  VibePlayerHlsManifestSource,
   VibePlayerHlsSource,
+  VibePlayerHlsUrlSource,
+  VibePlayerLoadMode,
   VibePlayerMediaSource,
+  VibePlayerMp4Source,
   VibePlayerQualityOption,
   VibePlayerResumeStore,
   VibePlayerSnapshot,
   VibePlayerSource,
+  VibePlayerSourceMetadata,
   VibePlayerYouTubeSource,
 } from "./vibe-player-types";
 export {

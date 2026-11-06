@@ -7,7 +7,7 @@ routing, telemetry, persistence, auth, billing, SEO, and media policy.
 ## Install
 
 ```bash
-npm install vibe-player
+npm install vibe-player hls.js
 ```
 
 Import the stylesheet once from the app root:
@@ -31,6 +31,26 @@ export function ProductVideo({ source }: ProductVideoProps) {
 ```
 
 ## Source Recipes
+
+The compact API accepts a single URL and optional metadata:
+
+```ts
+import type { VibePlayerSource } from "vibe-player";
+
+const source = {
+  id: "portrait-clip",
+  type: "mp4",
+  url: "/video/clip.mp4",
+  width: 1080,
+  height: 1920,
+  durationSeconds: 45,
+  posterUrl: "/video/poster.jpg",
+} satisfies VibePlayerSource;
+```
+
+Use `type: "hls"` with the same URL shape for an HLS manifest. `expiresAt`
+accepts an ISO timestamp or epoch milliseconds. Legacy file source lists and
+HLS `manifestUrl` remain supported:
 
 Direct file:
 
@@ -204,6 +224,24 @@ currently uses the default track or the first declared track.
 
 ## Autoplay And Audio
 
+Inline, compact and headless assemblies default to `load="onPlay"`. Until Play,
+only the poster can load, with no attached engine or media request. `load="eager"`
+prepares the selected source immediately; `load="visible"` prepares it when the
+frame first intersects the configured visibility threshold. The bare hook and
+manual controller retain their eager defaults.
+
+Set `autoplayWhenVisible` for an opt-in muted start on the source's first visible
+entry. After scrolling away, hiding the tab or manually stopping, returning waits
+for a deliberate Play. Ordinary `autoPlay` remains an explicit startup request.
+
+Audible players share an `audioFocus` group (`"default"` unless changed). A
+muted source does not interrupt another audible source; unmuting joins focus.
+Use a different group for independent surfaces or `audioFocus={false}` when the
+host owns policy. `useVibePlayerAudioFocus({ group, onPause })` lets voice notes
+claim/release that same group. Hidden tabs and offscreen frames release playback
+by default. `pauseWhenHidden={false}` and `stopWhenOffscreen={false}` disable
+those policies; `offscreenThreshold` defaults to `0.25`.
+
 `autoPlay` asks the package to start playback after the source loads. By
 default, startup uses muted bootstrap because browsers do not owe anyone
 audible autoplay.
@@ -216,6 +254,29 @@ gesture and audible playback is intended:
 ```
 
 ## Host Hooks
+
+`renewSource` returns a fresh source, usually from the media owner's API. The
+player calls it if credentials expire within 30 seconds at Play and after a
+recoverable fatal network/authorization error. Renewal preserves the current
+position and latest playback intent. One automatic renewal is allowed per lapse;
+an actual `playing` event resets the budget. Stop, replacement and unmount fence
+late completions. Retry explicitly renews and plays again.
+
+An HLS HTTP 401/403 terminates the rejected delivery immediately, even when the
+SDK initially considers the request recoverable. Native HLS conceals HTTP status
+behind media errors, so a fatal native HLS error gets the same bounded credential
+recheck. A second failure before `playing` becomes terminal.
+
+`onEvent` exposes a typed union of playback, renewal, stop, command-error and
+integration-error events. Optional command failures emit `commanderror` with the
+original error and reject their command promise, without interrupting playback.
+Convenience callbacks receive normalized controller state for `onPlay`,
+`onPause`, `onEnded`, throttled `onProgress`, and `onQualityChange`; `onRenew`
+receives the refreshed source. Nonfatal engine/integration diagnostics remain
+events; terminal playback failures reach `state.error` and `onError`.
+The ready-made UI retains its existing `onError` reporting for exceptions thrown
+by state/caption observers (`phase: "integration"`), without changing playback
+state. Progress callbacks are limited to one leading event per 250 ms.
 
 Use `onAnalyticsEvent` to map normalized package events into your telemetry.
 Use `resumeStore` when your app wants resume persistence. The package does not
@@ -236,7 +297,123 @@ including autoplay, callbacks, and `topActions`. Use `autoHideControls={false}`
 when controls should remain visible. The default follows the adapter's normalized
 chrome capability.
 
+`VibePlayerModal` starts audible playback when it opens, because opening a
+viewer is a deliberate act; pass `autoPlay={false}` to wait for Play. Playing
+media hides its controls `controlsHideDelay` ms after the last pointer activity
+(compact/feed: 1400 for the glass skin, 1200 for chips; full: 2400); compact and
+feed also hide when a mouse leaves. Keyboard focus on a control keeps them
+visible; pointer focus does not. `fit="cover"` crops poster and video into a
+frame clamped by `minRatio` / `maxRatio` instead of letterboxing.
+
+## Compact Skins
+
+`VibePlayerCompact` (chat, comments, and `variant="feed"`) has two skins over
+one surface. `skin` switches them; everything else stays the same:
+
+```tsx
+import {
+  VibePlayerCompact,
+  type VibePlayerMp4Source,
+} from "vibe-player/compact";
+import "vibe-player/styles.css";
+import "vibe-player/chips.css"; // only when a player uses skin="chips"
+
+const source = {
+  id: "clip",
+  type: "mp4",
+  url: "/video/clip.mp4",
+} satisfies VibePlayerMp4Source;
+
+export function Clips() {
+  return (
+    <>
+      <VibePlayerCompact source={source} /> {/* skin="glass" by default */}
+      <VibePlayerCompact skin="chips" source={source} />
+    </>
+  );
+}
+```
+
+- **`glass` (Glass Capsule, default).** Frosted parts inset 8 px. One centre
+  button morphs between Play, a delayed spinner, and Replay; a capsule (play,
+  a short scrubber with a glass time bubble, time from 260 px, expand from
+  400 px, mute) exists only while steering. Hides 1.4 s after the last pointer
+  activity; reveal 160 ms, hide 130 ms.
+- **`chips` (Ink Chips).** Theme-following chips in the corners: play and
+  length at rest, pause and a countdown while playing, Replay after the end.
+  A horizontal drag anywhere on the picture scrubs (8 px threshold, the full
+  width spans the clip) with a transient rail and a large time readout; arrow
+  keys do the same on the focused player. Hides after 1.2 s; 120/100 ms. Its
+  JavaScript loads on first use and its CSS is the separate `chips.css`.
+
+Both skins share the binding rules: while playing, nothing is drawn over the
+video (feed muted autoplay keeps only its unmute control); a desktop mouse
+leaving hides at once; movement reveals instantly; a first touch tap reveals
+and never pauses, a second hides; pointer clicks never pin the controls, only
+keyboard focus on a control does; paused, ended and error keep their affordance.
+Loading feedback waits 320 ms and mid-playback renewal 600 ms. Touch targets
+are at least 44 px. Reduced motion reaches the same states instantly; spinners
+keep turning because loading is real.
+
+Options:
+- `controls={{ fullscreen, mute, seek, time }}` switches off default parts
+  (capabilities still apply). The compact skins have no volume slider or
+  picture-in-picture.
+- `onExpand` replaces fullscreen on the expand control, e.g. to open a viewer.
+- `slots={{ idle, ended, error }}` replaces one state panel; `null` renders
+  nothing there.
+- `renderOverlay={(surface) => …}` replaces the whole overlay. The shell keeps
+  media, poster, timing, keyboard, autoplay and audio focus; the overlay gets
+  `surface.state`, `surface.actions` and `surface.controls`.
+- `icons` (add `unavailable` for the error glyph), `labels`, `formatTime` and
+  `classNames` (`playButton`, `duration`, `controls`, `progress`, `time`,
+  `unmute`, `error`, `retry`, …) work as elsewhere.
+
+Styling contract for host CSS and tests:
+
+| Root attribute                 | Values                                                               |
+| ------------------------------ | -------------------------------------------------------------------- |
+| `data-state`                   | `idle`, `loading`, `playing`, `paused`, `ended`, `error`, `renewing` |
+| `data-controls`                | `visible`, `hidden`                                                  |
+| `data-busy`                    | `true` after the delays above                                        |
+| `data-scrubbing`, `data-muted` | `true` / `false`                                                     |
+| `data-autoplay`                | `muted` while autoplay muted it and the viewer has not changed it    |
+| `data-hold`                    | `phase`, `keyboard-focus`, `scrub`, absent while hiding is allowed   |
+| `data-skin`, `data-variant`    | `glass` / `chips`, `compact` / `feed`                                |
+
+Every drawn part carries `data-part` (`overlay`, `play-button`, `duration`,
+`controls`, `toggle`, `track`, `time`, `fullscreen`, `mute`, `unmute`,
+`renewing`, `scrub-bubble`, `error`, `retry`, `poster`). The root exposes
+`--vibe-player-progress` (0..1, written only while controls show or a scrub
+runs). Theme variables: `--vibe-player-accent` (chip rail fill),
+`--vibe-player-focus-color`, `--vibe-player-radius`, `--vibe-player-font`,
+`--vibe-player-scrim` and `--vibe-player-scrim-filter` (glass), and
+`--vibe-player-chip-background`, `-foreground`, `-solid`, `-shadow` (chips;
+defaults follow the host `color-scheme` through `light-dark()`).
+
+`VibePlayerScrubber` is the styleable seek track both skins use: an ARIA slider
+with `aria-valuetext`, pointer capture and Home/End, drawn from spans the skin
+CSS styles. A custom overlay can reuse it with `surface`.
+
+`controller.getState().renewing` is true while an expired or failed delivery
+is renewed; the surface reports it as `renewing` only when it interrupts
+playback.
+
 ## Custom And Headless UI
+
+Choose `VibePlayerCompact` for chat/comments and feed (`variant="feed"`), and
+`VibePlayerStage` for the full chrome. Supply `icons`,
+`labels`, `formatTime`, `classNames`, `className` and `style` to adapt the surface.
+Frame ratios follow source dimensions or decoded metadata and default to a
+9:16–16:9 clamp. No minimum height is imposed.
+
+`VibePlayerHeadless` renders a bare video for HLS, MP4 and legacy file sources;
+use `useVibePlayer` with a container target for iframe providers such as YouTube.
+The component accepts `videoProps` for native
+video attributes/events. It owns `src`, `poster`, `preload`, `autoPlay`, media
+children and its mount ref; put host playback-policy callbacks on the top level and native DOM
+handlers inside `videoProps`. It does not render package controls. The host is
+responsible for the initial Play affordance.
 
 Use `useVibePlayer` when building your own controls. It owns media mounting,
 source loading, autoplay, closing, and cleanup, so a custom surface does not need
@@ -280,6 +457,13 @@ export function CustomPlayer() {
 Give the media mount a size in your own layout. Add `autoPlay`, `open`,
 `onAnalyticsEvent`, `onError`, or `resumeStore` when needed. Volume and quality
 helpers remain available for controls that follow normalized capabilities.
+
+`controllerRef` exposes the same controller from ready-made assemblies.
+`stop()` destroys the engine and releases requests while retaining the source
+and current position. `play()` creates a new engine when needed, `retry()`
+renews then plays, and `seek()` is an alias for `seekTo()`. `subscribe()` and
+`getState()` work outside React. Close/unmount a player as well as stopping it
+when a host session ends; the package does not own application authorization.
 
 For fullscreen that includes custom chrome, pass its container element as
 `presentationTarget` to `useVibePlayer`; it defaults to the media mount.

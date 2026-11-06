@@ -26,9 +26,7 @@ test("modal focuses, contains keyboard navigation, closes and restores its opene
     }));
     expect(focus.contained, `Tab ${step + 1}: ${focus.focused}`).toBe(true);
   }
-  await dialog
-    .getByRole("button", { exact: true, name: "Rerender player host" })
-    .focus();
+  await dialog.locator(".vibe-player-stage").focus();
   await page.keyboard.press("Shift+Tab");
   await expect(
     dialog.getByRole("button", { exact: true, name: "Picture in picture" })
@@ -47,7 +45,7 @@ test("closing releases live media and reopening creates one new playable source"
 }) => {
   await page.goto("/");
   await page.getByRole("button", { exact: true, name: "Open modal" }).click();
-  await page.getByRole("button", { exact: true, name: "Play" }).click();
+  // Opening the viewer starts playback without a second press.
   await expect
     .poll(async () => (await readMedia(page)).currentTime)
     .toBeGreaterThan(0.2);
@@ -68,7 +66,6 @@ test("closing releases live media and reopening creates one new playable source"
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("button", { exact: true, name: "Open modal" }).click();
   await expect(page.locator("video")).toHaveCount(1);
-  await page.getByRole("button", { exact: true, name: "Play" }).click();
   await expect
     .poll(async () => (await readMedia(page)).currentTime)
     .toBeGreaterThan(0.2);

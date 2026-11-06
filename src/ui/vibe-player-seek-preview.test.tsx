@@ -38,7 +38,7 @@ describe("seek preview images", () => {
     const { container, rerender } = render(
       <VibePlayerSeekPreview {...props} time={4} />
     );
-    expect(screen.getByRole("status")).toHaveTextContent("00:04");
+    expect(screen.getByRole("status")).toHaveTextContent("0:04");
     expect(container.querySelector("img")?.parentElement).not.toBeVisible();
     const image = loadedImage(container);
     expect(image.parentElement).toBeVisible();
@@ -48,7 +48,7 @@ describe("seek preview images", () => {
     expect(image).toHaveStyle({ left: "-100%", top: "-100%" });
     rerender(<VibePlayerSeekPreview {...props} time={10} />);
     expect(container.querySelector("img")).toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent("00:10");
+    expect(screen.getByRole("status")).toHaveTextContent("0:10");
   });
 
   it("hides a previous image while the replacement loads or fails", () => {
@@ -68,7 +68,7 @@ describe("seek preview images", () => {
     }
     fireEvent.error(replacement);
     expect(container.querySelector("img")).toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent("00:14");
+    expect(screen.getByRole("status")).toHaveTextContent("0:14");
   });
 
   it("rejects a crop that extends past the decoded image", () => {
@@ -90,6 +90,6 @@ describe("seek preview images", () => {
     );
     const image = loadedImage(container);
     expect(image.parentElement).not.toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent("00:05");
+    expect(screen.getByRole("status")).toHaveTextContent("0:05");
   });
 });

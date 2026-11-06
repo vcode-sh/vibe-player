@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 const recipePattern = /```(?:ts|tsx)\r?\n([\s\S]*?)\r?\n```/g;
+const ambientModulePattern = /^\s*declare\s+module\s+["']/;
 const declaredSourcePattern = /\b(?:const|let|var)\s+source\b/;
 const stageImportPattern = /import\s*\{[^}]*\bVibePlayerStage\b[^}]*\}/s;
 
@@ -37,10 +38,14 @@ export async function writeConsumerRecipes(directory) {
     }))
   );
   const recipes = sources.flatMap(({ path, markdown }) =>
-    Array.from(markdown.matchAll(recipePattern), ([, recipe], index) => ({
-      filename: `${basename(path, ".md").toLowerCase()}-${index + 1}.tsx`,
-      source: withHostContext(recipe),
-    }))
+    Array.from(markdown.matchAll(recipePattern), ([, recipe], index) => {
+      const ambient = ambientModulePattern.test(recipe);
+      const extension = ambient ? "d.ts" : "tsx";
+      return {
+        filename: `${basename(path, ".md").toLowerCase()}-${index + 1}.${extension}`,
+        source: ambient ? `${recipe}\n` : withHostContext(recipe),
+      };
+    })
   );
   const count = recipes.length;
   await Promise.all(

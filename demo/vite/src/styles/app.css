@@ -75,6 +75,13 @@ a {
   border-radius: 6px;
 }
 
+.vp-demo-topbar nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .vp-demo-mark {
   display: grid;
   flex: 0 0 auto;

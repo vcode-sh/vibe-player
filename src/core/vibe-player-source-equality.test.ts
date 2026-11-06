@@ -95,6 +95,10 @@ describe("file and HLS source equality", () => {
     { manifestUrl: "/replacement.m3u8" },
     { live: true },
     { crossOrigin: "use-credentials" as const },
+    { url: "/refreshed.m3u8" },
+    { expiresAt: 170_000 },
+    { height: 1280, width: 720 },
+    { durationSeconds: 83 },
   ])("observes same-ID HLS delivery changes: %j", (change) => {
     expect(haveEqualVibePlayerSources(hls, { ...hls, ...change })).toBe(false);
   });

@@ -62,7 +62,7 @@ describe("controller asynchronous operation ownership", () => {
     }
   );
 
-  it("keeps the same source mounted when an older unmount finishes", async () => {
+  it("keeps a newer mount available when an older unmount finishes", async () => {
     const { controller, old } = createSourcePair();
     const gate = createGate();
     old.unmount = () => gate.promise;
@@ -77,7 +77,9 @@ describe("controller asynchronous operation ownership", () => {
       currentSource: { id: "video-1" },
       isMounted: true,
     });
+    await controller.play();
     expect(old.calls).toContain("mount:section");
+    expect(controller.getState().snapshot.paused).toBe(false);
     await controller.teardown();
   });
 

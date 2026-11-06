@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 const packageJsonPath = resolve(import.meta.dirname, "../package.json");
 const stylesheetPath = resolve(import.meta.dirname, "../dist/styles.css");
+const chipsStylesheetPath = resolve(import.meta.dirname, "../dist/chips.css");
 const localImportPattern = /^@import\s+"\.\/[^"]+";/m;
 const requiredMarkers = [
   ".vibe-player-caption-overlay",
@@ -15,6 +16,7 @@ const requiredMarkers = [
   ".vibe-player-tooltip",
   ".vibe-player-volume-control",
   ".vibe-player-youtube-external",
+  ".vibe-player-glass",
 ];
 
 function collectMissingMarkers(source) {
@@ -45,13 +47,28 @@ function collectPackageStyleIssues(manifest) {
   if (!manifest.sideEffects?.includes("./dist/styles.css")) {
     issues.push('sideEffects must include "./dist/styles.css".');
   }
+  if (manifest.exports?.["./chips.css"] !== "./dist/chips.css") {
+    issues.push('exports["./chips.css"] must point to "./dist/chips.css".');
+  }
+  if (!manifest.sideEffects?.includes("./dist/chips.css")) {
+    issues.push('sideEffects must include "./dist/chips.css".');
+  }
   return issues;
 }
 
 const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8"));
 const stylesheet = await readFile(stylesheetPath, "utf8");
+const chipsStylesheet = await readFile(chipsStylesheetPath, "utf8");
 const missingMarkers = collectMissingMarkers(stylesheet);
-const hasLocalImports = localImportPattern.test(stylesheet);
+if (!chipsStylesheet.includes(".vibe-player-chips__chip")) {
+  missingMarkers.push("chips.css: .vibe-player-chips__chip");
+}
+if (stylesheet.includes(".vibe-player-chips__chip")) {
+  missingMarkers.push("styles.css must not carry the opt-in chips skin");
+}
+const hasLocalImports =
+  localImportPattern.test(stylesheet) ||
+  localImportPattern.test(chipsStylesheet);
 const packageStyleIssues = collectPackageStyleIssues(packageJson);
 
 if (hasLocalImports) {

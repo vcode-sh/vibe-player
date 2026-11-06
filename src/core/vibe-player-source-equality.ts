@@ -36,6 +36,10 @@ export function haveEqualVibePlayerSources(
     !(left && right) ||
     left.id !== right.id ||
     left.type !== right.type ||
+    left.width !== right.width ||
+    left.height !== right.height ||
+    left.durationSeconds !== right.durationSeconds ||
+    left.expiresAt !== right.expiresAt ||
     left.title !== right.title ||
     left.posterUrl !== right.posterUrl
   ) {
@@ -56,8 +60,17 @@ export function haveEqualVibePlayerSources(
   if (left.type === "hls" && right.type === "hls") {
     return (
       left.manifestUrl === right.manifestUrl &&
+      left.url === right.url &&
       left.crossOrigin === right.crossOrigin &&
       left.live === right.live &&
+      haveEqualCaptions(left.captions, right.captions)
+    );
+  }
+  if (left.type === "mp4" && right.type === "mp4") {
+    return (
+      left.url === right.url &&
+      left.autoPlay === right.autoPlay &&
+      left.crossOrigin === right.crossOrigin &&
       haveEqualCaptions(left.captions, right.captions)
     );
   }

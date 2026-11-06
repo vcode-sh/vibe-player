@@ -1,0 +1,51 @@
+/* Host tokens (light/dark) around the player, as in the direction mock. */
+:root {
+  --canvas: oklch(0.964 0.0027 106.4);
+  --foreground: oklch(0.178 0 0);
+  --primary: oklch(0.505 0.0545 212.6);
+  --ring: oklch(0.7129 0.0535 210.16);
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --canvas: oklch(0.15 0.0021 286.1);
+  --foreground: oklch(0.945 0.004 106.5);
+  --primary: oklch(0.782 0.0581 207.3);
+  --ring: oklch(0.782 0.0581 207.3);
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  padding: 24px;
+  margin: 0;
+  font:
+    15px / 1.5 "Work Sans",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  color: var(--foreground);
+  background: var(--canvas);
+}
+label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+input {
+  width: 240px;
+  padding: 6px 8px;
+}
+.skins-frame {
+  --vibe-player-accent: var(--primary);
+  --vibe-player-focus-color: var(--ring);
+  --vibe-player-radius: 16px;
+  max-width: 100%;
+}
+.skins-proof {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  font: 11px monospace;
+}

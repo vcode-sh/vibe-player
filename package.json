@@ -1,6 +1,6 @@
 {
   "name": "vibe-player",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Cinematic, provider-agnostic React video player primitives and skins.",
   "keywords": [
     "video-player",
@@ -30,7 +30,8 @@
     "url": "https://x.com/vcode_sh"
   },
   "sideEffects": [
-    "./dist/styles.css"
+    "./dist/styles.css",
+    "./dist/chips.css"
   ],
   "type": "module",
   "exports": {
@@ -39,7 +40,20 @@
       "import": "./dist/index.js"
     },
     "./styles.css": "./dist/styles.css",
-    "./package.json": "./package.json"
+    "./chips.css": "./dist/chips.css",
+    "./package.json": "./package.json",
+    "./hook": {
+      "types": "./dist/hook.d.ts",
+      "import": "./dist/hook.js"
+    },
+    "./stage": {
+      "types": "./dist/stage.d.ts",
+      "import": "./dist/stage.js"
+    },
+    "./compact": {
+      "types": "./dist/compact.d.ts",
+      "import": "./dist/compact.js"
+    }
   },
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -66,10 +80,10 @@
     "scripts/media-delivery-audit-runner.mjs"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --format esm --dts --minify --clean --out-dir dist --platform neutral --target es2022 --deps.never-bundle react --deps.never-bundle react-dom --deps.never-bundle hls.js && bun scripts/build-styles.mjs",
+    "build": "tsdown && bun scripts/build-styles.mjs",
     "check": "biome check .",
     "check-types": "tsc --noEmit",
-    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw && bun run demo:vite:verify && bun run package:consumer && bun run test:youtube:check && bun run test:browser:check && bun run test:browser",
+    "ci": "bun run check && bun run package:rules && bun run package:boundaries && bun run package:dependencies && bun run package:release-state && bun run check-types && bun run test && bun run build && bun run package:styles && bun run package:size && bun run package:surface && bun run package:tarball && bun run package:publint && bun run package:attw && bun run demo:vite:verify && bun run package:consumer && bun run test:youtube:check && bun run test:browser:check",
     "demo:vite": "vite --config demo/vite/vite.config.ts --host localhost",
     "demo:vite:build": "vite build --config demo/vite/vite.config.ts",
     "demo:vite:check": "tsc -p demo/vite/tsconfig.json --noEmit",
@@ -79,7 +93,7 @@
     "lint": "biome lint .",
     "lint:fix": "ultracite fix .",
     "media:audit": "bun scripts/audit-media-delivery.mjs",
-    "package:attw": "attw . --pack --profile esm-only --exclude-entrypoints ./styles.css",
+    "package:attw": "attw . --pack --profile esm-only --exclude-entrypoints ./styles.css ./chips.css",
     "package:boundaries": "bun scripts/assert-package-boundaries.mjs",
     "package:consumer": "node scripts/assert-packed-consumer.mjs",
     "package:dependencies": "bun scripts/assert-package-dependencies.mjs",
@@ -96,13 +110,14 @@
     "test:accessibility:native": "node test/browser/accessibility-native.mjs",
     "test:browser": "playwright test",
     "test:browser:check": "tsc -p test/browser/tsconfig.json --noEmit",
+    "test:browser:host": "playwright test --config playwright.host.config.ts",
+    "test:browser:host:media": "bun scripts/generate-host-media.mjs",
     "test:watch": "vitest",
     "test:youtube": "playwright test --config playwright.youtube.config.ts",
     "test:youtube:check": "tsc -p test/youtube-live/tsconfig.json --noEmit"
   },
   "dependencies": {
-    "entities": "7.0.1",
-    "hls.js": "1.7.3"
+    "entities": "7.0.1"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -115,6 +130,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "happy-dom": "21.0.4",
+    "hls.js": "1.7.4",
     "publint": "0.3.25",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -125,6 +141,7 @@
     "vitest": "^5.0.5"
   },
   "peerDependencies": {
+    "hls.js": "^1.6.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

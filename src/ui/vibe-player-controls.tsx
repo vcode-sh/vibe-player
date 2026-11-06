@@ -5,6 +5,7 @@ import { getVibePlayerChromeClassName } from "./vibe-player-control-chrome";
 import { CloseIcon } from "./vibe-player-icons";
 import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
 import { VibePlayerTooltip } from "./vibe-player-tooltip";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 
 export interface VibePlayerControlsProps {
   capabilities: VibePlayerCapabilities;
@@ -39,6 +40,7 @@ function VibePlayerTopControls({
   title,
   topActions,
 }: VibePlayerTopControlsProps) {
+  const { classNames, labels } = useVibePlayerUI();
   return (
     <div
       aria-hidden={chromeHidden}
@@ -52,10 +54,13 @@ function VibePlayerTopControls({
         <div className="vibe-player-controls__actions">
           {topActions}
           {onClose ? (
-            <VibePlayerTooltip align="end" label="Close">
+            <VibePlayerTooltip align="end" label={labels.close}>
               <button
-                aria-label="Close"
-                className="vibe-player-controls__button"
+                aria-label={labels.close}
+                className={vibePlayerClassName(
+                  "vibe-player-controls__button",
+                  classNames.button
+                )}
                 onClick={onClose}
                 type="button"
               >

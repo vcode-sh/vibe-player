@@ -81,3 +81,40 @@ Linux WebKit build is not physical Safari/iOS: OS fullscreen/PiP, VoiceOver and
 mobile hardware behavior still require those devices. Live YouTube, audible
 autoplay policy and physical assistive-technology behavior remain separate
 acceptance boundaries.
+
+## Host acceptance
+
+The separate `playwright.host.config.ts` lane uses the built package and
+synthetic portrait, landscape and 60-second fMP4 HLS ladders generated from
+FFmpeg test signals (no external or private media). The media is git-ignored;
+generate it once per checkout with FFmpeg/libx264 installed. The lane checks
+lazy loading with three mounted players, 236-pixel chat frames and
+portrait/landscape modals at 400/1280-pixel viewports, end/replay, expiring
+tokens, failed renewal/retry, keyboard scope, reduced motion and touch controls.
+
+```bash
+bun run test:browser:host:media
+bun run build
+bunx playwright install chromium firefox webkit
+bun run test:browser:check
+bun run test:browser:host
+```
+
+The isolated Vite/token server owns loopback ports 5221/5222 and has a 15-minute
+deadline. Playwright closes both at the end. A numeric capability in each media
+URL expires in real time and returns HTTP 403; the 60-second stream is paced so
+the short inline buffer crosses the expiry boundary. The HLS decoder and HTTP
+transport are not mocked. Successful cases save poster, playing, ended, renewed,
+error and input screenshots under `build/host-browser-results/`. The separate
+output directory preserves this evidence when the legacy browser lane clears its
+own results. Firefox touch emulation is explicitly skipped because Playwright
+does not provide it; its other cases run against the installed Firefox engine. A
+fixture declaration supplies the missing upstream `hls.js/light` type entry.
+
+Three additional WebKit cases use the public HLS runtime injection to select
+the real native HLS backend. They leave the native decoder, media events and
+HTTP transport intact, and require a manifest `currentSrc` rather than a managed
+blob URL. They cover explicit lazy loading, expiry with position restoration,
+and an expired manifest followed by Retry. This also exercises native failures
+that hide HTTP status behind `MediaError` code 4. Engine diagnostics and actual
+server request logs are saved as JSON beside the recovery screenshots.

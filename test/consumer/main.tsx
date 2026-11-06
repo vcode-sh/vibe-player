@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import "vibe-player/styles.css";
 import { CustomPlayer, inline, modal, stage } from "./recipes";
+import { CustomLazyPlayer, compact, full } from "./subpaths";
 
 const target = document.getElementById("app");
 if (!target) {
@@ -12,5 +13,8 @@ createRoot(target).render(
     {inline}
     {modal}
     <CustomPlayer />
+    {compact}
+    {full}
+    <CustomLazyPlayer />
   </main>
 );

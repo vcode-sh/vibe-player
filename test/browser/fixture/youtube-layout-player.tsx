@@ -19,7 +19,9 @@ createRoot(root).render(
     <div className="youtube-layout-container" style={{ width }}>
       <VibePlayerStage
         adapterFactory={() => createYouTubeAdapter(runtime)}
+        load="eager"
         onClose={() => undefined}
+        variant={params.get("variant") === "compact" ? "compact" : "full"}
         {...(params.has("thumbnails") ? { seekThumbnails } : {})}
         source={{
           captionLanguage: "en",

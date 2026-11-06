@@ -16,6 +16,7 @@ function reportList(title, items) {
 
 const packResult = spawnSync("bun", ["pm", "pack", "--dry-run"], {
   encoding: "utf8",
+  timeout: 60_000,
 });
 
 const packOutput = `${packResult.stdout}${packResult.stderr}`;

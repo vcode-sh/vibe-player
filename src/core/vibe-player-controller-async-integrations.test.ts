@@ -23,7 +23,7 @@ describe("controller asynchronous host failures", () => {
           reject(new Error("Diagnostic sink unavailable"));
         }),
       };
-      const onError = vi.fn(() => diagnostic);
+      const onIntegrationError = vi.fn((_error: unknown) => diagnostic);
       const controller = new VibePlayerController({
         adapterFactory: () => adapter,
         onAnalyticsEvent: (event) => {
@@ -31,7 +31,11 @@ describe("controller asynchronous host failures", () => {
             return failure.promise;
           }
         },
-        onError,
+        onEvent: (event) => {
+          if (event.type === "integrationerror") {
+            return onIntegrationError(event.error);
+          }
+        },
         resumeStore: {
           clear: () => undefined,
           get: () => null,
@@ -53,9 +57,11 @@ describe("controller asynchronous host failures", () => {
       });
 
       failure.reject(new Error("Host sink unavailable"));
-      await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() =>
+        expect(onIntegrationError).toHaveBeenCalledTimes(1)
+      );
 
-      expect(onError).toHaveBeenCalledWith(
+      expect(onIntegrationError).toHaveBeenCalledWith(
         expect.objectContaining({
           details: { operation },
           message: "Host sink unavailable",
@@ -64,6 +70,7 @@ describe("controller asynchronous host failures", () => {
         })
       );
       await vi.waitFor(() => expect(diagnostic.then).toHaveBeenCalledTimes(1));
+      expect(controller.getState().error).toBeNull();
       expect(controller.getState().snapshot).toMatchObject({
         currentTime: 37,
         paused: false,
@@ -79,7 +86,7 @@ describe("controller asynchronous host failures", () => {
       const first = new TestAdapter();
       const second = new TestAdapter();
       const failure = createRejection();
-      const onError = vi.fn();
+      const diagnostic = vi.fn();
       const controller = new VibePlayerController({
         adapterFactory: vi
           .fn()
@@ -90,7 +97,11 @@ describe("controller asynchronous host failures", () => {
             return failure.promise;
           }
         },
-        onError,
+        onEvent: (event) => {
+          if (event.type === "integrationerror") {
+            diagnostic(event.error);
+          }
+        },
       });
       await controller.load(fileSource);
       first.emit("play", { paused: false, readyState: "playing" });
@@ -101,7 +112,7 @@ describe("controller asynchronous host failures", () => {
       failure.reject(new Error("Previous telemetry request failed"));
       await failure.promise.catch(() => undefined);
 
-      expect(onError).not.toHaveBeenCalled();
+      expect(diagnostic).not.toHaveBeenCalled();
       expect(controller.getState()).toMatchObject({
         currentSource: replacement,
         error: null,

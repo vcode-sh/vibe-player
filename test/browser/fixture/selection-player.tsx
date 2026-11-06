@@ -15,6 +15,7 @@ createRoot(root).render(
       autoHideControls={false}
       footer={<p>Host footer information</p>}
       header={<p>Host header information</p>}
+      load="eager"
       source={createSource("file")}
       title="Selection fixture title"
       topActions={

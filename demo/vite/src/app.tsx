@@ -54,13 +54,16 @@ export function App() {
           <span className="vp-demo-mark">VP</span>
           <span>vibe-player</span>
         </div>
-        <a
-          href="https://www.npmjs.com/package/vibe-player"
-          rel="noreferrer"
-          target="_blank"
-        >
-          Package surface
-        </a>
+        <nav aria-label="Demo links">
+          <a href="?demo=adoption">Inline variants</a>
+          <a
+            href="https://www.npmjs.com/package/vibe-player"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Package surface
+          </a>
+        </nav>
       </header>
       <div className="vp-demo-workbench">
         <SourceRail

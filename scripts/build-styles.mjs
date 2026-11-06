@@ -4,8 +4,12 @@ import { dirname, resolve } from "node:path";
 const lineBreakPattern = /\r\n|\r|\n/;
 const localImportPattern = /^@import\s+"\.\/([^"]+)";$/;
 const stylesDir = resolve(import.meta.dirname, "../src/styles");
-const inputPath = resolve(stylesDir, "vibe-player.css");
-const outputPath = resolve(import.meta.dirname, "../dist/styles.css");
+const distDir = resolve(import.meta.dirname, "../dist");
+/** Each public stylesheet is one flattened file; skins opt in separately. */
+const stylesheets = [
+  { input: "vibe-player.css", output: "styles.css" },
+  { input: "vibe-player-chips-entry.css", output: "chips.css" },
+];
 
 function collectStyleParts(source) {
   const importTargets = [];
@@ -33,13 +37,17 @@ async function readStyleBlock(target) {
   return `/* ${target} */\n${source.trim()}`;
 }
 
-const entrySource = await readFile(inputPath, "utf8");
-const parts = collectStyleParts(entrySource);
-const blocks = await Promise.all(parts.importTargets.map(readStyleBlock));
+async function buildStylesheet({ input, output }) {
+  const entrySource = await readFile(resolve(stylesDir, input), "utf8");
+  const parts = collectStyleParts(entrySource);
+  const blocks = await Promise.all(parts.importTargets.map(readStyleBlock));
+  if (parts.entrySource) {
+    blocks.push(`/* ${input} */\n${parts.entrySource}`);
+  }
+  const outputPath = resolve(distDir, output);
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, `${blocks.join("\n\n")}\n`);
+  console.log(`Built ${outputPath}`);
+}
 
-blocks.push(`/* vibe-player.css */\n${parts.entrySource}`);
-
-await mkdir(dirname(outputPath), { recursive: true });
-await writeFile(outputPath, `${blocks.join("\n\n")}\n`);
-
-console.log(`Built ${outputPath}`);
+await Promise.all(stylesheets.map(buildStylesheet));

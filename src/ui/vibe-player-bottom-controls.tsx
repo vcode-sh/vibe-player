@@ -1,8 +1,4 @@
-import {
-  formatVibePlayerTime,
-  type VibePlayerCapabilities,
-  type VibePlayerSnapshot,
-} from "../core";
+import type { VibePlayerCapabilities, VibePlayerSnapshot } from "../core";
 import {
   VibePlayerCaptionsControl,
   VibePlayerFullscreenControl,
@@ -14,6 +10,7 @@ import { getVibePlayerChromeClassName } from "./vibe-player-control-chrome";
 import { VibePlayerQualityControl } from "./vibe-player-quality-control";
 import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
 import { VibePlayerTimeline } from "./vibe-player-timeline";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 import { VibePlayerVolumeControl } from "./vibe-player-volume-control";
 
 export interface VibePlayerBottomControlsProps {
@@ -51,11 +48,15 @@ export function VibePlayerBottomControls({
   seekThumbnails,
   snapshot,
 }: VibePlayerBottomControlsProps) {
+  const { classNames, formatTime } = useVibePlayerUI();
   const remaining = Math.max(0, snapshot.duration - snapshot.currentTime);
   return (
     <div
       aria-hidden={chromeHidden}
-      className={`vibe-player-controls__bottom ${getVibePlayerChromeClassName(chromeHidden, "bottom")}`}
+      className={vibePlayerClassName(
+        `vibe-player-controls__bottom ${getVibePlayerChromeClassName(chromeHidden, "bottom")}`,
+        classNames.controls
+      )}
       inert={chromeHidden ? true : undefined}
     >
       <div className="vibe-player-controls__playback">
@@ -73,7 +74,7 @@ export function VibePlayerBottomControls({
       </div>
       <div className="vibe-player-controls__progress">
         <span className="vibe-player-controls__time">
-          {formatVibePlayerTime(snapshot.currentTime)}
+          {formatTime(snapshot.currentTime)}
         </span>
         <VibePlayerTimeline
           currentTime={snapshot.currentTime}
@@ -83,7 +84,7 @@ export function VibePlayerBottomControls({
           seekThumbnails={seekThumbnails}
         />
         <span className="vibe-player-controls__time">
-          -{formatVibePlayerTime(remaining)}
+          -{formatTime(remaining)}
         </span>
       </div>
       <div className="vibe-player-controls__options">

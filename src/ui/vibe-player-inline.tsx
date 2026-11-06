@@ -17,6 +17,7 @@ export function VibePlayerInline({
   children,
   footer,
   header,
+  load = "onPlay",
   source = null,
   title,
   ...playback
@@ -26,7 +27,12 @@ export function VibePlayerInline({
     <div className="vibe-player-inline">
       <VibePlayerShell footer={footer} header={header} title={playerTitle}>
         {source ? (
-          <VibePlayerStage {...playback} source={source} title={playerTitle} />
+          <VibePlayerStage
+            {...playback}
+            load={load}
+            source={source}
+            title={playerTitle}
+          />
         ) : (
           children
         )}

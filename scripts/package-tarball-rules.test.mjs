@@ -13,6 +13,13 @@ const consumerArchive = [
   "dist/index.js",
   "dist/index.d.ts",
   "dist/styles.css",
+  "dist/chips.css",
+  "dist/hook.js",
+  "dist/hook.d.ts",
+  "dist/stage.js",
+  "dist/stage.d.ts",
+  "dist/compact.js",
+  "dist/compact.d.ts",
   "docs/integration.md",
   "docs/media-delivery.md",
   "docs/usage.md",
@@ -48,6 +55,21 @@ describe("package tarball rules", () => {
   it("accepts the current consumer-facing package archive", () => {
     expect(collectPackageArchiveIssues(consumerArchive)).toEqual({
       extraFiles: [],
+      missingFiles: [],
+    });
+  });
+
+  it("allows generated shared chunks while rejecting arbitrary dist files", () => {
+    expect(
+      collectPackageArchiveIssues([
+        ...consumerArchive,
+        "dist/chunks/controller-a1B2c3D4.js",
+        "dist/chunks/types-a1B2c3D4.d.ts",
+        "dist/debug.json",
+        "dist/chunks/secret.env",
+      ])
+    ).toEqual({
+      extraFiles: ["dist/debug.json", "dist/chunks/secret.env"],
       missingFiles: [],
     });
   });

@@ -6,10 +6,14 @@ export interface UseVibePlayerChromeOptions {
   autoHide?: boolean;
   idleDelayMs?: number;
   open: boolean;
+  /** Only actively playing media may hide its controls. */
+  playing?: boolean;
 }
 
 export interface VibePlayerChromeState {
   chromeHidden: boolean;
+  /** Hides at once while playing, unless keyboard focus holds the chrome. */
+  hideChrome: () => void;
   holdChrome: () => void;
   releaseChrome: () => void;
   scheduleChromeHide: () => void;
@@ -20,6 +24,7 @@ export function useVibePlayerChrome({
   autoHide = true,
   idleDelayMs = VIBE_PLAYER_CHROME_IDLE_DELAY_MS,
   open,
+  playing = true,
 }: UseVibePlayerChromeOptions): VibePlayerChromeState {
   const focusWithinRef = useRef(false);
   const idleTimerRef = useRef<number | null>(null);
@@ -35,14 +40,21 @@ export function useVibePlayerChrome({
 
   const scheduleChromeHide = useCallback(() => {
     clearIdleTimer();
-    if (!(open && autoHide) || focusWithinRef.current) {
+    if (!(open && autoHide && playing) || focusWithinRef.current) {
       return;
     }
     idleTimerRef.current = window.setTimeout(
       () => setChromeHidden(true),
       idleDelayMs
     );
-  }, [autoHide, clearIdleTimer, idleDelayMs, open]);
+  }, [autoHide, clearIdleTimer, idleDelayMs, open, playing]);
+
+  const hideChrome = useCallback(() => {
+    clearIdleTimer();
+    if (open && autoHide && playing && !focusWithinRef.current) {
+      setChromeHidden(true);
+    }
+  }, [autoHide, clearIdleTimer, open, playing]);
 
   const holdChrome = useCallback(() => {
     focusWithinRef.current = true;
@@ -73,15 +85,16 @@ export function useVibePlayerChrome({
   }, [clearIdleTimer, open, showChrome]);
 
   useEffect(() => {
-    if (autoHide) {
+    if (autoHide && playing) {
       return;
     }
     clearIdleTimer();
     setChromeHidden(false);
-  }, [autoHide, clearIdleTimer]);
+  }, [autoHide, clearIdleTimer, playing]);
 
   return {
     chromeHidden,
+    hideChrome,
     holdChrome,
     releaseChrome,
     scheduleChromeHide,

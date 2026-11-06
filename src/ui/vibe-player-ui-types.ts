@@ -1,0 +1,100 @@
+import type { ComponentType, SVGProps } from "react";
+
+/** Ready-made chrome; the bare-video binding is a separate component. */
+export type VibePlayerVariant = "compact" | "feed" | "full";
+
+/** SVG props accepted by built-in icons and host icon components. */
+export interface VibePlayerIconProps
+  extends Pick<
+    SVGProps<SVGSVGElement>,
+    "aria-hidden" | "className" | "focusable"
+  > {}
+
+/** Optional replacements, including Tabler's React SVG components. */
+export interface VibePlayerIcons {
+  captions?: ComponentType<VibePlayerIconProps>;
+  check?: ComponentType<VibePlayerIconProps>;
+  chevronDown?: ComponentType<VibePlayerIconProps>;
+  close?: ComponentType<VibePlayerIconProps>;
+  fullscreenEnter?: ComponentType<VibePlayerIconProps>;
+  fullscreenExit?: ComponentType<VibePlayerIconProps>;
+  mute?: ComponentType<VibePlayerIconProps>;
+  pause?: ComponentType<VibePlayerIconProps>;
+  pictureInPicture?: ComponentType<VibePlayerIconProps>;
+  play?: ComponentType<VibePlayerIconProps>;
+  replay?: ComponentType<VibePlayerIconProps>;
+  retry?: ComponentType<VibePlayerIconProps>;
+  settings?: ComponentType<VibePlayerIconProps>;
+  /** Compact error panel glyph, e.g. Tabler's `IconVideoOff`. */
+  unavailable?: ComponentType<VibePlayerIconProps>;
+  volume?: ComponentType<VibePlayerIconProps>;
+  volumeHigh?: ComponentType<VibePlayerIconProps>;
+  volumeLow?: ComponentType<VibePlayerIconProps>;
+}
+
+/** Strings and dynamic descriptions used by package chrome. */
+export interface VibePlayerLabels {
+  adaptiveQuality: string;
+  autoQuality: string;
+  bitrate: (megabits: number) => string;
+  buffering: string;
+  captionsShortcut: string;
+  captionsUnavailable: string;
+  close: string;
+  exitFullscreen: string;
+  exitPictureInPicture: string;
+  fixedQuality: string;
+  fullscreen: string;
+  fullscreenShortcut: string;
+  hideCaptions: string;
+  loading: string;
+  manualQuality: string;
+  mute: string;
+  muteShortcut: string;
+  pause: string;
+  pictureInPicture: string;
+  play: string;
+  playbackSpeed: string;
+  playbackSpeedValue: (rate: string) => string;
+  playShortcut: string;
+  playToStart: string;
+  quality: string;
+  qualityValue: (quality: string) => string;
+  replay: string;
+  retry: string;
+  retryCaptions: string;
+  seek: string;
+  seekShortcut: string;
+  seekValue: (time: string, duration: string) => string;
+  showCaptions: string;
+  unavailable: string;
+  unmute: string;
+  videoPlayer: string;
+  videoPlayerTitle: (title: string) => string;
+  volume: string;
+  volumeTrigger: (action: string, percent: number) => string;
+  volumeValue: (percent: number, muted: boolean) => string;
+}
+
+/**
+ * Host classes augment, rather than replace, scoped package classes. Compact
+ * parts also carry a stable `data-part` attribute for host CSS.
+ */
+export interface VibePlayerClassNames {
+  button?: string;
+  captions?: string;
+  controls?: string;
+  duration?: string;
+  /** Compact error panel. */
+  error?: string;
+  media?: string;
+  playButton?: string;
+  poster?: string;
+  progress?: string;
+  retry?: string;
+  root?: string;
+  status?: string;
+  /** Compact elapsed or remaining time. */
+  time?: string;
+  unmute?: string;
+}

@@ -1,0 +1,249 @@
+.vibe-player-headless {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: var(--vibe-player-aspect-ratio, 16 / 9);
+  object-fit: contain;
+  background: var(--_vibe-bg);
+}
+
+.vibe-player-stage__poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: contain;
+}
+
+.vibe-player-stage__start {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  color: var(--_vibe-fg);
+  cursor: pointer;
+  background: var(
+    --_vibe-bg-60,
+    color-mix(in srgb, var(--_vibe-bg) 60%, transparent)
+  );
+  border: 1px solid var(--_vibe-fg-20);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.vibe-player-stage__duration {
+  position: absolute;
+  right: var(--vibe-player-spacing, 0.5rem);
+  bottom: var(--vibe-player-spacing, 0.5rem);
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--_vibe-fg);
+  pointer-events: none;
+  background: var(--_vibe-bg-72);
+  border-radius: 0.25rem;
+}
+
+.vibe-player-stage__start .vibe-player-controls__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Compact shell shared by every skin. Parts hidden while playing are not
+   drawn at all; the frame shows only media. */
+.vibe-player-compact {
+  --_vp-enter: 160ms;
+  --_vp-exit: 130ms;
+  --_vp-ease: var(--vibe-player-ease, cubic-bezier(0.2, 0.8, 0.2, 1));
+  isolation: isolate;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vibe-player-compact:is(
+  [data-state="idle"],
+  [data-state="paused"],
+  [data-state="ended"]
+) {
+  cursor: pointer;
+}
+
+.vibe-player-compact .vibe-player-stage__poster {
+  z-index: 1;
+  transition: filter 220ms ease;
+}
+
+.vibe-player-surface__dim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: #000;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.vibe-player-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.vibe-player-surface svg {
+  display: block;
+  width: var(--_vp-icon, 1.25rem);
+  height: var(--_vp-icon, 1.25rem);
+}
+
+.vibe-player-compact .vibe-player-surface :focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.vibe-player-surface p {
+  margin: 0;
+}
+
+.vibe-player-surface__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* Reveal: fade with a short rise; exit is faster than entry. */
+.vibe-player-surface__reveal {
+  visibility: hidden;
+  opacity: 0;
+  transform: var(--_vp-from, translateY(4px));
+  transition:
+    opacity var(--_vp-exit) ease,
+    transform var(--_vp-exit) var(--_vp-ease),
+    visibility 0s linear var(--_vp-exit);
+}
+
+.vibe-player-surface__reveal[data-visible="true"] {
+  visibility: visible;
+  pointer-events: auto;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--_vp-enter) ease,
+    transform var(--_vp-enter) var(--_vp-ease),
+    visibility 0s;
+}
+
+.vibe-player-surface :where(button) {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Swap: icon crossfade with a 2 px blur bridge. */
+.vibe-player-surface__swap {
+  position: relative;
+  display: block;
+  width: var(--_vp-icon, 1.25rem);
+  height: var(--_vp-icon, 1.25rem);
+}
+
+.vibe-player-surface__swap-item {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: auto;
+  opacity: 0;
+  filter: blur(2px);
+  transform: scale(0.6);
+  transition:
+    opacity 130ms ease,
+    transform 160ms var(--_vp-ease),
+    filter 130ms ease;
+}
+
+.vibe-player-surface__swap-item[data-visible="true"] {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+.vibe-player-surface__spinner {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgb(255 255 255 / 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: vibe-player-surface-spin 800ms linear infinite;
+  animation-play-state: paused;
+}
+
+[data-visible="true"] > .vibe-player-surface__spinner {
+  animation-play-state: running;
+}
+
+@keyframes vibe-player-surface-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.vibe-player-scrubber {
+  position: relative;
+  touch-action: none;
+}
+
+.vibe-player-scrubber__rail,
+.vibe-player-scrubber__fill,
+.vibe-player-scrubber__thumb-track,
+.vibe-player-scrubber__thumb {
+  position: absolute;
+  display: block;
+}
+
+.vibe-player-scrubber__fill {
+  inset: 0;
+  border-radius: inherit;
+  transform: scaleX(var(--vibe-player-progress, 0));
+  transform-origin: left center;
+}
+
+.vibe-player-scrubber__thumb-track {
+  pointer-events: none;
+  transform: translateX(calc(var(--vibe-player-progress, 0) * 100%));
+}
+
+/* Outside presentation: steering parts sit below the provider frame. */
+.vibe-player-compact[data-controls-presentation="outside"]
+  > .vibe-player-surface {
+  display: contents;
+}
+
+/* Reduced motion reaches the same states instantly. Spinners keep turning:
+   loading is real, ongoing state. */
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-compact,
+  .vibe-player-compact * {
+    transition-delay: 0s !important;
+    transition-duration: 0s !important;
+  }
+
+  .vibe-player-compact .vibe-player-surface__spinner {
+    animation-duration: 800ms;
+  }
+}

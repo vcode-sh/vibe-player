@@ -15,6 +15,12 @@ Use one of these modes intentionally:
 Do not silently copy package source into a product app. Product apps should
 import the package API and adapt their own data into `VibePlayerSource`.
 
+For renewable private HLS, source dimensions, lazy startup, icon/label injection
+and host session/audio policy, see [the usage guide](./usage.md).
+Use `vibe-player/hook`, `/stage` or `/compact` to keep the consuming bundle scoped;
+the package root continues to expose the complete API. Client entries carry
+`"use client"` and can be imported safely by SSR frameworks.
+
 ## App Setup
 
 Import the package stylesheet once from the app's global CSS entrypoint or root
@@ -225,13 +231,14 @@ Rejected control commands include their name in `details.command`. Failures in
 auxiliary actions such as fullscreen or PiP preserve ongoing playback. Browser
 policy blocking `play()` uses the `playbackBlocked` notice instead of `onError`.
 Resume-store, analytics and controller-subscriber failures report as nonfatal
-`integration` errors with `details.operation`; they cannot block media cleanup
+`integrationerror` events with `error.details.operation`; they cannot block media cleanup
 or remaining state listeners. Rejected asynchronous observer/write callbacks
 are contained too. Failure of `onError` itself is contained without recursively
 reporting another error. A failed resume read skips restoration; a provider's
-failed position-restore command still reports in the `load` phase. The current
-`state.error` may therefore describe an integration failure while playback
-remains healthy; use the phase and snapshot together.
+failed position-restore command still reports in the `load` phase. The
+`state.error` is reserved for terminal playback failures. Integration diagnostics
+are emitted as `onEvent` events with `type: "integrationerror"`; healthy playback
+does not enter the error state.
 
 The package normalizes seek requests to the adapter's duration and `canSeek`
 capability before dispatch. Resume and seek analytics use that accepted target;
@@ -269,6 +276,12 @@ adapter factory or resume store establishes a new controller boundary.
 `VibePlayerInline` and `VibePlayerModal` forward playback options, state/error
 observers, and `topActions` to the package stage. Set `autoHideControls={false}`
 for a persistent control surface; the default follows normalized capabilities.
+`controlsHideDelay` changes the idle delay. `VibePlayerModal` defaults to
+`autoPlay`; pass `autoPlay={false}` for a viewer that waits for Play.
+
+A host dialog can contain `VibePlayerStage variant="full"` with `autoFocus`.
+Escape first closes the stage's own volume or quality popover and stops there;
+otherwise it propagates to the host dialog untouched.
 
 ## Advanced Adapter Integration
 
@@ -291,8 +304,19 @@ export function createPlayerAdapterFactory(runtime: HlsAdapterRuntime) {
 }
 ```
 
-Pass the resulting stable function as `adapterFactory`. Managed HLS stays the
-default when supported, with native fallback after managed attachment failure.
+Pass the resulting stable function as `adapterFactory`. For ordinary injection,
+`loadHls={() => import("hls.js/light")}`, `hlsRuntime` and `hlsConfig` can be passed
+directly to the hook or ready-made player. The default loader uses the full peer
+build to preserve HLS features omitted by the light build.
+
+Classic MediaSource uses hls.js even if the browser reports native HLS support.
+ManagedMediaSource-only devices with native HLS use native playback deliberately,
+including iOS 17.1+; when managed HLS is the only supported path, remote playback
+is disabled for that engine. Native source assignment always calls `load()` to
+start `preload="none"` elements. Inline HLS defaults cap quality to frame size,
+use small forward/back buffers, reuse a recent bandwidth estimate for five
+minutes and start conservatively for data saver. Host `hlsConfig` can override
+those defaults.
 YouTube runtime injection uses `YouTubeAdapterRuntime`; provider SDK objects
 remain behind that bridge. A custom runtime must return a usable player handle,
 or resolve only after its player is ready. Honor `session.signal` to release

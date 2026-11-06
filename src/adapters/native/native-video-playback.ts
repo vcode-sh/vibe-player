@@ -4,6 +4,8 @@ import type {
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
 import { clearElement } from "../shared/clear-element";
+import { clearNativeVideoEvents } from "./native-video-dom";
+import { clearPendingNativeSeek, seekNativeVideoTo } from "./native-video-seek";
 
 // An earlier play resolution must preserve a newer play on the same video.
 const latestPlaybackGenerations = new WeakMap<HTMLVideoElement, number>();
@@ -90,10 +92,10 @@ export function seekNativeVideo(
   if (!(video && (input.canSeek?.() ?? true))) {
     return Promise.resolve();
   }
-  video.currentTime = clampVibePlayerTime(
-    seconds,
-    input.getSnapshot().duration,
-    false
+  seekNativeVideoTo(
+    video,
+    clampVibePlayerTime(seconds, input.getSnapshot().duration, false),
+    input.emit
   );
   input.emit("timeupdate");
   return Promise.resolve();
@@ -153,10 +155,17 @@ export function clampNativeVideoVolume(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-export function clearNativeVideoPlayback(video: HTMLVideoElement): void {
+export function clearNativeVideoPlayback(
+  video: HTMLVideoElement,
+  remove = true
+): void {
+  clearNativeVideoEvents(video);
+  clearPendingNativeSeek(video);
   video.pause();
   video.removeAttribute("src");
   clearElement(video);
   video.load();
-  video.remove();
+  if (remove) {
+    video.remove();
+  }
 }

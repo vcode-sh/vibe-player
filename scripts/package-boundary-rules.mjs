@@ -64,6 +64,12 @@ const adapterPublicEntries = new Set([
   "src/adapters/index.ts",
   "src/adapters/create-vibe-player-adapter.ts",
 ]);
+const packageEntries = new Set([
+  "src/index.ts",
+  "src/hook.ts",
+  "src/stage.ts",
+  "src/compact.ts",
+]);
 
 function isTestFile(path) {
   return testFilePattern.test(path);
@@ -102,7 +108,7 @@ function inspectAdapterDependency(path, target) {
 
 function inspectLayerDependency(path, specifier, paths) {
   const [, owner] = path.split("/");
-  if (isTestFile(path) || owner === "index.ts") {
+  if (isTestFile(path) || packageEntries.has(path)) {
     return null;
   }
   if (!specifier.startsWith(".")) {

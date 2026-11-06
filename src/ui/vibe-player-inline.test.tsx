@@ -42,6 +42,7 @@ Caption line`)
     const { rerender } = render(
       <VibePlayerInline
         adapterFactory={adapterFactory}
+        load="eager"
         loadCaptionText={loadCaptionText}
         source={fileSource}
       />

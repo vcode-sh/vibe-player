@@ -6,7 +6,6 @@
       "name": "vibe-player",
       "dependencies": {
         "entities": "7.0.1",
-        "hls.js": "1.7.3",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
@@ -19,6 +18,7 @@
         "@types/react-dom": "^19.3.0",
         "@vitejs/plugin-react": "6.1.2",
         "happy-dom": "21.0.4",
+        "hls.js": "1.7.4",
         "publint": "0.3.25",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
@@ -29,6 +29,7 @@
         "vitest": "^5.0.5",
       },
       "peerDependencies": {
+        "hls.js": "^1.6.0",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
       },
@@ -404,7 +405,7 @@
 
     "highlight.js": ["highlight.js@10.7.3", "", {}, "sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A=="],
 
-    "hls.js": ["hls.js@1.7.3", "", {}, "sha512-MsPlx6yVW4Qv4C7mEVou4/gk/5cN2dVxOTnrNjPSmyH2f0Ln+/UkG10Ax1PE6OvrmTVPKgQYozTtBaPOuCzq7A=="],
+    "hls.js": ["hls.js@1.7.4", "", {}, "sha512-3GlxGdPvT2YHvQYOt+yOzT/DEior/qJVNIylHA77kgeoBTdQQqi70GwefNEUmHQeNGyjC8U62+bruqW/Tpm+tg=="],
 
     "hookable": ["hookable@6.1.2", "", {}, "sha512-+abwxtiEA52GCVIsQqut3S/uKTbUwYIp4Pe/vv+6py5XiXBCqMZHg6pA6Y5qhgLSEys0/cYuPbO0z1QFj5ZCmg=="],
 

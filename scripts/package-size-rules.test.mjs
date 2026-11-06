@@ -18,6 +18,10 @@ describe("package size rules", () => {
     expect(measurePackageSize("", "gzip")).toBe(20);
   });
 
+  it("counts each transferred chunk with its own gzip overhead", () => {
+    expect(measurePackageSize(["a", "b"], "gzip")).toBe(42);
+  });
+
   it("accepts the exact byte limit and rejects the next byte", () => {
     const budget = {
       filePath: "asset.js",

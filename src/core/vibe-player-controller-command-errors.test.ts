@@ -41,9 +41,11 @@ describe("controller command diagnostics", () => {
   it("reports an auxiliary action failure without claiming playback is unavailable", async () => {
     const adapter = new FullscreenAdapter();
     const onError = vi.fn();
+    const onEvent = vi.fn();
     const controller = new VibePlayerController({
       adapterFactory: () => adapter,
       onError,
+      onEvent,
     });
     await controller.load(fileSource);
     adapter.emit("play", {
@@ -57,14 +59,21 @@ describe("controller command diagnostics", () => {
     );
 
     expect(controller.getState()).toMatchObject({
-      error: {
-        details: { command: "enterFullscreen" },
-        message: "Fullscreen denied",
-        phase: "playback",
-      },
+      error: null,
       snapshot: { currentTime: 47, paused: false, readyState: "playing" },
     });
-    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+    expect(onEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "enterFullscreen",
+        error: expect.objectContaining({
+          cause: adapter.fullscreenError,
+          message: "Fullscreen denied",
+        }),
+        source: fileSource,
+        type: "commanderror",
+      })
+    );
     await controller.teardown();
   });
 
@@ -118,9 +127,11 @@ describe("controller command diagnostics", () => {
         rejectRate = reject;
       });
     const onError = vi.fn();
+    const onEvent = vi.fn();
     const controller = new VibePlayerController({
       adapterFactory: () => adapter,
       onError,
+      onEvent,
     });
     await controller.load(fileSource);
     const volume = controller.setVolume(0.3);
@@ -132,22 +143,21 @@ describe("controller command diagnostics", () => {
     rejectRate(rateFailure);
     await rateOutcome;
 
-    expect(onError.mock.calls.map(([error]) => error)).toMatchObject([
+    expect(onError).not.toHaveBeenCalled();
+    const failures = onEvent.mock.calls
+      .map(([event]) => event)
+      .filter((event) => event.type === "commanderror");
+    expect(failures).toMatchObject([
       {
-        cause: volumeFailure,
-        details: { command: "setVolume" },
-        sourceId: "video-1",
+        command: "setVolume",
+        error: { cause: volumeFailure, sourceId: "video-1" },
       },
       {
-        cause: rateFailure,
-        details: { command: "setPlaybackRate" },
-        sourceId: "video-1",
+        command: "setPlaybackRate",
+        error: { cause: rateFailure, sourceId: "video-1" },
       },
     ]);
-    expect(controller.getState().error).toMatchObject({
-      cause: rateFailure,
-      details: { command: "setPlaybackRate" },
-    });
+    expect(controller.getState().error).toBeNull();
     await controller.teardown();
   });
 });

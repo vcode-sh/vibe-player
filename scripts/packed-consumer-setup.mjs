@@ -27,11 +27,13 @@ export async function createPackedConsumer(root, reactVersion) {
     const version = reactVersion ?? (await installedVersion(root, "react"));
     const manifest = {
       dependencies: {
+        "hls.js": await installedVersion(root, "hls.js"),
         react: version,
         "react-dom": version,
         "vibe-player": `file:./${archive.filename}`,
       },
       devDependencies: {
+        "@tabler/icons-react": "3.50.0",
         "@types/react": await installedVersion(root, "@types/react"),
         "@types/react-dom": await installedVersion(root, "@types/react-dom"),
       },

@@ -1,6 +1,7 @@
 import type { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
 import { handleVibePlayerLoadError } from "./vibe-player-controller-load-error";
 import { restoreVibePlayerResumePosition } from "./vibe-player-controller-resume";
+import { createIdleSnapshot } from "./vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
@@ -43,8 +44,8 @@ export async function loadVibePlayerControllerSource(
   }
   input.analyticsSession.clear();
   input.beginSession();
-  const adapter = createControllerAdapter(input);
-  if (!input.isCurrentOperation(input.operationGeneration)) {
+  const adapter = await createControllerAdapter(input);
+  if (!(adapter && input.isCurrentOperation(input.operationGeneration))) {
     return;
   }
   const hasReportedError = subscribeControllerAdapter(input, adapter);
@@ -74,12 +75,31 @@ export async function loadVibePlayerControllerSource(
   await restoreControllerResumePosition(input, adapter);
 }
 
-function createControllerAdapter(
+async function createControllerAdapter(
   input: LoadVibePlayerControllerSourceInput
-): VibePlayerAdapter {
+): Promise<VibePlayerAdapter | null> {
   let adapter: VibePlayerAdapter | null = null;
   try {
-    adapter = input.adapterFactory(input.source);
+    const created = input.adapterFactory(input.source);
+    if (created instanceof Promise) {
+      input.updateState({
+        capabilities: null,
+        currentSource: input.source,
+        error: null,
+        lastEvent: null,
+        playbackBlocked: false,
+        snapshot: {
+          ...createIdleSnapshot(),
+          duration: input.source.durationSeconds ?? 0,
+          readyState: "loading",
+        },
+      });
+    }
+    adapter = await created;
+    if (!input.isCurrentOperation(input.operationGeneration)) {
+      await adapter.unmount();
+      return null;
+    }
     input.setAdapter(adapter);
     input.updateState({
       capabilities: adapter.capabilities,
@@ -106,7 +126,7 @@ function subscribeControllerAdapter(
     if (!active) {
       return;
     }
-    errorReported ||= event.type === "error";
+    errorReported ||= event.type === "error" && event.payload?.fatal !== false;
     input.handleAdapterEvent(event);
   });
   const dispose = () => {

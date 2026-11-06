@@ -11,11 +11,11 @@
   padding: 0;
   margin: 0;
   overflow: hidden;
-  color: #fff;
-  background: #050506;
+  color: var(--_vibe-fg);
+  background: var(--_vibe-bg);
   border: 0;
-  animation: vibe-player-overlay-in 180ms var(--vibe-player-ease-emphasized)
-    both;
+  animation: vibe-player-overlay-in 180ms
+    var(--vibe-player-ease-emphasized, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
 }
 
 .vibe-player-modal::backdrop {
@@ -24,31 +24,32 @@
 
 .vibe-player-modal[data-state="closing"] {
   pointer-events: none;
-  animation: vibe-player-overlay-out 180ms var(--vibe-player-ease-standard) both;
+  animation: vibe-player-overlay-out 180ms
+    var(--vibe-player-ease-standard, cubic-bezier(0.65, 0, 0.35, 1)) both;
 }
 
 .vibe-player-modal__backdrop {
   position: absolute;
   inset: 0;
-  background-color: rgba(5, 5, 6, 0.86);
+  background-color: var(--_vibe-surface-86);
   background-position: center;
   background-size: cover;
   opacity: 0.7;
   filter: blur(18px);
   transform: scale(1.06);
-  animation: vibe-player-backdrop-in 220ms var(--vibe-player-ease-emphasized)
-    both;
+  animation: vibe-player-backdrop-in 220ms
+    var(--vibe-player-ease-emphasized, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
 }
 
 .vibe-player-modal[data-state="closing"] .vibe-player-modal__backdrop {
-  animation: vibe-player-backdrop-out 180ms var(--vibe-player-ease-standard)
-    both;
+  animation: vibe-player-backdrop-out 180ms
+    var(--vibe-player-ease-standard, cubic-bezier(0.65, 0, 0.35, 1)) both;
 }
 
 .vibe-player-modal__wash {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.34);
+  background: var(--_vibe-bg-34);
 }
 
 .vibe-player-modal__gradient {
@@ -56,9 +57,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.58),
-    rgba(0, 0, 0, 0.1),
-    rgba(0, 0, 0, 0.42)
+    var(--_vibe-bg-58),
+    var(--_vibe-bg-10),
+    var(--_vibe-bg-42)
   );
 }
 
@@ -66,19 +67,30 @@
   position: relative;
   z-index: 30;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   min-height: 100svh;
   padding: clamp(4.5rem, 8svh, 6.5rem) clamp(1rem, 4vw, 4rem);
 }
 
 .vibe-player-modal__frame {
-  width: min(92vw, calc((100svh - 9rem) * 1.777), 1760px);
-  animation: vibe-player-shell-in 220ms var(--vibe-player-ease-emphasized) both;
-  will-change: opacity, transform;
+  width: min(
+    92vw,
+    calc(
+      (100svh - var(--vibe-player-viewer-offset, 14rem)) *
+      var(--vibe-player-aspect-ratio, 1.777) +
+      2rem
+    ),
+    1760px
+  );
+  max-width: 100%;
+  animation: vibe-player-shell-in 220ms
+    var(--vibe-player-ease-emphasized, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
 }
 
 .vibe-player-modal[data-state="closing"] .vibe-player-modal__frame {
-  animation: vibe-player-shell-out 180ms var(--vibe-player-ease-standard) both;
+  animation: vibe-player-shell-out 180ms
+    var(--vibe-player-ease-standard, cubic-bezier(0.65, 0, 0.35, 1)) both;
 }
 
 @keyframes vibe-player-overlay-in {

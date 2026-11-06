@@ -35,7 +35,7 @@ export default defineConfig({
   },
   webServer: {
     command:
-      "bunx vite --config test/browser/vite.config.ts --host 127.0.0.1 --port 5197 --strictPort",
+      "timeout --foreground --signal=TERM --kill-after=5s 900s bunx vite --config test/browser/vite.config.ts --host 127.0.0.1 --port 5197 --strictPort",
     reuseExistingServer: false,
     timeout: 30_000,
     url: "http://127.0.0.1:5197",

@@ -89,7 +89,9 @@ function App() {
         style={width ? { width: `${Number(width)}px` } : undefined}
       >
         {mode === "stage" ? <VibePlayerStage {...playback} /> : null}
-        {mode === "inline" ? <VibePlayerInline {...playback} /> : null}
+        {mode === "inline" ? (
+          <VibePlayerInline {...playback} load="eager" />
+        ) : null}
         {mode === "headless" ? <HeadlessPlayer source={source} /> : null}
       </section>
       {mode === "modal" ? (

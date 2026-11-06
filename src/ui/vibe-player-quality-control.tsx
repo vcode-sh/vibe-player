@@ -13,6 +13,8 @@ import {
 } from "../core";
 import { CheckIcon, ChevronDownIcon, QualityIcon } from "./vibe-player-icons";
 import { VibePlayerTooltip } from "./vibe-player-tooltip";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
+import type { VibePlayerLabels } from "./vibe-player-ui-types";
 
 export interface VibePlayerQualityControlProps {
   capabilities: VibePlayerCapabilities;
@@ -20,14 +22,17 @@ export interface VibePlayerQualityControlProps {
   qualityOptions: VibePlayerQualityOption[] | undefined;
 }
 
-function getQualityMeta(option: VibePlayerQualityOption): string {
+function getQualityMeta(
+  option: VibePlayerQualityOption,
+  labels: VibePlayerLabels
+): string {
   if (option.auto) {
-    return "Adaptive";
+    return labels.adaptiveQuality;
   }
   if (option.bitrate) {
-    return `${Math.round(option.bitrate / 100_000) / 10} Mbps`;
+    return labels.bitrate(Math.round(option.bitrate / 100_000) / 10);
   }
-  return option.height ? "Fixed" : "Manual";
+  return option.height ? labels.fixedQuality : labels.manualQuality;
 }
 
 function getNextOptionIndex(index: number, offset: number, total: number) {
@@ -39,6 +44,7 @@ export function VibePlayerQualityControl({
   onSetQuality,
   qualityOptions,
 }: VibePlayerQualityControlProps) {
+  const { classNames, labels } = useVibePlayerUI();
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -101,7 +107,9 @@ export function VibePlayerQualityControl({
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     if (event.key === "Escape" && open && !event.defaultPrevented) {
+      // Consumed: a host dialog must not also close on this press.
       event.preventDefault();
+      event.stopPropagation();
       closeMenu();
       triggerRef.current?.focus();
     }
@@ -136,13 +144,18 @@ export function VibePlayerQualityControl({
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
     >
-      <VibePlayerTooltip align="end" label="Quality">
+      <VibePlayerTooltip align="end" label={labels.quality}>
         <button
           aria-controls={open ? menuId : undefined}
           aria-expanded={open}
           aria-haspopup="listbox"
-          aria-label={`Quality ${selectedOption.label}`}
-          className="vibe-player-quality-control__trigger"
+          aria-label={labels.qualityValue(
+            selectedOption.auto ? labels.autoQuality : selectedOption.label
+          )}
+          className={vibePlayerClassName(
+            "vibe-player-quality-control__trigger",
+            classNames.button
+          )}
           onClick={() => setOpen((value) => !value)}
           onKeyDown={handleTriggerKeyDown}
           ref={triggerRef}
@@ -150,14 +163,14 @@ export function VibePlayerQualityControl({
         >
           <QualityIcon />
           <span className="vibe-player-quality-control__value">
-            {selectedOption.label}
+            {selectedOption.auto ? labels.autoQuality : selectedOption.label}
           </span>
           <ChevronDownIcon />
         </button>
       </VibePlayerTooltip>
       {open ? (
         <div
-          aria-label="Quality"
+          aria-label={labels.quality}
           className="vibe-player-quality-control__menu"
           id={menuId}
           role="listbox"
@@ -165,7 +178,10 @@ export function VibePlayerQualityControl({
           {availableOptions.map((option, index) => (
             <button
               aria-selected={option.id === selectedOption.id}
-              className="vibe-player-quality-control__option"
+              className={vibePlayerClassName(
+                "vibe-player-quality-control__option",
+                classNames.button
+              )}
               data-selected={option.id === selectedOption.id}
               key={option.id}
               onClick={() => chooseQuality(option.id)}
@@ -180,10 +196,10 @@ export function VibePlayerQualityControl({
             >
               <span className="vibe-player-quality-control__option-copy">
                 <span className="vibe-player-quality-control__option-label">
-                  {option.label}
+                  {option.auto ? labels.autoQuality : option.label}
                 </span>
                 <span className="vibe-player-quality-control__option-meta">
-                  {getQualityMeta(option)}
+                  {getQualityMeta(option, labels)}
                 </span>
               </span>
               {option.id === selectedOption.id ? <CheckIcon /> : null}

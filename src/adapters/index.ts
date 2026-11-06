@@ -4,11 +4,16 @@ export type {
   VibePlayerCapabilities,
   VibePlayerSnapshot,
 } from "../core/vibe-player-types";
-export { createVibePlayerAdapter } from "./create-vibe-player-adapter";
+export {
+  createVibePlayerAdapter,
+  type VibePlayerAdapterOptions,
+} from "./create-vibe-player-adapter";
 export { createFileAdapter } from "./file";
 export type {
   HlsAdapterErrorPayload,
+  HlsAdapterOptions,
   HlsAdapterRuntime,
+  HlsModuleLoader,
   ManagedHlsController,
   ManagedHlsLevel,
   ManagedHlsSession,

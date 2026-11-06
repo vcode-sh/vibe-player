@@ -1,0 +1,69 @@
+.vibe-player-stage,
+.vibe-player-shell,
+.vibe-player-modal,
+.vibe-player-ambient-preview,
+.vibe-player-background-preview,
+.vibe-player-headless {
+  --_vibe-fg: var(--vibe-player-text, #fff);
+  --_vibe-bg: var(--vibe-player-stage-background, #000);
+  --_vibe-surface: var(--vibe-player-surface, #090a0e);
+  --_vibe-accent: var(--vibe-player-accent, Highlight);
+  --_vibe-error: var(--vibe-player-error, Mark);
+  --_vibe-provider-accent: var(--vibe-player-provider-accent, #f03);
+  --_vibe-bg-10: color-mix(in srgb, var(--_vibe-bg) 10%, transparent);
+  --_vibe-bg-16: color-mix(in srgb, var(--_vibe-bg) 16%, transparent);
+  --_vibe-bg-18: color-mix(in srgb, var(--_vibe-bg) 18%, transparent);
+  --_vibe-bg-24: color-mix(in srgb, var(--_vibe-bg) 24%, transparent);
+  --_vibe-bg-26: color-mix(in srgb, var(--_vibe-bg) 26%, transparent);
+  --_vibe-bg-32: color-mix(in srgb, var(--_vibe-bg) 32%, transparent);
+  --_vibe-bg-34: color-mix(in srgb, var(--_vibe-bg) 34%, transparent);
+  --_vibe-bg-42: color-mix(in srgb, var(--_vibe-bg) 42%, transparent);
+  --_vibe-bg-46: color-mix(in srgb, var(--_vibe-bg) 46%, transparent);
+  --_vibe-bg-48: color-mix(in srgb, var(--_vibe-bg) 48%, transparent);
+  --_vibe-bg-58: color-mix(in srgb, var(--_vibe-bg) 58%, transparent);
+  --_vibe-bg-72: color-mix(in srgb, var(--_vibe-bg) 72%, transparent);
+  --_vibe-bg-8: color-mix(in srgb, var(--_vibe-bg) 8%, transparent);
+  --_vibe-bg-80: color-mix(in srgb, var(--_vibe-bg) 80%, transparent);
+  --_vibe-fg-10: color-mix(in srgb, var(--_vibe-fg) 10%, transparent);
+  --_vibe-fg-12: color-mix(in srgb, var(--_vibe-fg) 12%, transparent);
+  --_vibe-fg-14: color-mix(in srgb, var(--_vibe-fg) 14%, transparent);
+  --_vibe-fg-16: color-mix(in srgb, var(--_vibe-fg) 16%, transparent);
+  --_vibe-fg-18: color-mix(in srgb, var(--_vibe-fg) 18%, transparent);
+  --_vibe-fg-20: color-mix(in srgb, var(--_vibe-fg) 20%, transparent);
+  --_vibe-fg-28: color-mix(in srgb, var(--_vibe-fg) 28%, transparent);
+  --_vibe-fg-34: color-mix(in srgb, var(--_vibe-fg) 34%, transparent);
+  --_vibe-fg-48: color-mix(in srgb, var(--_vibe-fg) 48%, transparent);
+  --_vibe-fg-6: color-mix(in srgb, var(--_vibe-fg) 6%, transparent);
+  --_vibe-fg-64: color-mix(in srgb, var(--_vibe-fg) 64%, transparent);
+  --_vibe-fg-65: color-mix(in srgb, var(--_vibe-fg) 65%, transparent);
+  --_vibe-fg-68: color-mix(in srgb, var(--_vibe-fg) 68%, transparent);
+  --_vibe-fg-72: color-mix(in srgb, var(--_vibe-fg) 72%, transparent);
+  --_vibe-fg-74: color-mix(in srgb, var(--_vibe-fg) 74%, transparent);
+  --_vibe-fg-78: color-mix(in srgb, var(--_vibe-fg) 78%, transparent);
+  --_vibe-fg-8: color-mix(in srgb, var(--_vibe-fg) 8%, transparent);
+  --_vibe-fg-82: color-mix(in srgb, var(--_vibe-fg) 82%, transparent);
+  --_vibe-fg-86: color-mix(in srgb, var(--_vibe-fg) 86%, transparent);
+  --_vibe-fg-90: color-mix(in srgb, var(--_vibe-fg) 90%, transparent);
+  --_vibe-fg-92: color-mix(in srgb, var(--_vibe-fg) 92%, transparent);
+  --_vibe-fg-94: color-mix(in srgb, var(--_vibe-fg) 94%, transparent);
+  --_vibe-surface-84: color-mix(in srgb, var(--_vibe-surface) 84%, transparent);
+  --_vibe-surface-86: color-mix(in srgb, var(--_vibe-surface) 86%, transparent);
+  --_vibe-surface-90: color-mix(in srgb, var(--_vibe-surface) 90%, transparent);
+  --_vibe-surface-98: color-mix(in srgb, var(--_vibe-surface) 98%, transparent);
+  font-family: var(--vibe-player-font, inherit);
+}
+
+.vibe-player-stage:focus-visible,
+.vibe-player-stage button:focus-visible,
+.vibe-player-stage input:focus-visible {
+  outline: 2px solid var(--vibe-player-focus-color, var(--_vibe-fg));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-stage *,
+  .vibe-player-modal * {
+    transition-duration: 0s;
+    animation-duration: 0s;
+  }
+}

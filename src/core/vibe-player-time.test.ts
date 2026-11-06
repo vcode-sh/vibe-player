@@ -7,13 +7,17 @@ import {
 
 describe("vibe-player-time", () => {
   it.each([
-    [Number.NaN, "00:00"],
-    [Number.POSITIVE_INFINITY, "00:00"],
-    [-1, "00:00"],
-    [0, "00:00"],
-    [59.999, "00:59"],
-    [60, "01:00"],
-    [3661.9, "61:01"],
+    [Number.NaN, "0:00"],
+    [Number.POSITIVE_INFINITY, "0:00"],
+    [-1, "0:00"],
+    [0, "0:00"],
+    [7, "0:07"],
+    [59.999, "0:59"],
+    [60, "1:00"],
+    [3599.9, "59:59"],
+    [3600, "1:00:00"],
+    [3909, "1:05:09"],
+    [36_061.9, "10:01:01"],
   ])("formats %s without rounding across the next second", (seconds, text) => {
     expect(formatVibePlayerTime(seconds)).toBe(text);
   });

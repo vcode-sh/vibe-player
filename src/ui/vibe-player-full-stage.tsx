@@ -1,0 +1,130 @@
+import { useMemo } from "react";
+import { useVibePlayerCaptions } from "../react/use-vibe-player-captions";
+import { useVibePlayerStageObservers } from "./use-vibe-player-stage-observers";
+import { useVibePlayerStagePlayback } from "./use-vibe-player-stage-playback";
+import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
+import { VibePlayerCaptionStatusNotice } from "./vibe-player-caption-status";
+import { VibePlayerControls } from "./vibe-player-controls";
+import { getVibePlayerFrameStyle } from "./vibe-player-frame-style";
+import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
+import { VibePlayerStageStatus } from "./vibe-player-stage-status";
+import type { VibePlayerStageProps } from "./vibe-player-stage-types";
+import { VibePlayerStartSurface } from "./vibe-player-start-surface";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
+
+export function VibePlayerFullStage(props: VibePlayerStageProps) {
+  const { classNames, labels } = useVibePlayerUI();
+  const playback = useVibePlayerStagePlayback(props);
+  const {
+    actions,
+    activeSource,
+    capabilities,
+    captionsEnabled,
+    chrome,
+    controller,
+    playerTitle,
+    rootElement,
+    state,
+  } = playback;
+  const captions = useVibePlayerCaptions({
+    currentTime: state.snapshot.currentTime,
+    enabled: captionsEnabled,
+    source: state.capabilities ? state.currentSource : null,
+    ...(props.loadCaptionText
+      ? { loadCaptionText: props.loadCaptionText }
+      : {}),
+  });
+  const captionStatus = useMemo(
+    () => ({
+      error: captions.error,
+      loading: captions.loading,
+      track: captions.track,
+    }),
+    [captions.error, captions.loading, captions.track]
+  );
+  useVibePlayerStageObservers({
+    captionStatus,
+    controller,
+    onCaptionStatusChange: props.onCaptionStatusChange,
+    onError: props.onError,
+    onStateChange: props.onStateChange,
+    source: activeSource,
+    state,
+  });
+  return (
+    <section
+      aria-label={
+        playerTitle ? labels.videoPlayerTitle(playerTitle) : labels.videoPlayer
+      }
+      className={vibePlayerClassName(
+        "vibe-player-stage",
+        props.className,
+        classNames.root
+      )}
+      data-chrome-hidden={chrome.chromeHidden}
+      data-controls-presentation={
+        capabilities.controlsPresentation ?? "overlay"
+      }
+      data-fit={props.fit === "cover" ? "cover" : undefined}
+      data-seek-thumbnails={props.seekThumbnails?.length ? true : undefined}
+      data-state={state.snapshot.readyState}
+      data-variant="full"
+      {...playback.rootEvents}
+      ref={playback.setRootElement}
+      style={getVibePlayerFrameStyle({
+        maxRatio: props.maxRatio,
+        minRatio: props.minRatio,
+        snapshot: state.snapshot,
+        source: activeSource,
+        style: props.style,
+      })}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: The named player region owns focused media keyboard shortcuts.
+      tabIndex={0}
+    >
+      <VibePlayerMediaSlot
+        className={classNames.media}
+        onTarget={playback.setTarget}
+      />
+      <VibePlayerStartSurface
+        controller={controller}
+        snapshot={state.snapshot}
+        source={activeSource}
+      />
+      <VibePlayerStageStatus
+        onRetry={() => {
+          controller.retry().catch(() => undefined);
+        }}
+        playbackBlocked={state.playbackBlocked}
+        snapshot={state.snapshot}
+      />
+      <VibePlayerCaptionOverlay lines={captions.activeLines} />
+      <VibePlayerCaptionStatusNotice
+        error={captions.error}
+        onRetry={() => {
+          rootElement?.focus({ preventScroll: true });
+          captions.retry();
+        }}
+      />
+      <VibePlayerControls
+        capabilities={capabilities}
+        captionsEnabled={captionsEnabled}
+        chromeHidden={chrome.chromeHidden}
+        onClose={props.onClose}
+        onSeek={actions.seekTo}
+        onSetMuted={actions.setMuted}
+        onSetPlaybackRate={actions.setPlaybackRate}
+        onSetQuality={actions.setQuality}
+        onSetVolume={actions.setVolume}
+        onToggleCaptions={actions.toggleCaptions}
+        onToggleFullscreen={actions.toggleFullscreen}
+        onToggleMute={actions.toggleMute}
+        onTogglePictureInPicture={actions.togglePictureInPicture}
+        onTogglePlay={actions.togglePlay}
+        seekThumbnails={props.seekThumbnails}
+        snapshot={state.snapshot}
+        title={playerTitle}
+        topActions={props.topActions}
+      />
+    </section>
+  );
+}

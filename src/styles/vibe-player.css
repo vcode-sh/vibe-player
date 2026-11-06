@@ -1,3 +1,7 @@
+@import "./vibe-player-theme.css";
+@import "./vibe-player-compact.css";
+@import "./vibe-player-glass.css";
+@import "./vibe-player-glass-panels.css";
 @import "./vibe-player-controls.css";
 @import "./vibe-player-tooltip.css";
 @import "./vibe-player-volume-control.css";
@@ -24,18 +28,6 @@
   user-select: none;
 }
 
-:root,
-.vibe-player-skin--cinematic-default {
-  --vibe-player-backdrop: rgba(5, 5, 6, 0.86);
-  --vibe-player-border: rgba(133, 140, 255, 0.45);
-  --vibe-player-ease-emphasized: cubic-bezier(0.23, 1, 0.32, 1);
-  --vibe-player-ease-standard: cubic-bezier(0.215, 0.61, 0.355, 1);
-  --vibe-player-shadow:
-    0 28px 120px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --vibe-player-surface: rgba(0, 0, 0, 0.45);
-  --vibe-player-text: rgba(255, 255, 255, 0.92);
-}
-
 .vibe-player-inline,
 .vibe-player-modal__panel {
   box-sizing: border-box;
@@ -52,11 +44,11 @@
   width: 100%;
   min-width: 0;
   padding: 1rem;
-  color: var(--vibe-player-text);
-  background: var(--vibe-player-surface);
-  border: 1px solid var(--vibe-player-border);
-  border-radius: 8px;
-  box-shadow: var(--vibe-player-shadow);
+  color: var(--_vibe-fg);
+  background: var(--_vibe-surface);
+  border: 1px solid var(--vibe-player-border, var(--_vibe-fg-14));
+  border-radius: var(--vibe-player-radius, 8px);
+  box-shadow: var(--vibe-player-shadow, none);
   backdrop-filter: blur(18px);
 }
 
@@ -70,16 +62,18 @@
 .vibe-player-shell__body {
   position: relative;
   min-width: 0;
-  min-height: 240px;
 }
 
 .vibe-player-stage {
   position: relative;
-  min-height: 240px;
-  aspect-ratio: 16 / 9;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: var(--vibe-player-aspect-ratio, 16 / 9);
   overflow: hidden;
-  background: #000;
-  border-radius: 8px;
+  color: var(--_vibe-fg);
+  background: var(--_vibe-bg);
+  border-radius: var(--vibe-player-radius, 8px);
 }
 
 .vibe-player-stage__media,
@@ -99,6 +93,13 @@
   display: block;
   cursor: pointer;
   object-fit: contain;
+}
+
+.vibe-player-stage[data-fit="cover"]:not(:fullscreen)
+  .vibe-player-file-adapter-video,
+.vibe-player-stage[data-fit="cover"]:not(:fullscreen)
+  .vibe-player-stage__poster {
+  object-fit: cover;
 }
 
 .vibe-player-youtube-adapter-frame,

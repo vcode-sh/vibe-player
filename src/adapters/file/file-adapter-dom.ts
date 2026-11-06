@@ -2,6 +2,7 @@ import { createIdleCapabilities } from "../../core/vibe-player-time";
 import type {
   VibePlayerCapabilities,
   VibePlayerFileSource,
+  VibePlayerMp4Source,
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
 import { canUseNativePictureInPicture } from "../native/native-picture-in-picture";
@@ -17,7 +18,7 @@ export const createFileVideo = createNativeVideo;
 
 export function getFileVideoCapabilities(
   video: HTMLVideoElement | null,
-  source: VibePlayerFileSource | null
+  source: VibePlayerFileSource | VibePlayerMp4Source | null
 ): VibePlayerCapabilities {
   if (!(video && source)) {
     return createIdleCapabilities();
@@ -45,12 +46,18 @@ export function getFileVideoSnapshot(
 
 export function setFileVideoSource(
   video: HTMLVideoElement,
-  source: VibePlayerFileSource
+  source: VibePlayerFileSource | VibePlayerMp4Source
 ): void {
   clearElement(video);
   video.removeAttribute("src");
   video.autoplay = source.autoPlay === true;
   setNativeVideoMetadata(video, source);
+
+  if (source.type === "mp4") {
+    video.src = source.url;
+    appendNativeCaptionTracks(video, source.captions);
+    return;
+  }
 
   if (source.sources.length === 1) {
     const [sourceOption] = source.sources;

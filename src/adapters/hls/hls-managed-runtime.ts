@@ -1,57 +1,83 @@
-import type { Level } from "hls.js";
-import type { ManagedHlsLevel } from "./hls-quality";
+import { canUseNativeHls } from "./hls-adapter-dom";
+import { createInlineHlsConfig } from "./hls-engine-config";
+import {
+  bindManagedHlsEvents,
+  syncManagedHlsLevels,
+} from "./hls-managed-events";
 import { createHlsRequestConfig } from "./hls-request-config";
-import type { HlsAdapterRuntime } from "./hls-runtime-types";
+import type {
+  HlsAdapterOptions,
+  HlsAdapterRuntime,
+  ManagedHlsController,
+  ManagedHlsSession,
+} from "./hls-runtime-types";
 
-export const defaultHlsAdapterRuntime: HlsAdapterRuntime = {
-  async attachManagedHls(session) {
-    const { default: Hls } = await import("hls.js");
-    if (!Hls.isSupported()) {
-      throw new Error("hls.js is not supported in this environment.");
-    }
-    const hls = new Hls(createHlsRequestConfig(session.video));
-    const syncLevels = (selectedLevelIndex: number) => {
-      session.onLevelsChanged(
-        hls.levels.map((level) => toManagedLevel(level)),
-        selectedLevelIndex
-      );
-    };
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      syncLevels(hls.manualLevel);
-      session.onReady();
-    });
-    hls.on(Hls.Events.LEVELS_UPDATED, () => syncLevels(hls.manualLevel));
-    hls.on(Hls.Events.LEVEL_SWITCHED, () => syncLevels(hls.manualLevel));
-    hls.on(Hls.Events.LEVEL_LOADED, (_event, data) =>
-      session.onLevelLoaded(data.details.live)
-    );
-    hls.on(Hls.Events.ERROR, (_event, data) =>
-      session.onError({
-        details: data.details,
-        fatal: data.fatal,
-        message: data.error.message,
-        type: data.type,
-      })
-    );
-    hls.attachMedia(session.video);
-    hls.loadSource(session.manifestUrl);
-    return {
-      destroy: () => hls.destroy(),
-      setQualityLevel: (levelIndex) => {
-        hls.nextLevel = levelIndex;
-        syncLevels(levelIndex);
-      },
-    };
-  },
-  canUseManagedHls: () =>
-    "ManagedMediaSource" in globalThis || "MediaSource" in globalThis,
-};
-
-function toManagedLevel(level: Level): ManagedHlsLevel {
+/** Prefer classic MSE; native HLS preserves remote playback on iPhone MMS-only. */
+export function createHlsAdapterRuntime(
+  options: HlsAdapterOptions = {}
+): HlsAdapterRuntime {
   return {
-    bitrate: level.bitrate,
-    height: level.height,
-    ...(level.name ? { name: level.name } : {}),
-    ...(level.width ? { width: level.width } : {}),
+    attachManagedHls: (session) => attachManagedHls(session, options),
+    canUseManagedHls: (video) =>
+      hasClassicMediaSource() ||
+      (hasManagedMediaSource() && !(video && canUseNativeHls(video))),
   };
+}
+
+export const defaultHlsAdapterRuntime = createHlsAdapterRuntime();
+
+async function attachManagedHls(
+  session: ManagedHlsSession,
+  options: HlsAdapterOptions
+): Promise<ManagedHlsController> {
+  const { default: Hls } = await (options.loadHls ?? loadDefaultHls)();
+  if (session.isActive?.() === false) {
+    return { destroy: () => undefined, setQualityLevel: () => undefined };
+  }
+  if (!Hls.isSupported()) {
+    throw new Error("hls.js is not supported in this environment.");
+  }
+  if (!hasClassicMediaSource() && hasManagedMediaSource()) {
+    session.video.disableRemotePlayback = true;
+  }
+  const hls = new Hls({
+    ...createInlineHlsConfig(),
+    ...createHlsRequestConfig(session.video),
+    ...options.hlsConfig,
+  });
+  let destroyed = false;
+  const binding = {
+    active: () => !destroyed && session.isActive?.() !== false,
+    events: Hls.Events,
+    hls,
+    session,
+  };
+  bindManagedHlsEvents(binding);
+  hls.attachMedia(session.video);
+  return {
+    destroy: () => {
+      destroyed = true;
+      hls.destroy();
+    },
+    setQualityLevel: (levelIndex) => {
+      hls.nextLevel = levelIndex;
+      syncManagedHlsLevels(binding, levelIndex);
+    },
+  };
+}
+
+function loadDefaultHls() {
+  return import("hls.js");
+}
+
+function hasClassicMediaSource(): boolean {
+  return typeof globalThis.MediaSource === "function";
+}
+
+function hasManagedMediaSource(): boolean {
+  const managedMediaSource: unknown = Reflect.get(
+    globalThis,
+    "ManagedMediaSource"
+  );
+  return typeof managedMediaSource === "function";
 }

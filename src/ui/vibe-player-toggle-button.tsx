@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { VibePlayerTooltip } from "./vibe-player-tooltip";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 
 interface VibePlayerToggleButtonProps {
   active?: boolean;
@@ -18,11 +19,15 @@ export function VibePlayerToggleButton({
   shortcut,
   tooltipAlign,
 }: VibePlayerToggleButtonProps) {
+  const { classNames } = useVibePlayerUI();
   return (
     <VibePlayerTooltip align={tooltipAlign} label={label} shortcut={shortcut}>
       <button
         aria-label={label}
-        className="vibe-player-controls__button"
+        className={vibePlayerClassName(
+          "vibe-player-controls__button",
+          classNames.button
+        )}
         data-active={active}
         onClick={onClick}
         type="button"

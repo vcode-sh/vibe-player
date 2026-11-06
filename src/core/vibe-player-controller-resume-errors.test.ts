@@ -43,16 +43,24 @@ describe("controller resume diagnostics", () => {
       },
     };
     const onError = vi.fn();
+    const diagnostic = vi.fn();
     const controller = new VibePlayerController({
       adapterFactory: () => adapter,
       onError,
+      onEvent: (event) => {
+        if (event.type === "integrationerror") {
+          diagnostic(event.error);
+        }
+      },
       resumeStore,
     });
 
     await controller.load(fileSource);
     await controller.play();
 
-    expect(onError).toHaveBeenCalledWith(
+    expect(onError).not.toHaveBeenCalled();
+    expect(controller.getState().error).toBeNull();
+    expect(diagnostic).toHaveBeenCalledWith(
       expect.objectContaining({
         cause,
         details: { operation: "resume-get" },

@@ -4,6 +4,7 @@ import type {
   VibePlayerCapabilities,
   VibePlayerEventName,
   VibePlayerFileSource,
+  VibePlayerMp4Source,
   VibePlayerSnapshot,
   VibePlayerSource,
 } from "../../core/vibe-player-types";
@@ -40,8 +41,9 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
   );
   private mounted = false;
   private playbackGeneration = 0;
-  private source: VibePlayerFileSource | null = null;
+  private source: VibePlayerFileSource | VibePlayerMp4Source | null = null;
   private video: HTMLVideoElement | null = null;
+  private ownsVideo = true;
 
   get capabilities(): VibePlayerCapabilities {
     const capabilities = getFileVideoCapabilities(this.video, this.source);
@@ -61,14 +63,13 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
   }
 
   load(source: VibePlayerSource): Promise<void> {
-    if (source.type !== "file") {
+    if (source.type !== "file" && source.type !== "mp4") {
       return Promise.reject(
         new Error(`File adapter cannot load ${source.type} sources.`)
       );
     }
     const fileSource = source;
-    const [mediaSource] = fileSource.sources;
-    if (!mediaSource) {
+    if (fileSource.type === "file" && fileSource.sources.length === 0) {
       return Promise.reject(
         new Error("File source must include at least one media source.")
       );
@@ -87,10 +88,10 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     target: HTMLElement,
     presentationTarget: HTMLElement = target
   ): Promise<void> {
-    const video = this.ensureVideo();
+    const video = this.ensureVideo(target);
     this.mounted = true;
     this.presentation.mount(video, presentationTarget);
-    if (video.parentElement === target) {
+    if (video === target || video.parentElement === target) {
       return Promise.resolve();
     }
     clearElement(target);
@@ -151,7 +152,7 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     this.mounted = false;
     this.playbackGeneration += 1;
     if (this.video) {
-      clearNativeVideoPlayback(this.video);
+      clearNativeVideoPlayback(this.video, this.ownsVideo);
     }
     this.source = null;
     this.video = null;
@@ -186,15 +187,18 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     };
   }
 
-  private ensureVideo(): HTMLVideoElement {
+  private ensureVideo(target?: HTMLElement): HTMLVideoElement {
     if (this.video) {
       return this.video;
     }
+    const externalVideo =
+      target instanceof HTMLVideoElement ? target : undefined;
+    this.ownsVideo = !externalVideo;
     const video = createFileVideo((event, payload) => {
       if (this.video === video) {
         this.emit(event, payload);
       }
-    });
+    }, externalVideo);
     this.video = video;
     return video;
   }

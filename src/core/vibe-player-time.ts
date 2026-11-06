@@ -37,14 +37,17 @@ export function createIdleSnapshot(): VibePlayerSnapshot {
   };
 }
 
+/** Media time as `m:ss`, or `h:mm:ss` from one hour; never rounds up. */
 export function formatVibePlayerTime(seconds: number): string {
-  if (!(Number.isFinite(seconds) && seconds > 0)) {
-    return "00:00";
+  const whole =
+    Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+  const hours = Math.floor(whole / 3600);
+  const minutes = Math.floor((whole % 3600) / 60);
+  const rest = String(whole % 60).padStart(2, "0");
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${rest}`;
   }
-  const rounded = Math.floor(seconds);
-  const minutes = Math.floor(rounded / 60);
-  const rest = rounded % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+  return `${minutes}:${rest}`;
 }
 
 export function getFiniteVibePlayerDuration(

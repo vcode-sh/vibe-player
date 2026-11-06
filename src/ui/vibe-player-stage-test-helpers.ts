@@ -91,6 +91,14 @@ export class TestStageAdapter implements VibePlayerAdapter {
     this.snapshot = snapshot;
   }
 
+  emitEvent(
+    type: VibePlayerAdapterEvent["type"],
+    patch: Partial<VibePlayerSnapshot> = {}
+  ): void {
+    this.snapshot = { ...this.snapshot, ...patch };
+    this.listener?.({ snapshot: this.snapshot, type });
+  }
+
   load(source: VibePlayerSource): Promise<void> {
     this.calls.push(`load:${source.id}`);
     if (this.loadError) {
@@ -111,7 +119,7 @@ export class TestStageAdapter implements VibePlayerAdapter {
 
   pause(): Promise<void> {
     this.calls.push("pause");
-    this.snapshot = { ...this.snapshot, paused: true };
+    this.snapshot = { ...this.snapshot, paused: true, readyState: "ready" };
     this.listener?.({ snapshot: this.snapshot, type: "pause" });
     return Promise.resolve();
   }
@@ -121,7 +129,7 @@ export class TestStageAdapter implements VibePlayerAdapter {
     if (this.playError) {
       return Promise.reject(this.playError);
     }
-    this.snapshot = { ...this.snapshot, paused: false };
+    this.snapshot = { ...this.snapshot, paused: false, readyState: "playing" };
     this.listener?.({ snapshot: this.snapshot, type: "play" });
     return Promise.resolve();
   }

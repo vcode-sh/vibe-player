@@ -33,3 +33,7 @@ yarn-debug.log*
 .DS_Store
 .idea/
 .vscode/
+
+# Generated acceptance media (bun run test:browser:host:media)
+test/browser/fixtures/host-media/
+demo/vite/public/adoption-media

@@ -17,6 +17,7 @@ function createAutoplayController(muted = false): {
     isMounted: true,
     lastEvent: null,
     playbackBlocked: false,
+    renewing: false,
     snapshot: { ...createIdleSnapshot(), muted },
   };
   return {

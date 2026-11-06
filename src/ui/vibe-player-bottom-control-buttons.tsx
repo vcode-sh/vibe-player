@@ -9,13 +9,16 @@ import {
   EnterFullscreenIcon,
   ExitFullscreenIcon,
   MuteIcon,
-  PauseIcon,
   PictureInPictureIcon,
-  PlayIcon,
   VolumeIcon,
 } from "./vibe-player-icons";
+import {
+  useVibePlayerPlaybackLabel,
+  VibePlayerPlaybackIcon,
+} from "./vibe-player-playback-label";
 import { VibePlayerToggleButton } from "./vibe-player-toggle-button";
 import { VibePlayerTooltip } from "./vibe-player-tooltip";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 
 interface VibePlayerPlaybackControlProps {
   onTogglePlay: () => void;
@@ -26,15 +29,16 @@ export function VibePlayerPlaybackControl({
   onTogglePlay,
   snapshot,
 }: VibePlayerPlaybackControlProps) {
-  const label = snapshot.paused ? "Play" : "Pause";
+  const { labels } = useVibePlayerUI();
+  const label = useVibePlayerPlaybackLabel(snapshot);
   return (
     <VibePlayerToggleButton
       label={label}
       onClick={onTogglePlay}
-      shortcut="Space / K"
+      shortcut={labels.playShortcut}
       tooltipAlign="start"
     >
-      {snapshot.paused ? <PlayIcon /> : <PauseIcon />}
+      <VibePlayerPlaybackIcon snapshot={snapshot} />
     </VibePlayerToggleButton>
   );
 }
@@ -50,12 +54,17 @@ export function VibePlayerMuteControl({
   onToggleMute,
   snapshot,
 }: VibePlayerMuteControlProps) {
+  const { labels } = useVibePlayerUI();
   if (!capabilities.supportsMute) {
     return null;
   }
-  const label = snapshot.muted ? "Unmute" : "Mute";
+  const label = snapshot.muted ? labels.unmute : labels.mute;
   return (
-    <VibePlayerToggleButton label={label} onClick={onToggleMute} shortcut="M">
+    <VibePlayerToggleButton
+      label={label}
+      onClick={onToggleMute}
+      shortcut={labels.muteShortcut}
+    >
       {snapshot.muted ? <MuteIcon /> : <VolumeIcon />}
     </VibePlayerToggleButton>
   );
@@ -72,15 +81,19 @@ export function VibePlayerRateControl({
   onSetPlaybackRate,
   snapshot,
 }: VibePlayerRateControlProps) {
+  const { classNames, labels } = useVibePlayerUI();
   if (!capabilities.canSetPlaybackRate) {
     return null;
   }
   const rate = formatVibePlayerPlaybackRate(snapshot.playbackRate);
   return (
-    <VibePlayerTooltip align="end" label="Playback speed">
+    <VibePlayerTooltip align="end" label={labels.playbackSpeed}>
       <button
-        aria-label={`Playback speed ${rate}`}
-        className="vibe-player-controls__rate"
+        aria-label={labels.playbackSpeedValue(rate)}
+        className={vibePlayerClassName(
+          "vibe-player-controls__rate",
+          classNames.button
+        )}
         onClick={() =>
           onSetPlaybackRate(
             getNextVibePlayerPlaybackRate(
@@ -108,16 +121,17 @@ export function VibePlayerCaptionsControl({
   captionsEnabled,
   onToggleCaptions,
 }: VibePlayerCaptionsControlProps) {
+  const { labels } = useVibePlayerUI();
   if (!(capabilities.canShowCaptions && onToggleCaptions)) {
     return null;
   }
-  const label = captionsEnabled ? "Hide captions" : "Show captions";
+  const label = captionsEnabled ? labels.hideCaptions : labels.showCaptions;
   return (
     <VibePlayerToggleButton
       active={captionsEnabled}
       label={label}
       onClick={onToggleCaptions}
-      shortcut="C"
+      shortcut={labels.captionsShortcut}
     >
       <CaptionsIcon />
     </VibePlayerToggleButton>
@@ -135,15 +149,16 @@ export function VibePlayerFullscreenControl({
   isFullscreen = false,
   onToggleFullscreen,
 }: VibePlayerFullscreenControlProps) {
+  const { labels } = useVibePlayerUI();
   if (!(capabilities.canFullscreen && onToggleFullscreen)) {
     return null;
   }
   return (
     <VibePlayerToggleButton
       active={isFullscreen}
-      label={isFullscreen ? "Exit full screen" : "Full screen"}
+      label={isFullscreen ? labels.exitFullscreen : labels.fullscreen}
       onClick={onToggleFullscreen}
-      shortcut="F"
+      shortcut={labels.fullscreenShortcut}
       tooltipAlign="end"
     >
       {isFullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
@@ -162,6 +177,7 @@ export function VibePlayerPictureInPictureControl({
   isPictureInPicture = false,
   onTogglePictureInPicture,
 }: VibePlayerPictureInPictureControlProps) {
+  const { labels } = useVibePlayerUI();
   if (!(capabilities.canPictureInPicture && onTogglePictureInPicture)) {
     return null;
   }
@@ -169,7 +185,9 @@ export function VibePlayerPictureInPictureControl({
     <VibePlayerToggleButton
       active={isPictureInPicture}
       label={
-        isPictureInPicture ? "Exit picture in picture" : "Picture in picture"
+        isPictureInPicture
+          ? labels.exitPictureInPicture
+          : labels.pictureInPicture
       }
       onClick={onTogglePictureInPicture}
       tooltipAlign="end"

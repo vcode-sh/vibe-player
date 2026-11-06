@@ -52,4 +52,33 @@ describe("HLS media failure translation", () => {
     await adapter.unmount();
     expect(adapter.getSnapshot().readyState).toBe("idle");
   });
+
+  it.each([true, false])(
+    "identifies actual native HLS error paths: %s",
+    async (nativeHls) => {
+      vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue(
+        "probably"
+      );
+      vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+        () => undefined
+      );
+      const { runtime } = createHlsRuntime(!nativeHls);
+      const adapter = adapterScope.track(createHlsAdapter(runtime));
+      const target = document.createElement("div");
+      const events: unknown[] = [];
+      adapter.subscribe((event) => events.push(event));
+      await adapter.mount(target);
+      await adapter.load(hlsSource);
+      const video = getMountedNativeVideo(target);
+      Object.defineProperty(video, "error", {
+        configurable: true,
+        value: { code: 4, message: "Received 403 HTTP error code" },
+      });
+      video.dispatchEvent(new Event("error"));
+      expect(events.at(-1)).toMatchObject({
+        payload: { code: 4, fatal: true, nativeHls, network: false },
+        type: "error",
+      });
+    }
+  );
 });

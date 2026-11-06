@@ -59,6 +59,8 @@ export interface VibePlayerSnapshot {
     | "loading"
     | "playing"
     | "ready";
+  videoHeight?: number;
+  videoWidth?: number;
   volume: number;
 }
 
@@ -73,6 +75,7 @@ export type VibePlayerEventName =
   | "pictureinpicturechange"
   | "pause"
   | "play"
+  | "playing"
   | "playblocked"
   | "qualitychange"
   | "ratechange"

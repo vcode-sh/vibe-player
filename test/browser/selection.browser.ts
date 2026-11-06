@@ -45,7 +45,7 @@ test("player time, rate and seek labels stay outside browser text selection", as
   await page.goto("/selection.html");
   await waitForMedia(page);
 
-  expect(await selectContent(page.getByText("-00:24", { exact: true }))).toBe(
+  expect(await selectContent(page.getByText("-0:24", { exact: true }))).toBe(
     ""
   );
   expect(

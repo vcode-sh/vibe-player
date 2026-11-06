@@ -1,278 +1,211 @@
-import { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
-import { runVibePlayerControllerCommand } from "./vibe-player-controller-command-error";
-import {
-  handleVibePlayerControllerPause,
-  handleVibePlayerControllerPlay,
-  handleVibePlayerControllerSeek,
-} from "./vibe-player-controller-commands";
+import { VibePlayerControllerActions } from "./vibe-player-controller-actions";
 import { handleVibePlayerAdapterEvent } from "./vibe-player-controller-events";
-import { loadVibePlayerControllerSource } from "./vibe-player-controller-load";
-import { mountVibePlayerControllerAdapter } from "./vibe-player-controller-mount";
 import { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
-import { VibePlayerPauseIntent } from "./vibe-player-pause-intent";
+import { VibePlayerControllerRuntime } from "./vibe-player-controller-runtime";
+import {
+  createVibePlayerPosterRenewal,
+  type VibePlayerPosterRenewal,
+} from "./vibe-player-poster-renewal";
+import { VibePlayerSourceSession } from "./vibe-player-source-session";
 import type {
-  VibePlayerAdapter,
   VibePlayerAdapterEvent,
   VibePlayerControllerOptions,
   VibePlayerControllerState,
+  VibePlayerLoadMode,
   VibePlayerSource,
 } from "./vibe-player-types";
 
+/** Provider-neutral playback, renewable deliveries and explicit resource ownership. */
 export class VibePlayerController {
-  private adapter: VibePlayerAdapter | null = null;
-  private adapterUnsubscribe: (() => void) | null = null;
-  private readonly adapterFactory: VibePlayerControllerOptions["adapterFactory"];
-  private readonly analyticsSession: VibePlayerAnalyticsSession;
   private readonly observers: VibePlayerControllerObservers;
-  private readonly resumeStore: VibePlayerControllerOptions["resumeStore"];
-  private operationGeneration = 0;
-  private playbackCommandGeneration = 0;
-  private readonly pauseIntent = new VibePlayerPauseIntent();
-  private target: HTMLElement | null = null;
-  private presentationTarget: HTMLElement | null = null;
+  private readonly actions: VibePlayerControllerActions;
+  private readonly session: VibePlayerSourceSession;
+  private readonly runtime: VibePlayerControllerRuntime;
+  private readonly poster: VibePlayerPosterRenewal;
+
   constructor(options: VibePlayerControllerOptions) {
-    this.adapterFactory = options.adapterFactory;
     this.observers = new VibePlayerControllerObservers(options);
-    this.resumeStore = this.observers.wrapResumeStore();
-    this.analyticsSession = new VibePlayerAnalyticsSession(
-      this.observers.emitAnalytics
+    this.runtime = new VibePlayerControllerRuntime({
+      applyPreferences: () => this.actions.applyPreferences(),
+      clearIntent: () => this.actions.clear(),
+      event: (event) => this.handleAdapterEvent(event),
+      isPlayRequested: () => this.session.playbackRequested,
+      observers: this.observers,
+      options,
+    });
+    this.actions = new VibePlayerControllerActions(
+      {
+        adapter: () => this.runtime.adapter,
+        emitAnalytics: this.observers.emitAnalytics,
+        emitEvent: (event) => this.observers.emitEvent(event),
+        generation: () => this.runtime.operationGeneration,
+        state: () => this.observers.state,
+        sync: () => this.runtime.syncFromAdapter(),
+        update: (next) => this.runtime.updateState(next),
+      },
+      this.runtime.resumeStore
     );
+    this.session = new VibePlayerSourceSession(
+      {
+        attach: (source) => this.runtime.attachSource(source),
+        command: (command) => this.actions.playback(command),
+        fail: (cause) => this.runtime.failRenewal(cause),
+        getState: () => this.observers.state,
+        hasAdapter: () => this.runtime.adapter !== null,
+        prepare: (source) => this.runtime.prepareSource(source),
+        renewed: (previous, source) => {
+          const generation = this.runtime.operationGeneration;
+          this.observers.renewed(previous, source, () =>
+            this.runtime.isCurrentOperation(generation)
+          );
+        },
+        renewing: (renewing) => {
+          if (this.observers.state.renewing !== renewing) {
+            this.observers.updateState({ renewing });
+          }
+        },
+        restore: (snapshot) => this.actions.restore(snapshot),
+        suspend: (loading) => this.runtime.suspend(loading),
+      },
+      options
+    );
+    this.poster = createVibePlayerPosterRenewal({
+      idleSource: () =>
+        this.runtime.adapter ? null : this.observers.state.currentSource,
+      renewSource: () => options.renewSource,
+      replace: (previous, next) => {
+        if (this.session.replaceIdle(previous, next)) {
+          this.observers.updateState({ currentSource: next });
+          this.observers.renewed(previous, next);
+        }
+      },
+    });
   }
+
   getState(): VibePlayerControllerState {
     return this.observers.state;
   }
   subscribe(listener: (state: VibePlayerControllerState) => void): () => void {
     return this.observers.subscribe(listener);
   }
-  async mount(target: HTMLElement, presentationTarget = target): Promise<void> {
-    const targetChanged =
-      this.target !== target ||
-      this.presentationTarget !== presentationTarget ||
-      !this.observers.state.isMounted;
-    this.target = target;
-    this.presentationTarget = presentationTarget;
-    if (targetChanged) {
-      this.observers.updateState({ isMounted: true });
-    }
-    const { adapter, operationGeneration } = this;
-    await mountVibePlayerControllerAdapter({
-      adapter,
-      emitAnalytics: this.observers.emitAnalytics,
-      isCurrent: () =>
-        this.isCurrentOperation(operationGeneration) &&
-        this.adapter === adapter &&
-        this.target === target &&
-        this.presentationTarget === presentationTarget,
-      presentationTarget,
-      source: this.observers.state.currentSource,
-      target,
-      targetChanged,
-      updateState: (next) => this.observers.updateState(next),
-    });
+
+  mount(target: HTMLElement, presentationTarget = target): Promise<void> {
+    return this.runtime.mount(target, presentationTarget);
+  }
+  unmount(): Promise<void> {
+    this.poster.reset();
+    this.session.cancel();
+    return this.runtime.unmount();
   }
 
-  async unmount(): Promise<void> {
-    this.operationGeneration += 1;
-    this.pauseIntent.clear();
-    const { operationGeneration } = this;
-    this.target = null;
-    this.presentationTarget = null;
-    await this.adapter?.unmount();
-    if (this.isCurrentOperation(operationGeneration) && this.target === null) {
-      this.observers.updateState({ isMounted: false });
-    }
+  /** Manual controllers stay eager; inline assemblies select onPlay. */
+  load(
+    source: VibePlayerSource,
+    mode: VibePlayerLoadMode = "eager"
+  ): Promise<void> {
+    this.poster.reset();
+    return this.session.load(source, mode);
   }
-  async load(source: VibePlayerSource): Promise<void> {
-    this.operationGeneration += 1;
-    this.pauseIntent.clear();
-    await loadVibePlayerControllerSource({
-      adapterFactory: this.adapterFactory,
-      analyticsSession: this.analyticsSession,
-      beginSession: () => this.observers.beginSession(),
-      currentState: this.observers.state,
-      emitAnalytics: this.observers.emitAnalytics,
-      handleAdapterEvent: (event) => this.handleAdapterEvent(event),
-      isCurrentOperation: (generation) => this.isCurrentOperation(generation),
-      operationGeneration: this.operationGeneration,
-      presentationTarget: this.presentationTarget,
-      resumeStore: this.resumeStore,
-      setAdapter: (adapter) => {
-        this.adapter = adapter;
-      },
-      setAdapterUnsubscribe: (unsubscribe) => {
-        this.adapterUnsubscribe = unsubscribe;
-      },
-      source,
-      syncFromAdapter: () => this.syncFromAdapter(),
-      target: this.target,
-      teardownAdapter: () => this.teardownAdapter(),
-      updateState: (next) => this.observers.updateState(next),
-    });
-  }
-  async closeSource(): Promise<void> {
-    this.operationGeneration += 1;
-    this.pauseIntent.clear();
-    const { operationGeneration } = this;
-    this.analyticsSession.close(this.observers.state);
-    await this.teardownAdapter();
-    if (!this.isCurrentOperation(operationGeneration)) {
-      return;
-    }
-    this.analyticsSession.clear();
-    this.observers.reset(this.observers.state.isMounted);
+  activate(): Promise<void> {
+    return this.session.activate();
   }
   play(): Promise<void> {
-    return this.runPlaybackCommand("play");
+    return this.poster.whenSettled(() => this.session.play());
+  }
+  /**
+   * Renews an idle delivery once per load without loading media, e.g. when a
+   * private poster grant expired. Play then uses the renewed delivery.
+   */
+  renewPoster(): Promise<void> {
+    return this.poster.renew();
   }
   pause(): Promise<void> {
-    return this.runPlaybackCommand("pause");
+    this.poster.cancelWaits();
+    this.session.pause();
+    return this.actions.playback("pause");
+  }
+  stop(): Promise<void> {
+    this.poster.cancelWaits();
+    return this.session.stop();
+  }
+  retry(): Promise<void> {
+    return this.session.retry();
+  }
+  seek(seconds: number): Promise<void> {
+    return this.seekTo(seconds);
   }
   seekTo(seconds: number): Promise<void> {
-    const { adapter, operationGeneration } = this;
-    return this.runCommand("seekTo", () =>
-      handleVibePlayerControllerSeek({
-        adapter,
-        currentSource: this.observers.state.currentSource,
-        emitAnalytics: this.observers.emitAnalytics,
-        isCurrent: () =>
-          this.isCurrentOperation(operationGeneration) &&
-          this.adapter === adapter,
-        resumeStore: this.resumeStore,
-        seconds,
-        syncFromAdapter: () => this.syncFromAdapter(),
-      })
-    );
+    return this.actions.seekTo(seconds);
   }
   setMuted(value: boolean): Promise<void> {
-    return this.runCommand("setMuted", () => this.adapter?.setMuted(value));
-  }
-  setPlaybackRate(value: number): Promise<void> {
-    return this.runCommand("setPlaybackRate", () =>
-      this.adapter?.setPlaybackRate(value)
-    );
-  }
-  setQuality(qualityId: string): Promise<void> {
-    return this.runCommand("setQuality", () =>
-      this.adapter?.setQuality?.(qualityId)
-    );
+    return this.actions.setMuted(value);
   }
   setVolume(value: number): Promise<void> {
-    return this.runCommand("setVolume", () => this.adapter?.setVolume(value));
+    return this.actions.setVolume(value);
+  }
+  setPlaybackRate(value: number): Promise<void> {
+    return this.actions.setPlaybackRate(value);
+  }
+  setQuality(value: string): Promise<void> {
+    return this.actions.setQuality(value);
   }
   enterFullscreen(): Promise<void> {
-    return this.runCommand("enterFullscreen", () =>
-      this.adapter?.enterFullscreen?.()
-    );
+    return this.actions.presentation("enterFullscreen");
   }
   exitFullscreen(): Promise<void> {
-    return this.runCommand("exitFullscreen", () =>
-      this.adapter?.exitFullscreen?.()
-    );
+    return this.actions.presentation("exitFullscreen");
   }
   enterPictureInPicture(): Promise<void> {
-    return this.runCommand("enterPictureInPicture", () =>
-      this.adapter?.enterPictureInPicture?.()
-    );
+    return this.actions.presentation("enterPictureInPicture");
   }
   exitPictureInPicture(): Promise<void> {
-    return this.runCommand("exitPictureInPicture", () =>
-      this.adapter?.exitPictureInPicture?.()
-    );
+    return this.actions.presentation("exitPictureInPicture");
   }
-  async teardown(): Promise<void> {
-    this.operationGeneration += 1;
-    this.pauseIntent.clear();
-    const { operationGeneration } = this;
-    this.analyticsSession.close(this.observers.state);
-    await this.teardownAdapter();
-    if (!this.isCurrentOperation(operationGeneration)) {
-      return;
-    }
-    this.analyticsSession.clear();
-    this.target = null;
-    this.presentationTarget = null;
-    this.observers.reset();
+
+  closeSource(): Promise<void> {
+    this.poster.reset();
+    this.session.clear();
+    return this.runtime.closeSource();
   }
-  private runPlaybackCommand(command: "play" | "pause"): Promise<void> {
-    this.playbackCommandGeneration += 1;
-    this.pauseIntent.begin(command, this.adapter);
-    const execute =
-      command === "play"
-        ? handleVibePlayerControllerPlay
-        : handleVibePlayerControllerPause;
-    return this.runCommand(
-      command,
-      (updateState) => execute({ adapter: this.adapter, updateState }),
-      this.playbackCommandGeneration
-    );
+  teardown(): Promise<void> {
+    this.poster.reset();
+    this.session.clear();
+    return this.runtime.teardown();
   }
-  private runCommand(
-    command: string,
-    execute: (
-      updateState: (next: Partial<VibePlayerControllerState>) => void
-    ) => Promise<void> | undefined,
-    playbackGeneration?: number
-  ): Promise<void> {
-    const { operationGeneration } = this;
-    const isCurrent = () =>
-      this.isCurrentOperation(operationGeneration) &&
-      (playbackGeneration === undefined ||
-        playbackGeneration === this.playbackCommandGeneration);
-    const updateIfCurrent = (next: Partial<VibePlayerControllerState>) => {
-      if (isCurrent()) {
-        if (next.lastEvent === "error") {
-          this.pauseIntent.clear();
-        }
-        this.observers.updateState(next);
-      }
-    };
-    return runVibePlayerControllerCommand({
-      adapter: this.adapter,
-      command,
-      emitAnalytics: this.observers.emitAnalytics,
-      execute: () => execute(updateIfCurrent),
-      getState: () => this.observers.state,
-      isCurrent,
-      updateState: updateIfCurrent,
-    });
-  }
+
   private handleAdapterEvent(event: VibePlayerAdapterEvent): void {
-    const { adapter, operationGeneration } = this;
+    const { adapter, operationGeneration } = this.runtime;
     const { currentSource, playbackBlocked } = this.observers.state;
     const isCurrent = () =>
-      this.isCurrentOperation(operationGeneration) &&
-      this.adapter === adapter &&
+      this.runtime.isCurrentOperation(operationGeneration) &&
+      this.runtime.adapter === adapter &&
       this.observers.state.currentSource === currentSource;
+    const preservePausedIntent = this.actions.preservePause(event);
+    if (
+      (event.type === "error" && event.payload?.fatal === false) ||
+      (!preservePausedIntent && this.session.handle(event))
+    ) {
+      this.observers.emitAdapterEvent(event, isCurrent);
+      return;
+    }
     handleVibePlayerAdapterEvent({
       adapter,
-      analyticsSession: this.analyticsSession,
+      analyticsSession: this.runtime.analyticsSession,
       currentSource,
       emitAnalytics: this.observers.emitAnalytics,
       event,
       isCurrent,
       playbackBlocked,
-      preservePausedIntent: this.pauseIntent.shouldPreserve(event),
-      resumeStore: this.resumeStore,
-      updateState: (next) => this.observers.updateState(next, isCurrent),
+      preservePausedIntent,
+      resumeStore: this.runtime.resumeStore,
+      updateState: (next) => this.runtime.updateState(next, isCurrent),
     });
-  }
-  private syncFromAdapter(): void {
-    if (!this.adapter) {
-      return;
+    if (isCurrent()) {
+      if (preservePausedIntent && currentSource) {
+        this.observers.emitEvent({ ...event, source: currentSource });
+      } else {
+        this.observers.emitAdapterEvent(event, isCurrent);
+      }
     }
-    this.observers.updateState({
-      capabilities: this.adapter.capabilities,
-      snapshot: this.adapter.getSnapshot(),
-    });
-  }
-  private async teardownAdapter(): Promise<void> {
-    this.adapterUnsubscribe?.();
-    this.adapterUnsubscribe = null;
-    const { adapter } = this;
-    this.adapter = null;
-    await adapter?.unmount();
-  }
-  private isCurrentOperation(operationGeneration: number): boolean {
-    return this.operationGeneration === operationGeneration;
   }
 }

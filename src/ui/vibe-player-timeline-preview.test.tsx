@@ -24,17 +24,17 @@ it("uses the keyboard seek position after pointer preview without moving the poi
   timeline.getBoundingClientRect = () => new DOMRect(0, 0, 200, 32);
   fireEvent.focus(screen.getByRole("slider"));
   fireEvent.pointerMove(timeline, { clientX: 50 });
-  expect(screen.getByRole("status")).toHaveTextContent("00:25");
+  expect(screen.getByRole("status")).toHaveTextContent("0:25");
   expect(container.querySelector("img")).toHaveAttribute("src", "/first.jpg");
   expect(onSeek).not.toHaveBeenCalled();
 
   fireEvent.change(screen.getByRole("slider"), { target: { value: "85" } });
   rerender(<VibePlayerTimeline {...props} currentTime={85} />);
   expect(onSeek).toHaveBeenCalledWith(85);
-  expect(screen.getByRole("status")).toHaveTextContent("01:25");
+  expect(screen.getByRole("status")).toHaveTextContent("1:25");
   expect(container.querySelector("img")).toHaveAttribute("src", "/second.jpg");
   fireEvent.pointerMove(timeline, { clientX: 50 });
-  expect(screen.getByRole("status")).toHaveTextContent("01:25");
+  expect(screen.getByRole("status")).toHaveTextContent("1:25");
   fireEvent.pointerMove(timeline, { clientX: 52 });
-  expect(screen.getByRole("status")).toHaveTextContent("00:26");
+  expect(screen.getByRole("status")).toHaveTextContent("0:26");
 });

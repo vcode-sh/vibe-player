@@ -1,16 +1,31 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { VibePlayerController, VibePlayerSource } from "../core";
+import type {
+  VibePlayerController,
+  VibePlayerLoadMode,
+  VibePlayerSource,
+} from "../core";
 import { haveEqualVibePlayerSources } from "../core/vibe-player-source-equality";
+import { useVibePlayerAudibleFocus } from "./use-vibe-player-audible-focus";
 import {
   type UseVibePlayerControllerOptions,
   useVibePlayerController,
 } from "./use-vibe-player-controller";
+import {
+  useVibePlayerVisibility,
+  type VibePlayerVisibilityOptions,
+} from "./use-vibe-player-visibility";
 import { startVibePlayerAutoplay } from "./vibe-player-autoplay";
 
 /** Headless playback with package-owned mounting, source changes and autoplay. */
-export interface UseVibePlayerOptions extends UseVibePlayerControllerOptions {
+export interface UseVibePlayerOptions
+  extends UseVibePlayerControllerOptions,
+    VibePlayerVisibilityOptions {
+  /** One audible player per group. Pass false to let the host coordinate. */
+  audioFocus?: string | false | undefined;
   autoPlay?: boolean | undefined;
   autoPlayMutedBootstrap?: boolean | undefined;
+  /** The bare hook retains eager loading; inline assemblies default to onPlay. */
+  load?: VibePlayerLoadMode | undefined;
   open?: boolean | undefined;
   /** Fullscreen container; defaults to the bound media target. */
   presentationTarget?: HTMLElement | null | undefined;
@@ -36,11 +51,17 @@ function useStableSource(source: VibePlayerSource | null) {
 }
 
 export function useVibePlayer({
+  audioFocus = "default",
   autoPlay = false,
   autoPlayMutedBootstrap = true,
+  autoplayWhenVisible = false,
+  load = "eager",
+  offscreenThreshold,
   open = true,
+  pauseWhenHidden = true,
   presentationTarget,
   source: nextSource,
+  stopWhenOffscreen = true,
   ...options
 }: UseVibePlayerOptions) {
   const source = useStableSource(nextSource);
@@ -49,6 +70,19 @@ export function useVibePlayer({
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [loaded, setLoaded] = useState<LoadedSource | null>(null);
   const loadGeneration = useRef(0);
+
+  useVibePlayerAudibleFocus({ controller, group: audioFocus, state });
+  useVibePlayerVisibility({
+    autoplayWhenVisible,
+    controller,
+    load,
+    offscreenThreshold,
+    open,
+    pauseWhenHidden,
+    source,
+    stopWhenOffscreen,
+    target: presentationTarget ?? target,
+  });
 
   useMountEffect(() => {
     if (!target) {
@@ -81,8 +115,12 @@ export function useVibePlayer({
         })
         .catch(() => undefined);
     } else if (target) {
+      const mode =
+        pauseWhenHidden && document.visibilityState === "hidden"
+          ? "onPlay"
+          : load;
       controller
-        .load(source)
+        .load(source, mode)
         .then(() => {
           if (!cancelled) {
             setLoaded({ controller, generation, source });
@@ -94,14 +132,15 @@ export function useVibePlayer({
       cancelled = true;
       loadGeneration.current += 1;
     };
-  }, [controller, open, source, target]);
+  }, [controller, load, open, pauseWhenHidden, source, target]);
 
   useEffect(() => {
     if (
       !(autoPlay && open && target && state.isMounted) ||
       loaded?.controller !== controller ||
       loaded.source !== source ||
-      loaded.generation !== loadGeneration.current
+      loaded.generation !== loadGeneration.current ||
+      (pauseWhenHidden && document.visibilityState === "hidden")
     ) {
       return;
     }
@@ -109,7 +148,9 @@ export function useVibePlayer({
     startVibePlayerAutoplay({
       controller,
       isCancelled: () =>
-        cancelled || loaded.generation !== loadGeneration.current,
+        cancelled ||
+        loaded.generation !== loadGeneration.current ||
+        (pauseWhenHidden && document.visibilityState === "hidden"),
       mutedBootstrap: autoPlayMutedBootstrap,
     }).catch(() => undefined);
     return () => {
@@ -121,6 +162,7 @@ export function useVibePlayer({
     controller,
     loaded,
     open,
+    pauseWhenHidden,
     source,
     state.isMounted,
     target,

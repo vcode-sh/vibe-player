@@ -74,6 +74,9 @@ The core controller receives an adapter factory by injection. React and UI
 composition may select the default package factory. Callback updates do not
 create a new playback session; factory/store changes define a new controller.
 Source content changes, including URLs under the same ID, remain observable.
+Core lazy activation and renewal own source intent independently of an attached
+adapter. Stop invalidates pending work and releases media while retaining its
+source/position; application session retirement remains host-owned.
 The media mount and optional presentation container have separate ownership;
 changing fullscreen chrome does not restart playback. Presentation state and
 provider rate choices are optional normalized adapter snapshot fields.
@@ -99,7 +102,10 @@ its CSS custom properties; changing a metadata object does not restyle a player.
 
 Use explicit outward exports. Internal files import their actual dependency
 rather than reaching through the package root. Consumers import `vibe-player`
-and `vibe-player/styles.css`; internal folders are not consumer subpaths.
+and the explicit `/hook`, `/stage`, `/compact`, and `/styles.css` entry points;
+internal folders are not consumer subpaths. Client entry outputs carry a
+`"use client"` directive and CSS is the only side effect. HLS is an injected peer
+runtime and is not bundled into the compact/hook budget.
 
 ## Verification
 

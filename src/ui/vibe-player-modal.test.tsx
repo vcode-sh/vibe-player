@@ -58,7 +58,7 @@ describe("VibePlayerModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("releases media immediately on close while the modal is still exiting", async () => {
+  it("starts playback on open, renders its title once and releases media on close", async () => {
     const { adapterFactory, adapters } = createStageAdapterFactory();
     const { rerender } = render(
       <VibePlayerModal
@@ -68,12 +68,10 @@ describe("VibePlayerModal", () => {
       />
     );
     await waitFor(() =>
-      expect(getStageAdapter(adapters).calls).toContain("load:stage-video")
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
-    await waitFor(() =>
       expect(screen.getByRole("button", { name: "Pause" })).toBeVisible()
     );
+    expect(getStageAdapter(adapters).calls).not.toContain("muted:true");
+    expect(screen.getAllByText("Stage demo")).toHaveLength(1);
 
     vi.useFakeTimers();
     await act(async () => {
@@ -89,5 +87,22 @@ describe("VibePlayerModal", () => {
     expect(getStageAdapter(adapters).calls).toContain("unmount");
     expect(screen.getByRole("dialog", { hidden: true })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
+  });
+
+  it("waits for Play when autoplay is disabled", async () => {
+    const { adapterFactory, adapters } = createStageAdapterFactory();
+    render(
+      <VibePlayerModal
+        adapterFactory={adapterFactory}
+        autoPlay={false}
+        open={true}
+        source={stageFileSource}
+      />
+    );
+    await waitFor(() =>
+      expect(getStageAdapter(adapters).calls).toContain("load:stage-video")
+    );
+    expect(screen.getByRole("button", { name: "Play" })).toBeVisible();
+    expect(getStageAdapter(adapters).calls).not.toContain("play");
   });
 });

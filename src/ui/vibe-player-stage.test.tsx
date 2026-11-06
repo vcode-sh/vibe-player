@@ -16,6 +16,7 @@ describe("VibePlayerStage", () => {
     const { container } = render(
       <VibePlayerStage
         adapterFactory={adapterFactory}
+        autoFocus
         autoPlay={true}
         onClose={vi.fn()}
         open={true}

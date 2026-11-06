@@ -27,7 +27,7 @@ for (const width of [240, 320, 390, 1100]) {
       y
     );
     await expect(frame).toBeVisible();
-    await expect(preview).toContainText("00:08");
+    await expect(preview).toContainText("0:08");
     await expect(image).toHaveAttribute("src", "/media/seek-sprite.jpg");
     const crop = await frame.boundingBox();
     const sheet = await image.boundingBox();
@@ -70,7 +70,7 @@ for (const width of [240, 320, 390, 1100]) {
     await seek.focus();
     // Home exercises keyboard priority without backend end-of-file seek behavior.
     await seek.press("Home");
-    await expect(preview).toContainText("00:00");
+    await expect(preview).toContainText("0:00");
     await expect(frame).toBeVisible();
     await expect
       .poll(() =>
@@ -102,7 +102,7 @@ test("failed thumbnail keeps the time tooltip and working seek", async ({
   const seek = page.getByRole("slider", { name: "Seek" });
   await seek.focus();
   await expect(page.locator(".vibe-player-timeline__tooltip")).toContainText(
-    "00:00"
+    "0:00"
   );
   await expect(page.locator(".vibe-player-seek-thumbnail")).toHaveCount(0);
   await seek.press("ArrowRight");

@@ -36,7 +36,7 @@ describe("createFileAdapter", () => {
     const sources = Array.from(video.querySelectorAll("source"));
     const tracks = Array.from(video.querySelectorAll("track"));
     expect(video.poster).toBe(fileSource.posterUrl);
-    expect(video.preload).toBe("metadata");
+    expect(video.preload).toBe("none");
     expect(video.crossOrigin).toBeNull();
     expect(video.playsInline).toBe(true);
     expect(sources.map((source) => source.type)).toEqual([

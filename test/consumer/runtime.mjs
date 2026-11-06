@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { lstat, readFile, realpath } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createElement } from "react";
@@ -13,6 +14,9 @@ import {
   VibePlayerModal,
   VibePlayerStage,
 } from "vibe-player";
+import { VibePlayerCompact } from "vibe-player/compact";
+import { useVibePlayer as hookSubpath } from "vibe-player/hook";
+import { VibePlayerStage as stageSubpath } from "vibe-player/stage";
 
 assert.equal(
   typeof globalThis.document,
@@ -53,11 +57,41 @@ assert.equal(
   renderToString(createElement(HeadlessPlayer)),
   "<output>idle</output>"
 );
+const compactHtml = renderToString(
+  createElement(VibePlayerCompact, {
+    source: { id: "compact-ssr", type: "mp4", url: "/clip.mp4" },
+  })
+);
+assert.match(compactHtml, /<button\b/);
+assert.doesNotMatch(compactHtml, /src="\/clip\.mp4"/);
+assert.equal(hookSubpath, useVibePlayer);
+assert.equal(stageSubpath, VibePlayerStage);
+const entrypoints = ["index", "hook", "stage", "compact"];
+const javascriptEntries = await Promise.all(
+  entrypoints.map((entrypoint) =>
+    readFile(resolve(packageDirectory, `dist/${entrypoint}.js`), "utf8")
+  )
+);
+for (const javascript of javascriptEntries) {
+  assert.ok(javascript.startsWith('"use client";'));
+}
+const packageRequire = createRequire(packageJsonPath);
+assert.equal(
+  packageRequire.resolve("hls.js"),
+  createRequire(import.meta.url).resolve("hls.js"),
+  "The package and host must share one HLS peer installation."
+);
+assert.equal(manifest.dependencies["hls.js"], undefined);
+assert.equal(manifest.peerDependencies["hls.js"], "^1.6.0");
 assert.equal(typeof createHlsAdapter, "function");
 assert.equal(typeof createYouTubeAdapter, "function");
 const cssPath = fileURLToPath(import.meta.resolve("vibe-player/styles.css"));
 assert.equal(dirname(cssPath), resolve(packageDirectory, "dist"));
 assert.match(await readFile(cssPath, "utf8"), /\.vibe-player-stage/);
+const chipsCssPath = fileURLToPath(
+  import.meta.resolve("vibe-player/chips.css")
+);
+assert.match(await readFile(chipsCssPath, "utf8"), /\.vibe-player-chips/);
 const cli = spawnSync(
   process.execPath,
   [

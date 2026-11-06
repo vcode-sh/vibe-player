@@ -1,6 +1,8 @@
 import { createInitialControllerState } from "./vibe-player-controller-state";
 import { createVibePlayerError } from "./vibe-player-errors";
+import type { VibePlayerEvent } from "./vibe-player-host-events";
 import type {
+  VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
   VibePlayerControllerOptions,
   VibePlayerControllerState,
@@ -16,6 +18,7 @@ export class VibePlayerControllerObservers {
   private readonly listeners = new Set<StateListener>();
   private reporting = false;
   private session = 0;
+  private lastProgressAt = Number.NEGATIVE_INFINITY;
   private readonly options: VibePlayerControllerOptions;
   private currentState = createInitialControllerState();
 
@@ -29,6 +32,51 @@ export class VibePlayerControllerObservers {
 
   beginSession(): void {
     this.session += 1;
+    this.lastProgressAt = Number.NEGATIVE_INFINITY;
+  }
+
+  emitEvent(event: VibePlayerEvent): void {
+    this.run("event", () => this.options.onEvent?.(event));
+  }
+
+  emitAdapterEvent(
+    event: VibePlayerAdapterEvent,
+    isCurrent = () => true
+  ): void {
+    const state = this.currentState;
+    if (!state.currentSource) {
+      return;
+    }
+    this.emitEvent({ ...event, source: state.currentSource });
+    if (state !== this.currentState || !isCurrent()) {
+      return;
+    }
+    if (event.type === "play") {
+      this.run("onPlay", () => this.options.onPlay?.(state));
+    } else if (event.type === "pause") {
+      this.run("onPause", () => this.options.onPause?.(state));
+    } else if (event.type === "ended") {
+      this.run("onEnded", () => this.options.onEnded?.(state));
+    } else if (event.type === "qualitychange") {
+      this.run("onQualityChange", () => this.options.onQualityChange?.(state));
+    } else if (
+      event.type === "timeupdate" &&
+      Date.now() - this.lastProgressAt >= 250
+    ) {
+      this.lastProgressAt = Date.now();
+      this.run("onProgress", () => this.options.onProgress?.(state));
+    }
+  }
+
+  renewed(
+    previousSource: VibePlayerSource,
+    source: VibePlayerSource,
+    isCurrent = () => true
+  ): void {
+    this.emitEvent({ previousSource, source, type: "renew" });
+    if (this.currentState.currentSource === source && isCurrent()) {
+      this.run("onRenew", () => this.options.onRenew?.(source));
+    }
   }
 
   reset(isMounted = false): void {
@@ -158,14 +206,18 @@ export class VibePlayerControllerObservers {
     }
     this.reporting = true;
     try {
-      this.updateState({
-        error: createVibePlayerError({
-          cause,
-          details: { operation },
-          phase: "integration",
-          source,
-        }),
+      const error = createVibePlayerError({
+        cause,
+        details: { operation },
+        phase: "integration",
+        source,
       });
+      if (
+        session === this.session &&
+        this.currentState.currentSource === source
+      ) {
+        this.emitEvent({ error, source, type: "integrationerror" });
+      }
     } finally {
       this.reporting = false;
     }

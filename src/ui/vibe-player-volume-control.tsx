@@ -7,6 +7,7 @@ import {
 import { useVibePlayerVolumePopover } from "./use-vibe-player-volume-popover";
 import { VibePlayerToggleButton } from "./vibe-player-toggle-button";
 import { VibePlayerTooltip } from "./vibe-player-tooltip";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 import { VibePlayerVolumeIcon } from "./vibe-player-volume-icon";
 import { getVibePlayerVolumeFromPercent } from "./vibe-player-volume-percent";
 import { VibePlayerVolumePopover } from "./vibe-player-volume-popover";
@@ -49,6 +50,7 @@ export function VibePlayerVolumeControl({
   onToggleMute,
   snapshot,
 }: VibePlayerVolumeControlProps) {
+  const { classNames, labels } = useVibePlayerUI();
   const popoverId = useId();
   const popover = useVibePlayerVolumePopover();
   const volumeState = createVibePlayerVolumeState(snapshot);
@@ -63,19 +65,22 @@ export function VibePlayerVolumeControl({
     if (!canMute) {
       return null;
     }
-    const label = snapshot.muted ? "Unmute" : "Mute";
+    const label = snapshot.muted ? labels.unmute : labels.mute;
     return (
       <VibePlayerToggleButton label={label} onClick={onToggleMute}>
-        <VibePlayerVolumeIcon silent={volumeState.silent} />
+        <VibePlayerVolumeIcon
+          silent={volumeState.silent}
+          volume={snapshot.volume}
+        />
       </VibePlayerToggleButton>
     );
   }
 
-  const actionLabel = snapshot.muted ? "Unmute" : "Mute";
+  const actionLabel = snapshot.muted ? labels.unmute : labels.mute;
   const setSupportedVolume: (volume: number) => void = setVolume;
   const triggerLabel = canMute
-    ? `${actionLabel}, volume ${volumeState.percent}%`
-    : volumeState.valueText;
+    ? labels.volumeTrigger(actionLabel, volumeState.percent)
+    : labels.volumeValue(volumeState.percent, snapshot.muted);
 
   function closePopover(): void {
     popover.closePopover();
@@ -98,7 +103,9 @@ export function VibePlayerVolumeControl({
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     if (event.key === "Escape" && popover.open) {
+      // Consumed: a host dialog must not also close on this press.
       event.preventDefault();
+      event.stopPropagation();
       popover.closePopover(true);
     }
   }
@@ -160,19 +167,25 @@ export function VibePlayerVolumeControl({
       <VibePlayerTooltip
         disabled={popover.open}
         label={actionLabel}
-        shortcut={canMute ? "M" : undefined}
+        shortcut={canMute ? labels.muteShortcut : undefined}
       >
         <button
           aria-controls={popover.open ? popoverId : undefined}
           aria-expanded={popover.open}
           aria-haspopup="dialog"
           aria-label={triggerLabel}
-          className="vibe-player-controls__button vibe-player-volume-control__trigger"
+          className={vibePlayerClassName(
+            "vibe-player-controls__button vibe-player-volume-control__trigger",
+            classNames.button
+          )}
           onClick={handleTriggerClick}
           ref={popover.triggerRef}
           type="button"
         >
-          <VibePlayerVolumeIcon silent={volumeState.silent} />
+          <VibePlayerVolumeIcon
+            silent={volumeState.silent}
+            volume={snapshot.volume}
+          />
         </button>
       </VibePlayerTooltip>
       {popover.open ? (
@@ -187,7 +200,7 @@ export function VibePlayerVolumeControl({
           scheduleCommitDismiss={popover.scheduleCommitDismiss}
           setActive={popover.setActive}
           sliderRef={popover.sliderRef}
-          valueText={volumeState.valueText}
+          valueText={labels.volumeValue(volumeState.percent, snapshot.muted)}
         />
       ) : null}
     </div>

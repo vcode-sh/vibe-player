@@ -23,21 +23,27 @@ import { clearElement } from "../shared/clear-element";
 import {
   getHlsVideoCapabilities,
   getHlsVideoSnapshot,
+  isNativeHlsVideo,
 } from "./hls-adapter-dom";
 import { loadCurrentHlsAdapterSource } from "./hls-adapter-load-session";
 import { createHlsAdapterQualityState } from "./hls-adapter-quality-state";
 import { createHlsAdapterSessionState } from "./hls-adapter-session-state";
-import { defaultHlsAdapterRuntime } from "./hls-managed-runtime";
+import { createHlsAdapterRuntime } from "./hls-managed-runtime";
 import type { ManagedHlsLevel } from "./hls-quality";
 import type {
+  HlsAdapterOptions,
   HlsAdapterRuntime,
   ManagedHlsController,
 } from "./hls-runtime-types";
 
 /** Creates managed HLS with native fallback. Runtime injection is optional. */
 export function createHlsAdapter(
-  runtime: HlsAdapterRuntime = defaultHlsAdapterRuntime
+  options: HlsAdapterOptions | HlsAdapterRuntime = {}
 ): VibePlayerAdapter {
+  const runtime =
+    "attachManagedHls" in options
+      ? options
+      : (options.hlsRuntime ?? createHlsAdapterRuntime(options));
   return new HlsVibePlayerAdapter(runtime);
 }
 class HlsVibePlayerAdapter implements VibePlayerAdapter {
@@ -52,6 +58,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   private managedHlsController: ManagedHlsController | null = null;
   private readonly quality = createHlsAdapterQualityState();
   private video: HTMLVideoElement | null = null;
+  private ownsVideo = true;
   constructor(runtime: HlsAdapterRuntime) {
     this.runtime = runtime;
     this.commandInput = {
@@ -123,10 +130,10 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     target: HTMLElement,
     presentationTarget: HTMLElement = target
   ): Promise<void> {
-    const video = this.ensureVideo();
+    const video = this.ensureVideo(target);
     this.session.markMounted();
     this.presentation.mount(video, presentationTarget);
-    if (video.parentElement === target) {
+    if (video === target || video.parentElement === target) {
       return Promise.resolve();
     }
     clearElement(target);
@@ -165,7 +172,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     const cleanup = this.presentation.unmount();
     this.session.close();
     if (this.video) {
-      clearNativeVideoPlayback(this.video);
+      clearNativeVideoPlayback(this.video, this.ownsVideo);
     }
     this.destroyManagedHls();
     this.video = null;
@@ -202,15 +209,23 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     }
   }
 
-  private ensureVideo(): HTMLVideoElement {
+  private ensureVideo(target?: HTMLElement): HTMLVideoElement {
     if (this.video) {
       return this.video;
     }
+    const externalVideo =
+      target instanceof HTMLVideoElement ? target : undefined;
+    this.ownsVideo = !externalVideo;
     const video = createNativeVideo((event, payload) => {
       if (this.video === video) {
-        this.emit(event, payload);
+        this.emit(
+          event,
+          event === "error"
+            ? { ...payload, nativeHls: isNativeHlsVideo(video) }
+            : payload
+        );
       }
-    });
+    }, externalVideo);
     this.video = video;
     return video;
   }

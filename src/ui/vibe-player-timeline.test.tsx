@@ -10,7 +10,7 @@ describe("VibePlayerTimeline", () => {
     );
 
     const input = screen.getByRole("slider", { name: "Seek" });
-    expect(input).toHaveAttribute("aria-valuetext", "00:25 of 01:40");
+    expect(input).toHaveAttribute("aria-valuetext", "0:25 of 1:40");
     fireEvent.change(input, { target: { value: "42" } });
     expect(onSeek).toHaveBeenCalledWith(42);
   });

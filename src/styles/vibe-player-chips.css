@@ -1,0 +1,170 @@
+/* Ink Chips: labels that follow the host's color-scheme (cream in light,
+   charcoal in dark). Hosts may set the --vibe-player-chip-* variables. */
+.vibe-player-compact[data-skin="chips"] {
+  --_vp-enter: 120ms;
+  --_vp-exit: 100ms;
+  --_vp-cloud: oklch(0.9493 0.007 88.64);
+  --_vp-charcoal: oklch(0.2002 0 0);
+  --_vp-chip-bg: var(
+    --vibe-player-chip-background,
+    light-dark(
+      color-mix(in oklab, var(--_vp-cloud) 92%, transparent),
+      color-mix(in oklab, var(--_vp-charcoal) 84%, transparent)
+    )
+  );
+  --_vp-chip-fg: var(
+    --vibe-player-chip-foreground,
+    light-dark(var(--_vp-charcoal), var(--_vp-cloud))
+  );
+  --_vp-chip-solid: var(
+    --vibe-player-chip-solid,
+    light-dark(var(--_vp-cloud), var(--_vp-charcoal))
+  );
+  --_vp-chip-shadow: var(
+    --vibe-player-chip-shadow,
+    0 1px 2px light-dark(oklch(0 0 0 / 0.14), transparent),
+    0 0 0 0.5px light-dark(transparent, oklch(1 0 0 / 0.12)),
+    0 6px 18px light-dark(oklch(0 0 0 / 0.14), oklch(0 0 0 / 0.3))
+  );
+  touch-action: pan-y;
+}
+
+.vibe-player-compact[data-skin="chips"][data-state="paused"]
+  .vibe-player-surface__dim {
+  opacity: 0.12;
+}
+
+.vibe-player-compact[data-skin="chips"][data-state="ended"]
+  .vibe-player-surface__dim {
+  opacity: 0.24;
+}
+
+.vibe-player-compact[data-skin="chips"][data-state="error"]
+  .vibe-player-stage__poster {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.vibe-player-chips__chip {
+  color: var(--_vp-chip-fg);
+  background: var(--_vp-chip-bg);
+  box-shadow: var(--_vp-chip-shadow);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+}
+
+.vibe-player-chips__dock {
+  display: contents;
+}
+
+.vibe-player-chips__primary {
+  --_vp-icon: 12px;
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 6px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+}
+
+.vibe-player-chips__face {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px 0 9px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 28px;
+  border-radius: 14px;
+  transition:
+    transform 100ms var(--_vp-ease),
+    background-color 120ms ease;
+}
+
+.vibe-player-chips__face .vibe-player-surface__spinner {
+  border-color: color-mix(in oklab, var(--_vp-chip-fg) 25%, transparent);
+  border-width: 1.5px;
+  border-top-color: var(--_vp-chip-fg);
+}
+
+.vibe-player-chips__label {
+  min-width: 28px;
+}
+
+.vibe-player-chips__side {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+}
+
+.vibe-player-chips__round {
+  --_vp-icon: 14px;
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+}
+
+.vibe-player-chips__expand {
+  display: none;
+}
+
+@container vibe-player (min-width: 400px) {
+  .vibe-player-chips__expand {
+    display: grid;
+  }
+}
+
+.vibe-player-chips__dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: transform 100ms var(--_vp-ease);
+}
+
+.vibe-player-chips__round:active .vibe-player-chips__dot,
+.vibe-player-chips__primary:active .vibe-player-chips__face {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vibe-player-chips
+    :is(.vibe-player-chips__round, .vibe-player-chips__primary):hover
+    .vibe-player-chips__chip {
+    background: color-mix(
+      in oklab,
+      var(--_vp-chip-bg) 80%,
+      var(--_vp-chip-fg) 8%
+    );
+  }
+}
+
+.vibe-player-compact[data-controls-presentation="outside"]
+  .vibe-player-chips__dock {
+  position: relative;
+  display: flex;
+  grid-row: 4;
+  justify-content: space-between;
+  height: 48px;
+}
+
+.vibe-player-compact[data-controls-presentation="outside"]
+  :is(.vibe-player-chips__primary, .vibe-player-chips__side) {
+  position: relative;
+  inset: auto;
+}

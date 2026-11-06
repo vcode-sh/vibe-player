@@ -59,6 +59,7 @@ function AccessibilityPlayer() {
       <button type="button">Background action</button>
       <VibePlayerModal
         autoHideControls={false}
+        autoPlay={false}
         loadCaptionText={loadCaptionText}
         onClose={() => setOpen(false)}
         open={open}

@@ -37,7 +37,7 @@ describe("stage caption availability", () => {
     const onError = vi.fn();
     render(
       <VibePlayerStage
-        adapterFactory={adapterFactory}
+        adapterFactory={async () => adapterFactory()}
         loadCaptionText={loadCaptionText}
         onCaptionStatusChange={onCaptionStatusChange}
         onError={onError}

@@ -3,7 +3,7 @@
 ## Current state
 
 - Package: `vibe-player`
-- Repository version: `0.2.1`; check `npm view vibe-player version` for the
+- Repository version: `0.3.0`; check `npm view vibe-player version` for the
   published stable version.
 - License: `Apache-2.0`
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
@@ -16,8 +16,9 @@
 
 Publish only built package output and consumer docs. Do not publish plans,
 workspace notes, app-specific source, demos, tests, or split source CSS files.
-Consumers must use `vibe-player` and
-`vibe-player/styles.css`.
+Consumers use `vibe-player`, its explicit `/hook`, `/stage`, `/compact` entry
+points, and `vibe-player/styles.css`. HLS consumers provide the `hls.js` peer;
+the package must not carry a second pinned runtime.
 
 Local `file:` dependencies are for active package work only. Stable consumers
 should use the npm package or a real workspace boundary.
@@ -34,8 +35,10 @@ start CI or publish packages.
 Release runs only through `workflow_dispatch` on `main`. It runs `bun run ci`
 once on Node 26, including package rules, boundaries, dependency guard,
 release-state guard, TypeScript, tests, build, styles, size, public surface,
-tarball, publint, ATTW, the packaged consumer, and deterministic Chromium/WebKit
-acceptance. The same job then checks the built package on exact Node 22.0.0 /
+tarball, publint, ATTW, the packaged consumer, and a type check of the browser
+specs. Playwright browser acceptance is not a release gate; run
+`bun run test:browser` locally when a change touches playback, focus, rendering
+or motion. The same job then checks the built package on exact Node 22.0.0 /
 React 19.2.7, restores Node 26, and runs
 `bun run release:publish --no-git-tag` to publish the committed version.
 The minimum-runtime check skips the Vite consumer build,
@@ -85,13 +88,15 @@ dist tag.
 
 ## Manual checks
 
-Install browser engines once with
-`bunx playwright install --with-deps chromium webkit`.
 For local release validation, run the same full gate as the release workflow:
 
 ```bash
 bun run ci
 ```
+
+Browser acceptance is a separate local lane. Install engines once with
+`bunx playwright install --with-deps chromium firefox webkit`, build, then run
+`bun run test:browser`.
 
 Before publishing, the workflow also verifies the minimum Node/React runtime;
 it reuses the built package instead of installing and building it in another

@@ -5,21 +5,25 @@ const kib = 1024;
 
 export const packageSizeBudgets = [
   {
-    filePath: "dist/index.js",
+    directory: "dist",
+    extension: ".js",
     label: "runtime ESM raw",
     limit: 170 * kib,
     mode: "raw",
   },
   {
-    filePath: "dist/index.js",
+    directory: "dist",
+    extension: ".js",
     label: "runtime ESM gzip",
-    limit: 36 * kib,
+    // 2026-11-06: +4 KiB for the compact surface, Glass and the lazy Chips skin.
+    limit: 42 * kib,
     mode: "gzip",
   },
   {
     filePath: "dist/styles.css",
     label: "stylesheet raw",
-    limit: 48 * kib,
+    // 2026-11-06: Glass Capsule styles; gzip stays under its 10 KiB limit.
+    limit: 58 * kib,
     mode: "raw",
   },
   {
@@ -29,9 +33,17 @@ export const packageSizeBudgets = [
     mode: "gzip",
   },
   {
-    filePath: "dist/index.d.ts",
+    filePath: "dist/chips.css",
+    label: "chips stylesheet gzip",
+    limit: 2 * kib,
+    mode: "gzip",
+  },
+  {
+    directory: "dist",
+    extension: ".d.ts",
     label: "types raw",
-    limit: 48 * kib,
+    // 2026-11-06: documented surface, skin and slot types for custom overlays.
+    limit: 72 * kib,
     mode: "raw",
   },
 ];
@@ -41,6 +53,12 @@ export function formatPackageSizeBytes(byteCount) {
 }
 
 export function measurePackageSize(source, mode) {
+  if (Array.isArray(source)) {
+    return source.reduce(
+      (total, item) => total + measurePackageSize(item, mode),
+      0
+    );
+  }
   if (mode === "gzip") {
     return gzipSync(source).byteLength;
   }

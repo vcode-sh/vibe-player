@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 const packagePath = resolve(import.meta.dirname, "../package.json");
 
 const expectedSections = {
-  dependencies: ["entities", "hls.js"],
+  dependencies: ["entities"],
   devDependencies: [
     "@arethetypeswrong/cli",
     "@biomejs/biome",
@@ -16,6 +16,7 @@ const expectedSections = {
     "@types/react-dom",
     "@vitejs/plugin-react",
     "happy-dom",
+    "hls.js",
     "publint",
     "react",
     "react-dom",
@@ -25,7 +26,7 @@ const expectedSections = {
     "vite",
     "vitest",
   ],
-  peerDependencies: ["react", "react-dom"],
+  peerDependencies: ["hls.js", "react", "react-dom"],
 };
 
 const forbiddenSections = [

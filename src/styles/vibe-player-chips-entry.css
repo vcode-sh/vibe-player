@@ -1,0 +1,3 @@
+/* vibe-player/chips.css: the Ink Chips skin, loaded only by hosts using it. */
+@import "./vibe-player-chips.css";
+@import "./vibe-player-chips-panels.css";

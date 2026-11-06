@@ -6,9 +6,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { formatVibePlayerTime } from "../core";
 import { VibePlayerSeekPreview } from "./vibe-player-seek-preview";
 import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 
 export interface VibePlayerTimelineProps {
   currentTime: number;
@@ -49,6 +49,7 @@ export function VibePlayerTimeline({
   onSeek,
   seekThumbnails,
 }: VibePlayerTimelineProps) {
+  const { classNames, formatTime, labels } = useVibePlayerUI();
   const [hoverPercent, setHoverPercent] = useState<number | null>(null);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -118,7 +119,10 @@ export function VibePlayerTimeline({
 
   return (
     <div
-      className="vibe-player-timeline"
+      className={vibePlayerClassName(
+        "vibe-player-timeline",
+        classNames.progress
+      )}
       data-disabled={!hasDuration}
       data-vibe-player-timeline
       onLostPointerCapture={stopPointerSeek}
@@ -157,8 +161,11 @@ export function VibePlayerTimeline({
       onPointerUp={stopPointerSeek}
     >
       <input
-        aria-label="Seek"
-        aria-valuetext={`${formatVibePlayerTime(currentTime)} of ${formatVibePlayerTime(duration)}`}
+        aria-label={labels.seek}
+        aria-valuetext={labels.seekValue(
+          formatTime(currentTime),
+          formatTime(duration)
+        )}
         className="vibe-player-timeline__input"
         disabled={!hasDuration}
         max={duration || 0}

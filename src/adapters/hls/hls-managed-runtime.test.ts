@@ -22,6 +22,7 @@ const { hls } = vi.hoisted(() => ({
     on: vi.fn<
       (event: string, handler: (event: string, data: unknown) => void) => void
     >(),
+    startLoad: vi.fn(),
   },
 }));
 
@@ -29,10 +30,12 @@ vi.mock("hls.js", () => ({
   default: class {
     static Events = {
       ERROR: "hlsError",
+      FRAG_LOADED: "hlsFragLoaded",
       LEVEL_LOADED: "hlsLevelLoaded",
       LEVEL_SWITCHED: "hlsLevelSwitched",
       LEVELS_UPDATED: "hlsLevelsUpdated",
       MANIFEST_PARSED: "hlsManifestParsed",
+      MEDIA_ATTACHED: "hlsMediaAttached",
     };
 
     static isSupported() {
@@ -44,6 +47,7 @@ vi.mock("hls.js", () => ({
     levels = hls.levels;
     loadSource = hls.loadSource;
     on = hls.on;
+    startLoad = hls.startLoad;
 
     get manualLevel() {
       return hls.manualLevel;
@@ -132,7 +136,10 @@ describe("managed HLS runtime translation", () => {
     };
     await attachManagedHls(session);
     expect(hls.attachMedia).toHaveBeenCalledWith(session.video);
+    expect(hls.loadSource).not.toHaveBeenCalled();
+    emitHlsEvent("hlsMediaAttached");
     expect(hls.loadSource).toHaveBeenCalledWith(session.manifestUrl);
+    expect(hls.startLoad).toHaveBeenCalledWith(-1);
 
     emitHlsEvent("hlsManifestParsed");
     expect(session.onReady).toHaveBeenCalledOnce();
@@ -158,6 +165,7 @@ describe("managed HLS runtime translation", () => {
       details: "fragLoadError",
       fatal: false,
       message: "Segment unavailable",
+      network: true,
       type: "networkError",
     });
   });

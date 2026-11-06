@@ -3,7 +3,11 @@ import type {
   VibePlayerEventName,
   VibePlayerHlsSource,
 } from "../../core/vibe-player-types";
-import { canUseNativeHls, setHlsVideoSource } from "./hls-adapter-dom";
+import {
+  canUseNativeHls,
+  getHlsManifestUrl,
+  setHlsVideoSource,
+} from "./hls-adapter-dom";
 import type { ManagedHlsLevel } from "./hls-quality";
 import type {
   HlsAdapterRuntime,
@@ -35,7 +39,7 @@ export async function loadHlsAdapterSource({
   updateQualityOptions,
   video,
 }: LoadHlsAdapterSourceInput): Promise<ManagedHlsController | null> {
-  const managedHls = runtime.canUseManagedHls();
+  const managedHls = runtime.canUseManagedHls(video);
   const nativeHls = canUseNativeHls(video);
   if (!(nativeHls || managedHls)) {
     throw new Error("HLS playback requires native HLS or MediaSource support.");
@@ -50,7 +54,8 @@ export async function loadHlsAdapterSource({
   video.load();
   try {
     return await runtime.attachManagedHls({
-      manifestUrl: source.manifestUrl,
+      isActive,
+      manifestUrl: getHlsManifestUrl(source),
       onError: (payload) => emit("error", payload),
       onLevelLoaded: (isLive) => {
         setLive(isLive);

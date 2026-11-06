@@ -9,6 +9,7 @@ function createStore() {
 describe("controller host integration isolation", () => {
   it("disposes a playing source even when closed analytics throws", async () => {
     const adapter = new TestAdapter();
+    const diagnostic = vi.fn();
     const onError = vi.fn();
     const controller = new VibePlayerController({
       adapterFactory: () => adapter,
@@ -18,6 +19,11 @@ describe("controller host integration isolation", () => {
         }
       },
       onError,
+      onEvent: (event) => {
+        if (event.type === "integrationerror") {
+          diagnostic(event.error);
+        }
+      },
     });
     await controller.load(fileSource);
     adapter.emit("play", { paused: false, readyState: "playing" });
@@ -26,7 +32,8 @@ describe("controller host integration isolation", () => {
 
     expect(adapter.calls).toContain("unmount");
     expect(controller.getState().currentSource).toBeNull();
-    expect(onError).toHaveBeenCalledWith(
+    expect(onError).not.toHaveBeenCalled();
+    expect(diagnostic).toHaveBeenCalledWith(
       expect.objectContaining({
         details: { operation: "analytics" },
         message: "Telemetry unavailable",
@@ -44,11 +51,17 @@ describe("controller host integration isolation", () => {
         throw new Error("Storage unavailable");
       });
       const onAnalyticsEvent = vi.fn();
+      const diagnostic = vi.fn();
       const onError = vi.fn();
       const controller = new VibePlayerController({
         adapterFactory: () => adapter,
         onAnalyticsEvent,
         onError,
+        onEvent: (event) => {
+          if (event.type === "integrationerror") {
+            diagnostic(event.error);
+          }
+        },
         resumeStore: store,
       });
       await controller.load(fileSource);
@@ -60,7 +73,9 @@ describe("controller host integration isolation", () => {
         readyState: operation === "set" ? "playing" : "ended",
       });
 
-      expect(onError).toHaveBeenCalledWith(
+      expect(onError).not.toHaveBeenCalled();
+      expect(controller.getState().error).toBeNull();
+      expect(diagnostic).toHaveBeenCalledWith(
         expect.objectContaining({
           details: { operation: `resume-${operation}` },
           message: "Storage unavailable",
@@ -80,12 +95,16 @@ describe("controller host integration isolation", () => {
 
   it("continues notifying subscribers when one observer and diagnostics throw", async () => {
     const adapter = new TestAdapter();
-    const onError = vi.fn(() => {
+    const diagnostic = vi.fn((_error: unknown) => {
       throw new Error("Diagnostic observer unavailable");
     });
     const controller = new VibePlayerController({
       adapterFactory: () => adapter,
-      onError,
+      onEvent: (event) => {
+        if (event.type === "integrationerror") {
+          diagnostic(event.error);
+        }
+      },
     });
     await controller.load(fileSource);
     controller.subscribe(() => {
@@ -105,7 +124,8 @@ describe("controller host integration isolation", () => {
         snapshot: expect.objectContaining({ currentTime: 17, paused: false }),
       })
     );
-    expect(onError).toHaveBeenCalledTimes(1);
+    expect(diagnostic).toHaveBeenCalledTimes(1);
+    expect(controller.getState().error).toBeNull();
     expect(controller.getState().snapshot.readyState).toBe("playing");
     await controller.teardown();
   });

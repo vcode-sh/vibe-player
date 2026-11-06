@@ -1,7 +1,7 @@
-import { formatVibePlayerTime } from "../core";
 import { selectVibePlayerSeekThumbnail } from "./select-vibe-player-seek-thumbnail";
 import { VibePlayerSeekThumbnailImage } from "./vibe-player-seek-thumbnail";
 import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
+import { useVibePlayerUI } from "./vibe-player-ui-context";
 
 interface VibePlayerSeekPreviewProps {
   duration: number;
@@ -16,6 +16,7 @@ export function VibePlayerSeekPreview({
   seekThumbnails,
   time,
 }: VibePlayerSeekPreviewProps) {
+  const { formatTime, labels } = useVibePlayerUI();
   const thumbnail = selectVibePlayerSeekThumbnail(
     seekThumbnails,
     time,
@@ -34,11 +35,13 @@ export function VibePlayerSeekPreview({
           thumbnail={thumbnail}
         />
       ) : null}
-      <span className="vibe-player-timeline__tooltip-label">Seek</span>
+      <span className="vibe-player-timeline__tooltip-label">{labels.seek}</span>
       <span className="vibe-player-timeline__tooltip-time">
-        {formatVibePlayerTime(time)}
+        {formatTime(time)}
       </span>
-      <span className="vibe-player-timeline__tooltip-shortcut">← / →</span>
+      <span className="vibe-player-timeline__tooltip-shortcut">
+        {labels.seekShortcut}
+      </span>
     </output>
   );
 }

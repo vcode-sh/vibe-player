@@ -1,15 +1,17 @@
-import { type MouseEvent, useCallback } from "react";
+import { type MouseEvent, type RefObject, useCallback } from "react";
 
 export function useVibePlayerStageClick({
+  pointerType,
   rootElement,
   togglePlay,
 }: {
-  rootElement: HTMLDivElement | null;
+  pointerType: RefObject<string>;
+  rootElement: HTMLElement | null;
   togglePlay: () => void;
 }) {
   return useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      if (event.defaultPrevented) {
+    (event: MouseEvent<HTMLElement>) => {
+      if (event.defaultPrevented || pointerType.current === "touch") {
         return;
       }
       const mediaElement = rootElement?.querySelector(
@@ -21,6 +23,6 @@ export function useVibePlayerStageClick({
         togglePlay();
       }
     },
-    [rootElement, togglePlay]
+    [pointerType, rootElement, togglePlay]
   );
 }

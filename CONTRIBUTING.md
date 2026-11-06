@@ -7,9 +7,10 @@ without archaeology.
 ## Before Opening A PR
 
 1. Run `bun install`.
-2. Install browser acceptance dependencies with
-   `bunx playwright install --with-deps chromium webkit`.
-3. Run `bun run ci`.
+2. Run `bun run ci`.
+3. If you changed playback, focus, rendering or motion, install browser engines
+   with `bunx playwright install --with-deps chromium webkit` and run
+   `bun run test:browser`.
 4. If you changed package output, run `npm pack --dry-run --json`.
 5. If you changed media delivery logic, add or update focused Vitest coverage.
 6. If you changed public APIs, update [usage](docs/usage.md),
@@ -41,9 +42,10 @@ The package supports Node 22 independently of the development toolchain; CI
 checks an isolated tarball consumer on Node 22.0.0 with React 19.2.7 and on
 Node 24 with the development React version.
 
-`bun run ci` checks the package, both demo builds, an isolated packed consumer,
-and Chromium/WebKit acceptance. Install both engines before running it locally;
-Playwright also installs required system libraries on Linux with `--with-deps`.
+`bun run ci` checks the package, both demo builds and an isolated packed
+consumer, and type-checks the browser specs without running them. Chromium/WebKit
+acceptance (`bun run test:browser`) is a separate local lane; Playwright also
+installs required system libraries on Linux with `--with-deps`.
 `bun run demo:vite:verify`, `bun run package:consumer`, and
 `bun run test:browser` expect the package to have been built first.
 Vitest runs CLI tests in Node and component tests in Happy DOM. Playwright owns

@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
 import type { VibePlayerSnapshot } from "../core";
+import { useVibePlayerDelayedFlag } from "../react/use-vibe-player-delayed-flag";
+import { RetryIcon } from "./vibe-player-icons";
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
+import type { VibePlayerLabels } from "./vibe-player-ui-types";
 
 export interface VibePlayerStageStatusProps {
+  onRetry?: (() => void) | undefined;
   playbackBlocked: boolean;
   snapshot: VibePlayerSnapshot;
 }
@@ -14,17 +18,28 @@ interface VibePlayerStageStatusView {
 const busyStatusDelayMs = 320;
 
 export function VibePlayerStageStatus({
+  onRetry,
   playbackBlocked,
   snapshot,
 }: VibePlayerStageStatusProps) {
-  const view = getVibePlayerStageStatusView({ playbackBlocked, snapshot });
-  const revealBusy = useDelayedBusyStatus(view?.tone === "busy");
+  const { classNames, labels } = useVibePlayerUI();
+  const view = getVibePlayerStageStatusView(
+    { playbackBlocked, snapshot },
+    labels
+  );
+  const revealBusy = useVibePlayerDelayedFlag(
+    view?.tone === "busy",
+    busyStatusDelayMs
+  );
 
   if (!view) {
     return null;
   }
 
-  const className = `vibe-player-stage__status vibe-player-stage__status--${view.tone}`;
+  const className = vibePlayerClassName(
+    `vibe-player-stage__status vibe-player-stage__status--${view.tone}`,
+    classNames.status
+  );
   if (view.tone === "busy") {
     if (!revealBusy) {
       return null;
@@ -36,7 +51,6 @@ export function VibePlayerStageStatus({
         className={className}
         role="status"
       >
-        <span aria-hidden="true" className="vibe-player-stage__status-halo" />
         <span
           aria-hidden="true"
           className="vibe-player-stage__status-spinner"
@@ -48,6 +62,12 @@ export function VibePlayerStageStatus({
   return (
     <div aria-live="polite" className={className} role="status">
       {view.label}
+      {view.tone === "error" && onRetry ? (
+        <button className={classNames.button} onClick={onRetry} type="button">
+          <RetryIcon />
+          {labels.retry}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -57,23 +77,27 @@ interface VibePlayerStageStatusViewInput {
   snapshot: VibePlayerSnapshot;
 }
 
-function getVibePlayerStageStatusView({
-  playbackBlocked,
-  snapshot,
-}: VibePlayerStageStatusViewInput): VibePlayerStageStatusView | null {
+function getVibePlayerStageStatusView(
+  { playbackBlocked, snapshot }: VibePlayerStageStatusViewInput,
+  labels: VibePlayerLabels
+): VibePlayerStageStatusView | null {
   if (playbackBlocked) {
-    return { label: "Play to start", tone: "notice" };
+    return { label: labels.playToStart, tone: "notice" };
   }
 
   if (snapshot.readyState === "error") {
-    return { label: "Playback unavailable", tone: "error" };
+    return { label: labels.unavailable, tone: "error" };
   }
 
   if (!shouldShowBusyStatus(snapshot)) {
     return null;
   }
 
-  return { label: "Buffering video", tone: "busy" };
+  return {
+    label:
+      snapshot.readyState === "loading" ? labels.loading : labels.buffering,
+    tone: "busy",
+  };
 }
 
 function shouldShowBusyStatus(snapshot: VibePlayerSnapshot): boolean {
@@ -83,25 +107,4 @@ function shouldShowBusyStatus(snapshot: VibePlayerSnapshot): boolean {
     return false;
   }
   return !snapshot.paused;
-}
-
-function useDelayedBusyStatus(active: boolean): boolean {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!active) {
-      setVisible(false);
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setVisible(true);
-    }, busyStatusDelayMs);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [active]);
-
-  return active && visible;
 }

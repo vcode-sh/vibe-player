@@ -19,6 +19,20 @@ const hlsMimeTypes = [
   "application/x-mpegURL",
 ] as const;
 
+const nativeHlsVideos = new WeakSet<HTMLVideoElement>();
+
+export function isNativeHlsVideo(video: HTMLVideoElement): boolean {
+  return nativeHlsVideos.has(video);
+}
+
+export function getHlsManifestUrl(source: VibePlayerHlsSource): string {
+  const url = source.url ?? source.manifestUrl;
+  if (!url) {
+    throw new Error("HLS source must include a manifest URL.");
+  }
+  return url;
+}
+
 export function canUseNativeHls(video: HTMLVideoElement): boolean {
   for (const mimeType of hlsMimeTypes) {
     if (video.canPlayType(mimeType)) {
@@ -70,8 +84,10 @@ export function setHlsVideoSource(
   setNativeVideoMetadata(video, source);
 
   if (mode === "native") {
-    video.src = source.manifestUrl;
+    nativeHlsVideos.add(video);
+    video.src = getHlsManifestUrl(source);
   } else {
+    nativeHlsVideos.delete(video);
     video.removeAttribute("src");
   }
 

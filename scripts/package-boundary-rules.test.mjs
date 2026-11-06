@@ -59,6 +59,28 @@ describe("package dependency boundaries", () => {
     expect(issues).toEqual([]);
   });
 
+  it("allows explicit client entrypoints while preserving their app import ban", async () => {
+    const issues = await collectPackageBoundaryIssues(
+      files({
+        "src/compact.ts": 'export { Compact } from "./ui/compact";',
+        "src/core/controller.ts": "export class Controller {}",
+        "src/hook.ts":
+          'export { Controller } from "./core/controller"; import "@/session";',
+        "src/stage.ts": 'export { Stage } from "./ui/stage";',
+        "src/ui/compact.ts": "export function Compact() {}",
+        "src/ui/stage.ts": "export function Stage() {}",
+      })
+    );
+
+    expect(issues).toEqual([
+      {
+        path: "src/hook.ts",
+        reason: "app import alias",
+        specifier: "@/session",
+      },
+    ]);
+  });
+
   it("prevents sibling-provider and external deep-import bypasses", async () => {
     const issues = await collectPackageBoundaryIssues(
       files({

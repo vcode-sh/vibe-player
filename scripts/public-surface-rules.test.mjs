@@ -1,10 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
   collectExportNameIssues,
+  collectPublicModuleSurfaceIssues,
   collectPublicSurfaceIssues,
 } from "./public-surface-rules.mjs";
 
 describe("public surface rules", () => {
+  it("resolves subpath export stars without exposing private shared declarations", async () => {
+    const issues = await collectPublicModuleSurfaceIssues(
+      [
+        { path: "hook.d.ts", source: 'export * from "./chunks/controller";' },
+        {
+          path: "chunks/controller.d.ts",
+          source:
+            "interface PrivateState {}\n" +
+            "interface VibePlayerControllerState { state: PrivateState; }\n" +
+            "export type { VibePlayerControllerState };",
+        },
+      ],
+      "hook.d.ts",
+      ["VibePlayerControllerState"]
+    );
+
+    expect(issues).toEqual({ leakedSymbols: [], missingSymbols: [] });
+  });
+
   it("requires an actual export rather than a private declaration or comment", async () => {
     const issues = await collectPublicSurfaceIssues(
       "// export interface VibePlayerStageProps {}\ninterface VibePlayerStageProps {}",

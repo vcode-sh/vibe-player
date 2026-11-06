@@ -8,6 +8,7 @@ import type {
   VibePlayerEventName,
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
+import { clearPendingNativeSeek } from "./native-video-seek";
 
 type NativeVideoEventEmitter = (
   event: VibePlayerEventName,
@@ -34,7 +35,7 @@ const nativeEventBindings: NativeEventBinding[] = [
   { nativeEvent: "loadedmetadata", playerEvent: "ready" },
   { nativeEvent: "pause", playerEvent: "pause" },
   { nativeEvent: "play", playerEvent: "play" },
-  { nativeEvent: "playing", playerEvent: "ready" },
+  { nativeEvent: "playing", playerEvent: "playing" },
   { nativeEvent: "ratechange", playerEvent: "ratechange" },
   { nativeEvent: "seeked", playerEvent: "ready" },
   { nativeEvent: "stalled", playerEvent: "buffering" },
@@ -42,6 +43,8 @@ const nativeEventBindings: NativeEventBinding[] = [
   { nativeEvent: "volumechange", playerEvent: "volumechange" },
   { nativeEvent: "waiting", playerEvent: "buffering" },
 ];
+
+const nativeEventCleanups = new WeakMap<HTMLVideoElement, () => void>();
 
 export function appendNativeCaptionTracks(
   video: HTMLVideoElement,
@@ -63,14 +66,31 @@ export function appendNativeCaptionTracks(
 }
 
 export function createNativeVideo(
-  emit: NativeVideoEventEmitter
+  emit: NativeVideoEventEmitter,
+  target?: HTMLVideoElement
 ): HTMLVideoElement {
-  const video = document.createElement("video");
-  video.controls = false;
-  video.className =
-    "vibe-player-native-adapter-video vibe-player-file-adapter-video";
+  const video = target ?? document.createElement("video");
+  clearNativeVideoEvents(video);
+  if (!target) {
+    video.controls = false;
+  }
+  video.preload = "none";
+  video.playsInline = true;
+  video.classList.add(
+    "vibe-player-native-adapter-video",
+    "vibe-player-file-adapter-video"
+  );
+  bindNativeVideoEvents(video, emit);
+  return video;
+}
+
+function bindNativeVideoEvents(
+  video: HTMLVideoElement,
+  emit: NativeVideoEventEmitter
+): void {
+  const cleanups: (() => void)[] = [];
   for (const binding of nativeEventBindings) {
-    video.addEventListener(binding.nativeEvent, () => {
+    const listener = () => {
       if (binding.playerEvent === "buffering" && video.paused) {
         return;
       }
@@ -82,12 +102,26 @@ export function createNativeVideo(
               code: error.code,
               fatal: true,
               message: error.message || "Native video playback failed.",
+              network: error.code === 2,
             }
           : undefined
       );
-    });
+    };
+    video.addEventListener(binding.nativeEvent, listener);
+    cleanups.push(() =>
+      video.removeEventListener(binding.nativeEvent, listener)
+    );
   }
-  return video;
+  nativeEventCleanups.set(video, () => {
+    for (const cleanup of cleanups) {
+      cleanup();
+    }
+  });
+}
+
+export function clearNativeVideoEvents(video: HTMLVideoElement): void {
+  nativeEventCleanups.get(video)?.();
+  nativeEventCleanups.delete(video);
 }
 
 export function getNativeVideoSnapshot(
@@ -106,6 +140,8 @@ export function getNativeVideoSnapshot(
     paused: video.paused,
     playbackRate: video.playbackRate,
     readyState: getReadyState(video),
+    videoHeight: video.videoHeight,
+    videoWidth: video.videoWidth,
     volume: video.volume,
   };
 }
@@ -114,8 +150,9 @@ export function setNativeVideoMetadata(
   video: HTMLVideoElement,
   source: NativeVideoSourceMetadata
 ): void {
+  clearPendingNativeSeek(video);
   video.poster = source.posterUrl ?? "";
-  video.preload = "metadata";
+  video.preload = "none";
   if (source.crossOrigin) {
     video.crossOrigin = source.crossOrigin;
   } else {

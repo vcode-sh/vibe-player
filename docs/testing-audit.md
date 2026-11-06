@@ -91,7 +91,7 @@ statements describe that checkpoint, not the current corrected tree above.
 ### Outcome
 
 Applied [testing-patterns](../.claude/skills/testing-patterns/SKILL.md), adapted
-from the current WUN and Spreadoo skills, to every configured test file.
+from the owner's application test skills, to every configured test file.
 The canonical skill lives in `.claude/skills/testing-patterns`; the local
 `.agents/skills/testing-patterns` symlink makes the same rules discoverable by
 Codex. `CLAUDE.md` and the coding standards direct test work to it.

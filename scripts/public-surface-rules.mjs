@@ -1,15 +1,28 @@
 import { publicApiExports } from "./public-api-exports.mjs";
 import { inspectTypeScriptFiles } from "./typescript-inspection.mjs";
 
-export async function collectPublicSurfaceIssues(
+export function collectPublicSurfaceIssues(
   declaration,
   expectedExports = publicApiExports
 ) {
-  const exportedNames = await inspectTypeScriptFiles(
+  return collectPublicModuleSurfaceIssues(
     [{ path: "index.d.ts", source: declaration }],
+    "index.d.ts",
+    expectedExports
+  );
+}
+
+/** Resolve reexports through the complete multi-entry declaration graph. */
+export async function collectPublicModuleSurfaceIssues(
+  files,
+  entryPath,
+  expectedExports
+) {
+  const exportedNames = await inspectTypeScriptFiles(
+    files,
     async (project, root) => {
       const sourceFile = await project.program.getSourceFile(
-        `${root}/index.d.ts`
+        `${root}/${entryPath}`
       );
       const symbol = await project.checker.getSymbolAtLocation(sourceFile);
       if (!symbol) {

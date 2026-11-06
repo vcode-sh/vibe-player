@@ -1,3 +1,4 @@
+import type { VibePlayerEvent } from "./vibe-player-host-events";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
@@ -6,6 +7,9 @@ import type {
   VibePlayerSnapshot,
 } from "./vibe-player-runtime-types";
 import type { VibePlayerSource } from "./vibe-player-source-types";
+
+/** When a bound source is allowed to create and attach its playback engine. */
+export type VibePlayerLoadMode = "onPlay" | "eager" | "visible";
 
 /** Host-owned resume persistence adapter. */
 export interface VibePlayerResumeStore {
@@ -53,13 +57,25 @@ export interface VibePlayerControllerState {
   isMounted: boolean;
   lastEvent: VibePlayerEventName | null;
   playbackBlocked: boolean;
+  /** An expired or failed media delivery is being renewed and reattached. */
+  renewing: boolean;
   snapshot: VibePlayerSnapshot;
 }
 
 /** Controller construction options supplied by UI assemblies or hosts. */
 export interface VibePlayerControllerOptions {
-  adapterFactory: (source: VibePlayerSource) => VibePlayerAdapter;
+  adapterFactory: (
+    source: VibePlayerSource
+  ) => VibePlayerAdapter | Promise<VibePlayerAdapter>;
   onAnalyticsEvent?: (event: VibePlayerAnalyticsEvent) => void;
+  onEnded?: (state: VibePlayerControllerState) => void;
   onError?: (error: VibePlayerError) => void;
+  onEvent?: (event: VibePlayerEvent) => void;
+  onPause?: (state: VibePlayerControllerState) => void;
+  onPlay?: (state: VibePlayerControllerState) => void;
+  onProgress?: (state: VibePlayerControllerState) => void;
+  onQualityChange?: (state: VibePlayerControllerState) => void;
+  onRenew?: (source: VibePlayerSource) => void;
+  renewSource?: (() => Promise<VibePlayerSource>) | undefined;
   resumeStore?: VibePlayerResumeStore;
 }

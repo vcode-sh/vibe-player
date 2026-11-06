@@ -3,6 +3,11 @@ export {
   useVibePlayer,
 } from "./use-vibe-player";
 export {
+  type UseVibePlayerAudioFocusOptions,
+  useVibePlayerAudioFocus,
+  type VibePlayerAudioFocusBinding,
+} from "./use-vibe-player-audio-focus";
+export {
   type UseVibePlayerCaptionsOptions,
   useVibePlayerCaptions,
   type VibePlayerCaptionStatus,
@@ -29,3 +34,4 @@ export {
   type UseVibePlayerShortcutsOptions,
   useVibePlayerShortcuts,
 } from "./use-vibe-player-shortcuts";
+export type { VibePlayerVisibilityOptions } from "./use-vibe-player-visibility";

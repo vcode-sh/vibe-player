@@ -3,9 +3,18 @@ export {
   type VibePlayerCaptionOverlayProps,
 } from "./vibe-player-caption-overlay";
 export {
+  VibePlayerCompact,
+  type VibePlayerCompactProps,
+} from "./vibe-player-compact";
+export {
   VibePlayerControls,
   type VibePlayerControlsProps,
 } from "./vibe-player-controls";
+export {
+  VibePlayerHeadless,
+  type VibePlayerHeadlessProps,
+  type VibePlayerHeadlessVideoProps,
+} from "./vibe-player-headless";
 export {
   VibePlayerInline,
   type VibePlayerInlineProps,
@@ -18,6 +27,10 @@ export {
   VibePlayerQualityControl,
   type VibePlayerQualityControlProps,
 } from "./vibe-player-quality-control";
+export {
+  VibePlayerScrubber,
+  type VibePlayerScrubberProps,
+} from "./vibe-player-scrubber";
 export type {
   VibePlayerSeekThumbnail,
   VibePlayerSeekThumbnailSprite,
@@ -35,10 +48,27 @@ export {
   type VibePlayerStageStatusProps,
 } from "./vibe-player-stage-status";
 export type { VibePlayerPlaybackOptions } from "./vibe-player-stage-types";
+export type {
+  VibePlayerCompactControls,
+  VibePlayerCompactSkin,
+  VibePlayerCompactSlots,
+  VibePlayerSurface,
+  VibePlayerSurfaceActions,
+  VibePlayerSurfacePhase,
+  VibePlayerSurfaceState,
+} from "./vibe-player-surface-types";
 export {
   VibePlayerTimeline,
   type VibePlayerTimelineProps,
 } from "./vibe-player-timeline";
+export type { VibePlayerUIOptions } from "./vibe-player-ui-context";
+export type {
+  VibePlayerClassNames,
+  VibePlayerIconProps,
+  VibePlayerIcons,
+  VibePlayerLabels,
+  VibePlayerVariant,
+} from "./vibe-player-ui-types";
 export {
   VibePlayerVolumeControl,
   type VibePlayerVolumeControlProps,

@@ -1,3 +1,4 @@
+import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 export interface VibePlayerCaptionOverlayProps {
   className?: string;
   lines: string[];
@@ -7,13 +8,16 @@ export function VibePlayerCaptionOverlay({
   className,
   lines,
 }: VibePlayerCaptionOverlayProps) {
+  const { classNames } = useVibePlayerUI();
   if (lines.length === 0) {
     return null;
   }
 
-  const rootClassName = className
-    ? `vibe-player-caption-overlay ${className}`
-    : "vibe-player-caption-overlay";
+  const rootClassName = vibePlayerClassName(
+    "vibe-player-caption-overlay",
+    classNames.captions,
+    className
+  );
 
   return (
     <div aria-live="polite" className={rootClassName}>

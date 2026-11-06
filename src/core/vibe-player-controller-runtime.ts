@@ -1,0 +1,249 @@
+import { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
+import { loadVibePlayerControllerSource } from "./vibe-player-controller-load";
+import { handleVibePlayerLoadError } from "./vibe-player-controller-load-error";
+import { mountVibePlayerControllerAdapter } from "./vibe-player-controller-mount";
+import type { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
+import { createIdleSnapshot } from "./vibe-player-time";
+import type {
+  VibePlayerAdapter,
+  VibePlayerAdapterEvent,
+  VibePlayerControllerOptions,
+  VibePlayerControllerState,
+  VibePlayerSource,
+} from "./vibe-player-types";
+
+interface ControllerRuntimeOptions {
+  applyPreferences(): Promise<void>;
+  clearIntent(): void;
+  event(event: VibePlayerAdapterEvent): void;
+  isPlayRequested(): boolean;
+  observers: VibePlayerControllerObservers;
+  options: VibePlayerControllerOptions;
+}
+
+/** Adapter attachment, mounting and release share one operation generation. */
+export class VibePlayerControllerRuntime {
+  adapter: VibePlayerAdapter | null = null;
+  operationGeneration = 0;
+  readonly analyticsSession: VibePlayerAnalyticsSession;
+  readonly resumeStore: VibePlayerControllerOptions["resumeStore"];
+  private adapterUnsubscribe: (() => void) | null = null;
+  private target: HTMLElement | null = null;
+  private presentationTarget: HTMLElement | null = null;
+  private readonly adapterFactory: VibePlayerControllerOptions["adapterFactory"];
+  private readonly observers: VibePlayerControllerObservers;
+  private readonly hooks: ControllerRuntimeOptions;
+
+  constructor(hooks: ControllerRuntimeOptions) {
+    this.hooks = hooks;
+    this.observers = hooks.observers;
+    this.adapterFactory = hooks.options.adapterFactory;
+    this.resumeStore = this.observers.wrapResumeStore();
+    this.analyticsSession = new VibePlayerAnalyticsSession(
+      this.observers.emitAnalytics
+    );
+  }
+  async mount(target: HTMLElement, presentationTarget = target): Promise<void> {
+    const targetChanged =
+      this.target !== target ||
+      this.presentationTarget !== presentationTarget ||
+      !this.observers.state.isMounted;
+    this.target = target;
+    this.presentationTarget = presentationTarget;
+    if (targetChanged) {
+      this.observers.updateState({ isMounted: true });
+    }
+    const { adapter, operationGeneration } = this;
+    await mountVibePlayerControllerAdapter({
+      adapter,
+      emitAnalytics: this.observers.emitAnalytics,
+      isCurrent: () =>
+        this.isCurrentOperation(operationGeneration) &&
+        this.adapter === adapter &&
+        this.target === target &&
+        this.presentationTarget === presentationTarget,
+      presentationTarget,
+      source: this.observers.state.currentSource,
+      target,
+      targetChanged,
+      updateState: (next) => this.updateState(next),
+    });
+  }
+
+  async unmount(): Promise<void> {
+    this.operationGeneration += 1;
+    this.hooks.clearIntent();
+    const { operationGeneration } = this;
+    this.target = null;
+    this.presentationTarget = null;
+    await this.teardownAdapter();
+    if (this.isCurrentOperation(operationGeneration) && this.target === null) {
+      this.observers.updateState({
+        capabilities: null,
+        isMounted: false,
+        snapshot: {
+          ...this.observers.state.snapshot,
+          paused: true,
+          readyState: "idle",
+        },
+      });
+    }
+  }
+
+  async closeSource(): Promise<void> {
+    this.operationGeneration += 1;
+    this.hooks.clearIntent();
+    const { operationGeneration } = this;
+    this.analyticsSession.close(this.observers.state);
+    await this.teardownAdapter();
+    if (this.isCurrentOperation(operationGeneration)) {
+      this.analyticsSession.clear();
+      this.observers.reset(this.observers.state.isMounted);
+    }
+  }
+
+  async teardown(): Promise<void> {
+    this.operationGeneration += 1;
+    this.hooks.clearIntent();
+    const { operationGeneration } = this;
+    this.analyticsSession.close(this.observers.state);
+    await this.teardownAdapter();
+    if (this.isCurrentOperation(operationGeneration)) {
+      this.analyticsSession.clear();
+      this.target = null;
+      this.presentationTarget = null;
+      this.observers.reset();
+    }
+  }
+
+  async attachSource(source: VibePlayerSource): Promise<void> {
+    this.operationGeneration += 1;
+    this.hooks.clearIntent();
+    const { operationGeneration } = this;
+    await loadVibePlayerControllerSource({
+      adapterFactory: this.adapterFactory,
+      analyticsSession: this.analyticsSession,
+      beginSession: () => this.observers.beginSession(),
+      currentState: this.observers.state,
+      emitAnalytics: this.observers.emitAnalytics,
+      handleAdapterEvent: (event) => this.hooks.event(event),
+      isCurrentOperation: (generation) => this.isCurrentOperation(generation),
+      operationGeneration,
+      presentationTarget: this.presentationTarget,
+      resumeStore: this.resumeStore,
+      setAdapter: (adapter) => {
+        this.adapter = adapter;
+      },
+      setAdapterUnsubscribe: (unsubscribe) => {
+        this.adapterUnsubscribe = unsubscribe;
+      },
+      source,
+      syncFromAdapter: () => this.syncFromAdapter(),
+      target: this.target,
+      teardownAdapter: () => this.teardownAdapter(),
+      updateState: (next) => this.updateState(next),
+    });
+    if (this.isCurrentOperation(operationGeneration)) {
+      await this.hooks.applyPreferences();
+    }
+  }
+
+  async prepareSource(source: VibePlayerSource): Promise<void> {
+    this.operationGeneration += 1;
+    this.hooks.clearIntent();
+    const { operationGeneration } = this;
+    this.analyticsSession.close(this.observers.state);
+    await this.teardownAdapter();
+    if (!this.isCurrentOperation(operationGeneration)) {
+      return;
+    }
+    this.analyticsSession.clear();
+    this.observers.beginSession();
+    this.observers.updateState({
+      capabilities: null,
+      currentSource: source,
+      error: null,
+      lastEvent: null,
+      playbackBlocked: false,
+      snapshot: {
+        ...createIdleSnapshot(),
+        duration: source.durationSeconds ?? 0,
+      },
+    });
+  }
+
+  async suspend(loading: boolean): Promise<void> {
+    this.operationGeneration += 1;
+    this.hooks.clearIntent();
+    const { operationGeneration } = this;
+    const { snapshot, currentSource } = this.observers.state;
+    await this.teardownAdapter();
+    if (!this.isCurrentOperation(operationGeneration)) {
+      return;
+    }
+    this.observers.updateState({
+      capabilities: null,
+      error: null,
+      lastEvent: null,
+      playbackBlocked: false,
+      snapshot: {
+        ...snapshot,
+        paused: !loading,
+        readyState: loading ? "loading" : "idle",
+      },
+    });
+    if (!loading && currentSource) {
+      this.observers.emitEvent({
+        snapshot: this.observers.state.snapshot,
+        source: currentSource,
+        type: "stop",
+      });
+    }
+  }
+
+  failRenewal(cause: unknown): void {
+    const source = this.observers.state.currentSource;
+    if (source && !this.observers.state.error) {
+      handleVibePlayerLoadError({
+        adapter: this.adapter,
+        cause,
+        emitAnalytics: this.observers.emitAnalytics,
+        phase: "load",
+        source,
+        updateState: (next) => this.observers.updateState(next),
+      });
+    }
+  }
+
+  syncFromAdapter(): void {
+    if (this.adapter) {
+      this.updateState({
+        capabilities: this.adapter.capabilities,
+        snapshot: this.adapter.getSnapshot(),
+      });
+    }
+  }
+  updateState(
+    next: Partial<VibePlayerControllerState>,
+    isCurrent = () => true
+  ): VibePlayerControllerState {
+    const { snapshot } = next;
+    if (snapshot?.readyState === "loading" && this.hooks.isPlayRequested()) {
+      return this.observers.updateState(
+        { ...next, snapshot: { ...snapshot, paused: false } },
+        isCurrent
+      );
+    }
+    return this.observers.updateState(next, isCurrent);
+  }
+  private async teardownAdapter(): Promise<void> {
+    this.adapterUnsubscribe?.();
+    this.adapterUnsubscribe = null;
+    const { adapter } = this;
+    this.adapter = null;
+    await adapter?.unmount();
+  }
+  isCurrentOperation(generation: number): boolean {
+    return this.operationGeneration === generation;
+  }
+}

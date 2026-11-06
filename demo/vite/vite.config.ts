@@ -20,6 +20,13 @@ function getResolveConfig(mode: string) {
         replacement: resolve(packageRoot, "src/styles/vibe-player.css"),
       },
       {
+        find: "vibe-player/chips.css",
+        replacement: resolve(
+          packageRoot,
+          "src/styles/vibe-player-chips-entry.css"
+        ),
+      },
+      {
         find: "vibe-player",
         replacement: resolve(packageRoot, "src/index.ts"),
       },

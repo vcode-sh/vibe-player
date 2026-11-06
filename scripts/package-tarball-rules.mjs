@@ -1,5 +1,7 @@
 const packedLinePattern = /^packed\s+\S+\s+(.+)$/;
 const lineBreakPattern = /\r\n|\r|\n/;
+const generatedChunkPattern =
+  /^dist\/(?:chunks\/)?[A-Za-z0-9_-]+-[A-Za-z0-9_-]{8,}\.(?:js|d\.ts)$/;
 
 export const expectedPackageFiles = [
   "CHANGELOG.md",
@@ -8,6 +10,13 @@ export const expectedPackageFiles = [
   "dist/index.d.ts",
   "dist/index.js",
   "dist/styles.css",
+  "dist/chips.css",
+  "dist/hook.js",
+  "dist/hook.d.ts",
+  "dist/stage.js",
+  "dist/stage.d.ts",
+  "dist/compact.js",
+  "dist/compact.d.ts",
   "docs/integration.md",
   "docs/media-delivery.md",
   "docs/usage.md",
@@ -48,7 +57,12 @@ export function collectPackageArchiveIssues(actualFiles) {
 
   const extraFiles = [];
   for (const actualFile of actualFiles) {
-    if (!expectedPackageFiles.includes(actualFile)) {
+    if (
+      !(
+        expectedPackageFiles.includes(actualFile) ||
+        generatedChunkPattern.test(actualFile)
+      )
+    ) {
       extraFiles.push(actualFile);
     }
   }

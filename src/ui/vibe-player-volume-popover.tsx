@@ -6,6 +6,7 @@ import {
   type RefObject,
   useRef,
 } from "react";
+import { useVibePlayerUI } from "./vibe-player-ui-context";
 import { clampVibePlayerVolumePercent } from "./vibe-player-volume-percent";
 
 const volumeHashMarks = [0, 25, 50, 75, 100];
@@ -62,6 +63,7 @@ export function VibePlayerVolumePopover({
   sliderRef,
   valueText,
 }: VibePlayerVolumePopoverProps) {
+  const { labels } = useVibePlayerUI();
   const pointerIdRef = useRef<number | null>(null);
 
   function setVolumeFromPointer(event: PointerEvent<HTMLDivElement>): void {
@@ -113,13 +115,13 @@ export function VibePlayerVolumePopover({
 
   return (
     <div
-      aria-label="Volume"
+      aria-label={labels.volume}
       className="vibe-player-volume-control__popover"
       id={id}
       role="dialog"
     >
       <div
-        aria-label="Volume"
+        aria-label={labels.volume}
         aria-orientation={orientation}
         aria-valuemax={100}
         aria-valuemin={0}

@@ -53,6 +53,22 @@ describe("useVibePlayerChrome", () => {
     expect(result.current.chromeHidden).toBe(true);
   });
 
+  it("keeps controls visible after playback pauses or ends", () => {
+    const { result, rerender } = renderHook(
+      ({ playing }) =>
+        useVibePlayerChrome({ idleDelayMs: 1000, open: true, playing }),
+      { initialProps: { playing: true } }
+    );
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.chromeHidden).toBe(true);
+    rerender({ playing: false });
+    act(() => vi.advanceTimersByTime(5000));
+    expect(result.current.chromeHidden).toBe(false);
+    rerender({ playing: true });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.chromeHidden).toBe(true);
+  });
+
   it("cancels a pending hide when disabled and resumes it when enabled", () => {
     const { result, rerender } = renderHook(
       ({ autoHide }) =>
