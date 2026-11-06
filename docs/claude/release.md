@@ -94,15 +94,17 @@ dist tag.
 
 ## Manual checks
 
-For local release validation, run the same full gate as the release workflow:
+For local release validation, reproduce the Release gate: install browser
+engines once, then run `bun run ci` (which builds `dist`) followed by the
+browser lane:
 
 ```bash
+bunx playwright install --with-deps chromium firefox webkit
 bun run ci
+bun run test:browser
 ```
 
-Reproducing the full Release gate locally means `bun run ci` followed by
-`bun run test:browser`. Install engines once with
-`bunx playwright install --with-deps chromium firefox webkit` and build first.
+Local `bun run ci` alone omits the browser lane that Release runs.
 
 Before publishing, the workflow also verifies the minimum Node/React runtime;
 it reuses the built package instead of installing and building it in another
