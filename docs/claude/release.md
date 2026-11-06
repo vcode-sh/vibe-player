@@ -38,8 +38,9 @@ release-state guard, TypeScript, tests, build, styles, size, public surface,
 tarball, publint, ATTW, the packaged consumer, and a type check of the browser
 specs. After `bun run ci`, Release installs Chromium and WebKit with
 `--with-deps` and runs `bun run test:browser` as a separate gate before
-publishing. On failure it uploads `test-results/` (traces, screenshots) as the
-`browser-acceptance-results` artifact, kept for 7 days. Local `bun run ci`
+publishing. On failure or cancellation (including the job timeout) it uploads
+`test-results/` (traces, screenshots) as the `browser-acceptance-results`
+artifact, kept for 7 days. Local `bun run ci`
 deliberately excludes the browser lane. The release-state guard fails if those
 workflow steps are removed or moved outside the span between `bun run ci` and
 publishing; see

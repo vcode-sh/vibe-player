@@ -44,7 +44,8 @@ SDK getter.
   claim successful PiP on that platform.
 - Full `bun run ci` passes: types, formatting, coding/layer/dependency rules,
   release state, tests, build, CSS, size, public surface, tarball, publint, ATTW,
-  both demo builds, installed consumer and browser lanes. `bun run lint` passes.
+  both demo builds and installed consumer. The browser lane ran separately with
+  `bun run test:browser`, not as part of `ci`. `bun run lint` passes.
 - Installed consumers pass on **Node 22.0.0 / React 19.2.7**, **Node 24.22.1 /
   React 19.3.1**, and local **Node 26.5.0 / React 19.3.1**. Fourteen shipped
   TypeScript recipes compile. The minimum Node lane intentionally skips Vite's
@@ -53,8 +54,8 @@ SDK getter.
   The isolated native AT-SPI/Orca/OS-key probe also passes on the final build.
 - Runtime ESM: **162,683 bytes raw / 35,567 bytes gzip**, within unchanged budgets.
 
-Install both engines before `bun run ci`:
-`bunx playwright install --with-deps chromium webkit`. The live provider and
+Install both engines for `bun run test:browser`, which Release runs after
+`bun run ci`: `bunx playwright install --with-deps chromium webkit`. The live provider and
 native assistive-tool lanes remain separate from deterministic CI.
 
 ## N01–N04 follow-up results

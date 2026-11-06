@@ -6,7 +6,7 @@ what the cheapest way to keep it would be. Measured values come from GitHub
 Actions job/step timestamps and log lines. Anything marked **est.** is an estimate.
 
 Status: adopted 2026-11-06 — Release runs the browser lane after `bun run ci`
-and uploads failure evidence (open question 4).
+and uploads failure and cancellation evidence (open question 4).
 
 ## TL;DR
 
