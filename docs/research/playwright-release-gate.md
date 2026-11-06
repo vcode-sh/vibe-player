@@ -179,7 +179,7 @@ Primary-source notes:
   `sh`; `--network`/`--entrypoint` options are not supported
   ([GitHub docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container)).
 
-## Recommended workflow change (not applied)
+## Recommended workflow change (adopted, see Status)
 
 Keep `package.json` `ci` as it is in the working tree, without `test:browser`, so
 local `bun run ci` stays fast. Add the lane back to `.github/workflows/release.yml`
@@ -209,8 +209,8 @@ Leave out step timeouts on the install step. The observed 564 s apt run would
 have failed under any tight limit, and the job-level 15 minutes already covers
 the worst case seen (about 12 min).
 
-If you adopt this, these working-tree doc edits contradict it and need reverting
-or rewording:
+Adopted in the same change, which also reworded these then-contradicting doc
+edits:
 - `docs/claude/release.md:39-41` ("Playwright browser acceptance is not a release gate")
 - the matching `CONTRIBUTING.md` lines
 
@@ -236,10 +236,10 @@ trial run confirms three things:
    `workers: 1` / `fullyParallel: false` (`playwright.config.ts:5,43`), and
    Playwright recommends 1 in CI. Fullscreen/PiP and focus tests may share global
    state, so treat this as unverified.
-4. **Failure diagnostics.** The config keeps traces and screenshots on failure
-   (`playwright.config.ts:31-35`), but Release does not upload `test-results/`.
-   Consider an `actions/upload-artifact` step with `if: failure()`, pinned to
-   whatever version the repo standardizes on. I did not verify a version.
+4. **Failure diagnostics (resolved).** The config keeps traces and screenshots
+   on failure (`playwright.config.ts:31-35`). Release now uploads
+   `test-results/` with `actions/upload-artifact@v7.0.2` on
+   `failure() || cancelled()`.
 5. **Apt mirror slowness.** Is the slow mirror seen on 2026-10-22 recurring or
    a one-off? With n=6 it is not possible to tell. Re-check after a few more
    releases before deciding on the Docker path.

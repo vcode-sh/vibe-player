@@ -40,16 +40,16 @@ specs. After `bun run ci`, Release installs Chromium and WebKit with
 `--with-deps` and runs `bun run test:browser` as a separate gate before
 publishing. On failure or cancellation (including the job timeout) it uploads
 `test-results/` (traces, screenshots) as the `browser-acceptance-results`
-artifact, kept for 7 days. Local `bun run ci`
-deliberately excludes the browser lane. The release-state guard fails if those
-workflow steps are removed or moved outside the span between `bun run ci` and
-publishing; see
-[the timing rationale](../research/playwright-release-gate.md). The same job
-then checks the built package on exact Node 22.0.0 /
-React 19.2.7, restores Node 26, and runs
-`bun run release:publish --no-git-tag` to publish the committed version.
-The minimum-runtime check skips the Vite consumer build,
-whose toolchain requires a newer Node than package runtime. Node 26 consumer
+artifact, kept for 7 days. Local `bun run ci` deliberately excludes the
+browser lane. The release-state guard fails if those workflow steps are
+removed, moved outside the span between `bun run ci` and publishing, given an
+`if:` condition or `continue-on-error`, or if the publish step gets an `if:`
+condition; see [the timing rationale](../research/playwright-release-gate.md).
+The same job then checks the built package on exact Node 22.0.0 / React
+19.2.7, restores Node 26, and runs `bun run release:publish --no-git-tag` to
+publish the committed version. The minimum-runtime check skips the Vite
+consumer build, whose toolchain requires a newer Node than package runtime.
+Node 26 consumer
 coverage already belongs to `bun run ci`.
 
 Changesets prepares versions and changelogs locally. There is no automatic

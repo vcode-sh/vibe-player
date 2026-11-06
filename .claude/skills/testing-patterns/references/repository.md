@@ -75,9 +75,8 @@ TypeScript, unit tests, build, styles/size/surface/tarball, publint, ATTW,
 packaged consumer and a type check of the browser specs. Release then runs
 deterministic browser acceptance (`bun run test:browser`) and the minimum
 Node/React check as separate workflow steps; local `ci` does not run the
-browser lane. Do not weaken or replace these
-gates with a selected test or a mock. Do not run release/publish commands for a
-test-quality task.
+browser lane. Do not weaken or replace these gates with a selected test or a
+mock. Do not run release/publish commands for a test-quality task.
 
 ## Browser, provider and environment boundaries
 

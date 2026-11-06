@@ -43,9 +43,10 @@ checks an isolated tarball consumer on Node 22.0.0 with React 19.2.7 and on
 Node 24 with the development React version.
 
 `bun run ci` checks the package, both demo builds and an isolated packed
-consumer, and type-checks the browser specs without running them. Chromium/WebKit
-acceptance (`bun run test:browser`) is excluded from local `bun run ci` but
-gates every Release; Playwright also installs required system libraries on Linux with `--with-deps`.
+consumer, and type-checks the browser specs without running them.
+Chromium/WebKit acceptance (`bun run test:browser`) is excluded from local
+`bun run ci` but gates every Release. On Linux, `playwright install
+--with-deps` also installs the required system libraries.
 `bun run demo:vite:verify`, `bun run package:consumer`, and
 `bun run test:browser` expect the package to have been built first.
 Vitest runs CLI tests in Node and component tests in Happy DOM. Playwright owns
