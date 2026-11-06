@@ -1,11 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { collectReleaseStateIssues } from "./release-state-rules.mjs";
+import { collectReleaseWorkflowIssues } from "./release-workflow-rules.mjs";
 
 const packageJsonPath = resolve(import.meta.dirname, "../package.json");
 const changesetConfigPath = resolve(
   import.meta.dirname,
   "../.changeset/config.json"
+);
+const releaseWorkflowPath = resolve(
+  import.meta.dirname,
+  "../.github/workflows/release.yml"
 );
 const mediaAuditBinPath = resolve(
   import.meta.dirname,
@@ -25,9 +30,13 @@ function reportIssues(failures) {
 const manifest = JSON.parse(await readFile(packageJsonPath, "utf8"));
 const changesetConfig = JSON.parse(await readFile(changesetConfigPath, "utf8"));
 const mediaAuditBinSource = await readFile(mediaAuditBinPath, "utf8");
-const issues = collectReleaseStateIssues(manifest, changesetConfig, {
-  mediaAuditBinSource,
-});
+const releaseWorkflowSource = await readFile(releaseWorkflowPath, "utf8");
+const issues = [
+  ...collectReleaseStateIssues(manifest, changesetConfig, {
+    mediaAuditBinSource,
+  }),
+  ...collectReleaseWorkflowIssues(releaseWorkflowSource),
+];
 
 reportIssues(issues);
 

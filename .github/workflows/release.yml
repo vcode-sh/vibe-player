@@ -39,6 +39,22 @@ jobs:
       - name: Release quality gates
         run: bun run ci
 
+      - name: Install browser engines
+        run: bunx playwright install --with-deps chromium webkit
+
+      - name: Browser acceptance (Chromium + WebKit native HLS)
+        timeout-minutes: 5
+        run: bun run test:browser
+
+      - name: Upload browser failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: browser-acceptance-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Setup minimum consumer Node
         uses: actions/setup-node@v7.1.0
         with:
