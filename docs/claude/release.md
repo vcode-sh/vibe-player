@@ -36,9 +36,15 @@ Release runs only through `workflow_dispatch` on `main`. It runs `bun run ci`
 once on Node 26, including package rules, boundaries, dependency guard,
 release-state guard, TypeScript, tests, build, styles, size, public surface,
 tarball, publint, ATTW, the packaged consumer, and a type check of the browser
-specs. Playwright browser acceptance is not a release gate; run
-`bun run test:browser` locally when a change touches playback, focus, rendering
-or motion. The same job then checks the built package on exact Node 22.0.0 /
+specs. After `bun run ci`, Release installs Chromium and WebKit with
+`--with-deps` and runs `bun run test:browser` as a separate gate before
+publishing. On failure it uploads `test-results/` (traces, screenshots) as the
+`browser-acceptance-results` artifact, kept for 7 days. Local `bun run ci`
+deliberately excludes the browser lane. The release-state guard fails if those
+workflow steps are removed or moved outside the span between `bun run ci` and
+publishing; see
+[the timing rationale](../research/playwright-release-gate.md). The same job
+then checks the built package on exact Node 22.0.0 /
 React 19.2.7, restores Node 26, and runs
 `bun run release:publish --no-git-tag` to publish the committed version.
 The minimum-runtime check skips the Vite consumer build,
@@ -94,9 +100,9 @@ For local release validation, run the same full gate as the release workflow:
 bun run ci
 ```
 
-Browser acceptance is a separate local lane. Install engines once with
-`bunx playwright install --with-deps chromium firefox webkit`, build, then run
-`bun run test:browser`.
+Reproducing the full Release gate locally means `bun run ci` followed by
+`bun run test:browser`. Install engines once with
+`bunx playwright install --with-deps chromium firefox webkit` and build first.
 
 Before publishing, the workflow also verifies the minimum Node/React runtime;
 it reuses the built package instead of installing and building it in another

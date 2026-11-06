@@ -72,8 +72,10 @@ and the task acceptance contract. Current PR CI runs `check`, `check-types`,
 `test`, and `build`. Broad suite changes warrant the relevant root gates;
 release validation uses `bun run ci`, including package rules/boundaries,
 TypeScript, unit tests, build, styles/size/surface/tarball, publint, ATTW,
-packaged consumer and deterministic browser acceptance. Minimum Node/React
-acceptance is a separate release-workflow step. Do not weaken or replace these
+packaged consumer and a type check of the browser specs. Release then runs
+deterministic browser acceptance (`bun run test:browser`) and the minimum
+Node/React check as separate workflow steps; local `ci` does not run the
+browser lane. Do not weaken or replace these
 gates with a selected test or a mock. Do not run release/publish commands for a
 test-quality task.
 

@@ -83,7 +83,7 @@ media APIs and network responses remain real.
 Linux WebKit 27.2 requires `WEBKIT_GST_ENABLE_HLS_SUPPORT=1` to enable its actual
 GStreamer HLS backend; only the WebKit test project sets it. PiP is absent on
 this platform, and its case verifies absent controls with an unsupported-API
-annotation. Actual Chromium PiP remains independently tested. CI/release install
+annotation. Actual Chromium PiP remains independently tested. Release installs
 both engines. This does not establish physical Safari/iOS behavior.
 
 ### N03 — Live YouTube acceptance: implemented and verified
