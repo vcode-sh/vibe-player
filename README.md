@@ -118,6 +118,12 @@ without pointer activity, or `controlsHideDelay` ms, and at once when the mouse
 leaves. Full chrome waits 2400 ms. Only keyboard focus on a control keeps them
 visible. `controls`, `slots`, `onExpand` and `renderOverlay` customise the
 compact surface; see [Compact Skins](./docs/usage.md#compact-skins).
+`host` moves one playing compact player between host elements (inline slot,
+mini-player) without restarting it; see
+[Detached Hosts](./docs/usage.md#detached-hosts). `timelineBackground` and
+`VibePlayerHeatmap` draw a "most replayed" graph under the timeline, and the
+opt-in `onWatchedRanges` reports the ranges actually watched so the host can
+aggregate them.
 `VibePlayerModal` starts playback when it opens; pass `autoPlay={false}` to
 wait for Play.
 `audioFocus` groups coordinate audible players and host media. Hidden tabs and
@@ -160,7 +166,7 @@ test patterns, not product media.
 ## Bundle Size
 
 `bun run package:size` measures built output and enforces an initial combined
-compact + hook budget of **18,500 B gzip**, excluding React, React DOM, and
+compact + hook budget of **19,500 B gzip**, excluding React, React DOM, and
 `hls.js`. Provider bridges and the Ink Chips skin are separate chunks loaded
 on first use; the report also includes their deferred bytes and the complete
 consumer bundle.

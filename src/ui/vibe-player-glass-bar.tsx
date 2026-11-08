@@ -1,4 +1,9 @@
-import { EnterFullscreenIcon, MuteIcon, VolumeIcon } from "./vibe-player-icons";
+import {
+  EnterFullscreenIcon,
+  MuteIcon,
+  PictureInPictureIcon,
+  VolumeIcon,
+} from "./vibe-player-icons";
 import { VibePlayerScrubber } from "./vibe-player-scrubber";
 import {
   playbackSwapItems,
@@ -72,6 +77,22 @@ export function VibePlayerGlassBar({
         >
           {time}
         </span>
+      ) : null}
+      {controls.pictureInPicture ? (
+        <button
+          aria-label={
+            state.pictureInPicture
+              ? labels.exitPictureInPicture
+              : labels.pictureInPicture
+          }
+          aria-pressed={state.pictureInPicture}
+          className={button}
+          data-part="picture-in-picture"
+          onClick={actions.togglePictureInPicture}
+          type="button"
+        >
+          <PictureInPictureIcon />
+        </button>
       ) : null}
       {controls.fullscreen ? (
         <button

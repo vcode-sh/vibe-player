@@ -30,6 +30,7 @@ export interface UseVibePlayerControllerOptions
       | "onProgress"
       | "onQualityChange"
       | "onRenew"
+      | "onWatchedRanges"
       | "renewSource"
       | "resumeStore"
     > {
@@ -45,6 +46,7 @@ export interface UseVibePlayerControllerOptions
   onProgress?: VibePlayerControllerOptions["onProgress"] | undefined;
   onQualityChange?: VibePlayerControllerOptions["onQualityChange"] | undefined;
   onRenew?: VibePlayerControllerOptions["onRenew"] | undefined;
+  onWatchedRanges?: VibePlayerControllerOptions["onWatchedRanges"] | undefined;
   renewSource?: VibePlayerControllerOptions["renewSource"] | undefined;
   resumeStore?: VibePlayerControllerOptions["resumeStore"] | undefined;
 }
@@ -82,6 +84,8 @@ export function useVibePlayerController(
         onQualityChange: (nextState) =>
           callbacks.current.onQualityChange?.(nextState),
         onRenew: (source) => callbacks.current.onRenew?.(source),
+        onWatchedRanges: (report) =>
+          callbacks.current.onWatchedRanges?.(report),
         get renewSource() {
           return callbacks.current.renewSource;
         },
@@ -96,6 +100,22 @@ export function useVibePlayerController(
     },
     [controller]
   );
+
+  // A hidden page may never come back; deliver watched ranges while it can.
+  useEffect(() => {
+    const flush = () => controller.flushWatchedRanges("hidden");
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flush();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, [controller]);
 
   const subscribe = useCallback(
     (listener: () => void) => controller.subscribe(listener),

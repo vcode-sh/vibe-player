@@ -1,6 +1,7 @@
 import {
   EnterFullscreenIcon,
   MuteIcon,
+  PictureInPictureIcon,
   UnavailableIcon,
   VolumeIcon,
 } from "./vibe-player-icons";
@@ -16,7 +17,10 @@ import {
   VibePlayerSwap,
 } from "./vibe-player-surface-parts";
 import { isVibePlayerSurfacePlaying } from "./vibe-player-surface-phase";
-import type { VibePlayerSurfaceState } from "./vibe-player-surface-types";
+import type {
+  VibePlayerSurface,
+  VibePlayerSurfaceState,
+} from "./vibe-player-surface-types";
 import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 import type { VibePlayerLabels } from "./vibe-player-ui-types";
 
@@ -50,7 +54,6 @@ export default function VibePlayerChipsSkin(props: VibePlayerSkinProps) {
   const end = renderVibePlayerSlot(props, "ended");
   const error = renderVibePlayerSlot(props, "error");
   const custom = idle.custom || end.custom;
-  const hidden = playing && !controlsVisible;
   const primaryLabel = getVibePlayerPrimaryLabel(phase, labels);
   const primaryVisible =
     !custom &&
@@ -106,47 +109,7 @@ export default function VibePlayerChipsSkin(props: VibePlayerSkinProps) {
             </span>
           </span>
         </button>
-        <span className="vibe-player-chips__side">
-          {controls.fullscreen ? (
-            <button
-              {...revealProps(
-                controlsVisible,
-                "vibe-player-chips__round vibe-player-chips__expand",
-                "fullscreen",
-                classNames.button
-              )}
-              aria-label={labels.fullscreen}
-              onClick={actions.toggleFullscreen}
-              type="button"
-            >
-              <span className={`vibe-player-chips__dot ${chip}`}>
-                <EnterFullscreenIcon />
-              </span>
-            </button>
-          ) : null}
-          {controls.mute ? (
-            <button
-              {...revealProps(
-                controlsVisible || (hidden && state.autoplayMuted),
-                "vibe-player-chips__round",
-                state.controlsVisible ? "mute" : "unmute",
-                state.controlsVisible ? classNames.button : classNames.unmute
-              )}
-              aria-label={state.muted ? labels.unmute : labels.mute}
-              onClick={actions.toggleMute}
-              type="button"
-            >
-              <span className={`vibe-player-chips__dot ${chip}`}>
-                <VibePlayerSwap
-                  items={[
-                    { icon: <VolumeIcon />, key: "on", visible: !state.muted },
-                    { icon: <MuteIcon />, key: "off", visible: state.muted },
-                  ]}
-                />
-              </span>
-            </button>
-          ) : null}
-        </span>
+        <VibePlayerChipsSide surface={props.surface} />
       </div>
       <div
         {...revealProps(
@@ -174,5 +137,78 @@ export default function VibePlayerChipsSkin(props: VibePlayerSkinProps) {
       {end.node}
       {error.node}
     </div>
+  );
+}
+
+/** Corner controls: Picture-in-Picture, fullscreen and mute. */
+function VibePlayerChipsSide({ surface }: { surface: VibePlayerSurface }) {
+  const { classNames, labels } = useVibePlayerUI();
+  const { actions, controls, state } = surface;
+  const { controlsVisible } = state;
+  const hidden = isVibePlayerSurfacePlaying(state.phase) && !controlsVisible;
+  return (
+    <span className="vibe-player-chips__side">
+      {controls.pictureInPicture ? (
+        <button
+          {...revealProps(
+            controlsVisible,
+            "vibe-player-chips__round",
+            "picture-in-picture",
+            classNames.button
+          )}
+          aria-label={
+            state.pictureInPicture
+              ? labels.exitPictureInPicture
+              : labels.pictureInPicture
+          }
+          aria-pressed={state.pictureInPicture}
+          onClick={actions.togglePictureInPicture}
+          type="button"
+        >
+          <span className={`vibe-player-chips__dot ${chip}`}>
+            <PictureInPictureIcon />
+          </span>
+        </button>
+      ) : null}
+      {controls.fullscreen ? (
+        <button
+          {...revealProps(
+            controlsVisible,
+            "vibe-player-chips__round vibe-player-chips__expand",
+            "fullscreen",
+            classNames.button
+          )}
+          aria-label={labels.fullscreen}
+          onClick={actions.toggleFullscreen}
+          type="button"
+        >
+          <span className={`vibe-player-chips__dot ${chip}`}>
+            <EnterFullscreenIcon />
+          </span>
+        </button>
+      ) : null}
+      {controls.mute ? (
+        <button
+          {...revealProps(
+            controlsVisible || (hidden && state.autoplayMuted),
+            "vibe-player-chips__round",
+            state.controlsVisible ? "mute" : "unmute",
+            state.controlsVisible ? classNames.button : classNames.unmute
+          )}
+          aria-label={state.muted ? labels.unmute : labels.mute}
+          onClick={actions.toggleMute}
+          type="button"
+        >
+          <span className={`vibe-player-chips__dot ${chip}`}>
+            <VibePlayerSwap
+              items={[
+                { icon: <VolumeIcon />, key: "on", visible: !state.muted },
+                { icon: <MuteIcon />, key: "off", visible: state.muted },
+              ]}
+            />
+          </span>
+        </button>
+      ) : null}
+    </span>
   );
 }

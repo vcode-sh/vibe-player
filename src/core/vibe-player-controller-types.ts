@@ -7,6 +7,7 @@ import type {
   VibePlayerSnapshot,
 } from "./vibe-player-runtime-types";
 import type { VibePlayerSource } from "./vibe-player-source-types";
+import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
 
 /** When a bound source is allowed to create and attach its playback engine. */
 export type VibePlayerLoadMode = "onPlay" | "eager" | "visible";
@@ -76,6 +77,12 @@ export interface VibePlayerControllerOptions {
   onProgress?: (state: VibePlayerControllerState) => void;
   onQualityChange?: (state: VibePlayerControllerState) => void;
   onRenew?: (source: VibePlayerSource) => void;
+  /**
+   * Opt-in: merged media ranges that actually played since the last report,
+   * delivered on pause, end, close, page hide or `flushWatchedRanges()`.
+   * Seeks and scrubbing never count. The host owns delivery and storage.
+   */
+  onWatchedRanges?: (report: VibePlayerWatchedRangesReport) => void;
   renewSource?: (() => Promise<VibePlayerSource>) | undefined;
   resumeStore?: VibePlayerResumeStore;
 }

@@ -8,7 +8,11 @@ import {
 } from "react";
 import { VibePlayerSeekPreview } from "./vibe-player-seek-preview";
 import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
-import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
+import {
+  useVibePlayerUI,
+  VibePlayerTimelineBackgroundLayer,
+  vibePlayerClassName,
+} from "./vibe-player-ui-context";
 
 export interface VibePlayerTimelineProps {
   currentTime: number;
@@ -184,6 +188,10 @@ export function VibePlayerTimeline({
       <span aria-hidden className="vibe-player-timeline__focus" />
       <div aria-hidden className="vibe-player-timeline__track">
         <div className="vibe-player-timeline__base" />
+        <VibePlayerTimelineBackgroundLayer
+          className="vibe-player-timeline__background"
+          duration={hasDuration ? duration : 0}
+        />
         <div
           className="vibe-player-timeline__progress"
           style={{ width: `${progress}%` }}

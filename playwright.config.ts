@@ -13,6 +13,7 @@ export default defineConfig({
       name: "webkit",
       testMatch: [
         "**/webkit*.browser.ts",
+        "**/host-frame.browser.ts",
         "**/selection.browser.ts",
         "**/seek-thumbnails.browser.ts",
       ],

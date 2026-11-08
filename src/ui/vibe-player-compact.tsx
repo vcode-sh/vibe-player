@@ -6,6 +6,7 @@ import {
 } from "./use-vibe-player-surface";
 import { getVibePlayerFrameStyle } from "./vibe-player-frame-style";
 import { VibePlayerGlassSkin } from "./vibe-player-glass-skin";
+import { VibePlayerHostFrame } from "./vibe-player-host-frame";
 import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
 import { VibePlayerPoster } from "./vibe-player-start-surface";
 import type {
@@ -24,6 +25,13 @@ const VibePlayerChipsSkin = lazy(() => import("./vibe-player-chips-skin"));
 /** Inline chrome for chat, comments and feed cards. */
 export interface VibePlayerCompactProps
   extends Omit<UseVibePlayerSurfaceOptions, "variant"> {
+  /**
+   * Detached mode: the player renders into this host element and moves, still
+   * playing, whenever it changes (inline slot, mini-player, dock). `null`
+   * keeps it in the current host. Omit it to render in place; choose the mode
+   * at mount, because switching between them remounts the player.
+   */
+  host?: HTMLElement | null | undefined;
   /** Replaces the skin overlay; the shell keeps media, poster and policy. */
   renderOverlay?: ((surface: VibePlayerSurface) => ReactNode) | undefined;
   /** `glass` (default) or `chips`; the chips chunk loads on first use. */
@@ -149,10 +157,15 @@ function VibePlayerCompactContent({
   );
 }
 
-export function VibePlayerCompact(props: VibePlayerCompactProps) {
-  return (
+export function VibePlayerCompact({ host, ...props }: VibePlayerCompactProps) {
+  const player = (
     <VibePlayerUIProvider {...props}>
       <VibePlayerCompactContent {...props} />
     </VibePlayerUIProvider>
+  );
+  return host === undefined ? (
+    player
+  ) : (
+    <VibePlayerHostFrame host={host}>{player}</VibePlayerHostFrame>
   );
 }

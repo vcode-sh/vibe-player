@@ -10,6 +10,7 @@ import type {
   VibePlayerResumeStore,
   VibePlayerSource,
 } from "./vibe-player-types";
+import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
 
 type StateListener = (state: VibePlayerControllerState) => void;
 
@@ -152,6 +153,10 @@ export class VibePlayerControllerObservers {
       undefined,
       source
     );
+  };
+
+  readonly emitWatchedRanges = (report: VibePlayerWatchedRangesReport) => {
+    this.run("watched-ranges", () => this.options.onWatchedRanges?.(report));
   };
 
   wrapResumeStore(): VibePlayerResumeStore | undefined {

@@ -31,6 +31,8 @@ export interface VibePlayerSurfaceState {
   hold: "keyboard-focus" | "phase" | "scrub" | null;
   muted: boolean;
   phase: VibePlayerSurfacePhase;
+  /** The media plays in a Picture-in-Picture window. */
+  pictureInPicture: boolean;
   /** Scrub or keyboard-seek target until the seek lands; null otherwise. */
   previewTime: number | null;
   scrubbing: boolean;
@@ -60,12 +62,15 @@ export interface VibePlayerSurfaceActions {
   /** Calls the host's `onExpand` when given, else toggles fullscreen. */
   toggleFullscreen(): void;
   toggleMute(): void;
+  togglePictureInPicture(): void;
 }
 
 /** Default parts a host may switch off; capabilities still apply. */
 export interface VibePlayerCompactControls {
   fullscreen?: boolean | undefined;
   mute?: boolean | undefined;
+  /** Opt-in (default false); shown only where the provider supports it. */
+  pictureInPicture?: boolean | undefined;
   seek?: boolean | undefined;
   time?: boolean | undefined;
 }

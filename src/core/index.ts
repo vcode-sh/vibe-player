@@ -82,6 +82,11 @@ export {
   type VibePlayerVolumeState,
   type VibePlayerVolumeStateInput,
 } from "./vibe-player-volume";
+export type {
+  VibePlayerWatchedRange,
+  VibePlayerWatchedRangesReason,
+  VibePlayerWatchedRangesReport,
+} from "./vibe-player-watched-ranges";
 export {
   createVibePlayerYouTubeWatchUrl,
   getVibePlayerYouTubePresentation,

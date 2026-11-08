@@ -2,6 +2,51 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-08
+
+### Added
+
+- `VibePlayerCompact host={element}` renders the compact or feed player into a
+  host element and moves it, still playing, whenever `host` changes (inline
+  slot, mini-player, dock): no remount, re-buffer, `emptied` or `loadstart`.
+  `null` keeps it in its last host. `VibePlayerHostFrame` offers the same move
+  to custom UI built on `useVibePlayer`. File and HLS media move in every
+  engine; a YouTube iframe keeps playing only where `Element.moveBefore()`
+  exists (Chromium) and reloads elsewhere.
+- `timelineBackground={({ duration }) => …}` draws host content under the
+  progress fill of the glass, chips and full-stage timelines without changing
+  their seek hit area. `VibePlayerHeatmap values={…}` is a ready-made "most
+  replayed" graph for it (`--vibe-player-heatmap-color`, `-opacity`,
+  `--vibe-player-timeline-background-height`).
+- `onWatchedRanges` (opt-in, every assembly and the controller) reports the
+  merged media ranges that actually played since the last report, on pause,
+  end, close, page hide, at 64 separate ranges or on
+  `controller.flushWatchedRanges()`. Seeks, scrubs, loops and stalls never
+  count. The package sends and stores nothing.
+- `controls={{ pictureInPicture: true }}` adds an opt-in Picture-in-Picture
+  button to both compact skins where the provider supports it
+  (`data-part="picture-in-picture"`, `surface.actions.togglePictureInPicture`,
+  `surface.state.pictureInPicture`).
+
+### Fixed
+
+- Resuming a paused compact or feed player no longer flashes the poster over
+  the paused frame or ignores presses for a moment: the resume stays
+  `playing`, and a slow resume shows the ordinary stall spinner. A resume that
+  must renew expired media still reports `loading`.
+- Picture-in-Picture keeps playing when its inline frame scrolls offscreen or
+  the tab is hidden. Closing it while the frame is still offscreen (or the tab
+  hidden) applies the usual release.
+
+### Upgrading
+
+- No breaking changes. `VibePlayerSurfaceActions` gained
+  `togglePictureInPicture`, `VibePlayerSurfaceState` gained `pictureInPicture`
+  and `VibePlayerCompactControls` gained `pictureInPicture`; custom
+  `renderOverlay` code compiles unchanged, but a hand-built object typed as
+  `VibePlayerSurface` (for example in tests) needs the new fields.
+- The initial compact + hook gzip budget moves from 18,500 B to 19,500 B.
+
 ## [0.3.0] - 2026-11-06
 
 ### Added

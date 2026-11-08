@@ -18,6 +18,10 @@ export {
   type VibePlayerHeadlessVideoProps,
 } from "./ui/vibe-player-headless";
 export {
+  VibePlayerHeatmap,
+  type VibePlayerHeatmapProps,
+} from "./ui/vibe-player-heatmap";
+export {
   VibePlayerInline,
   type VibePlayerInlineProps,
 } from "./ui/vibe-player-inline";
@@ -30,7 +34,11 @@ export type {
   VibePlayerPlaybackOptions,
   VibePlayerStageProps,
 } from "./ui/vibe-player-stage-types";
-export type { VibePlayerUIOptions } from "./ui/vibe-player-ui-context";
+export type {
+  VibePlayerTimelineBackground,
+  VibePlayerTimelineBackgroundContext,
+  VibePlayerUIOptions,
+} from "./ui/vibe-player-ui-context";
 export type {
   VibePlayerClassNames,
   VibePlayerIconProps,

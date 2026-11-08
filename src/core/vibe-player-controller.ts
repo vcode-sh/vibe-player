@@ -14,6 +14,7 @@ import type {
   VibePlayerLoadMode,
   VibePlayerSource,
 } from "./vibe-player-types";
+import { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
 
 /** Provider-neutral playback, renewable deliveries and explicit resource ownership. */
 export class VibePlayerController {
@@ -22,9 +23,17 @@ export class VibePlayerController {
   private readonly session: VibePlayerSourceSession;
   private readonly runtime: VibePlayerControllerRuntime;
   private readonly poster: VibePlayerPosterRenewal;
+  private readonly watched: VibePlayerWatchedRangesTracker | null = null;
 
   constructor(options: VibePlayerControllerOptions) {
     this.observers = new VibePlayerControllerObservers(options);
+    if (options.onWatchedRanges) {
+      const watched = new VibePlayerWatchedRangesTracker(
+        this.observers.emitWatchedRanges
+      );
+      this.watched = watched;
+      this.observers.subscribe((state) => watched.update(state));
+    }
     this.runtime = new VibePlayerControllerRuntime({
       applyPreferences: () => this.actions.applyPreferences(),
       clearIntent: () => this.actions.clear(),
@@ -135,7 +144,12 @@ export class VibePlayerController {
     return this.seekTo(seconds);
   }
   seekTo(seconds: number): Promise<void> {
+    this.watched?.interrupt();
     return this.actions.seekTo(seconds);
+  }
+  /** Delivers pending watched ranges now, e.g. before the host navigates. */
+  flushWatchedRanges(reason: "flush" | "hidden" = "flush"): void {
+    this.watched?.flush(reason);
   }
   setMuted(value: boolean): Promise<void> {
     return this.actions.setMuted(value);

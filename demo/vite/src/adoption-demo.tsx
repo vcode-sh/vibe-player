@@ -6,6 +6,7 @@ import {
   portraitSource,
 } from "./adoption-sources";
 import { AdoptionCustomPlayer } from "./components/adoption-custom-player";
+import { AdoptionFeedPlayer } from "./components/adoption-feed-player";
 
 /** Product-sized examples share one audio group and load only on Play. */
 export function AdoptionDemo() {
@@ -45,29 +46,15 @@ export function AdoptionDemo() {
         </section>
         <section aria-labelledby="feed-heading" className="vp-adoption__panel">
           <h2 id="feed-heading">In the feed</h2>
-          <p className="vp-adoption__caption">Feed · landscape · Ink Chips</p>
+          <p className="vp-adoption__caption">
+            Feed · landscape · Ink Chips · floats without restarting
+          </p>
           <article className="vp-adoption-feed">
             <header>
               <strong>Community journal</strong>
               <span>A moment from the gathering</span>
             </header>
-            <VibePlayerCompact
-              audioFocus="adoption-demo"
-              loadHls={loadLightHls}
-              skin="chips"
-              source={landscapeSource}
-              variant="feed"
-            />
-            <footer>
-              <p>A clear view, at every size.</p>
-              <button
-                className="vp-adoption-action"
-                onClick={() => setViewerOpen(true)}
-                type="button"
-              >
-                Open viewer
-              </button>
-            </footer>
+            <AdoptionFeedPlayer onOpenViewer={() => setViewerOpen(true)} />
           </article>
         </section>
       </div>

@@ -215,6 +215,16 @@ Analytics is opt-in through `onAnalyticsEvent`. Consumers should map normalized
 package events into their own telemetry pipeline and ignore package events that
 duplicate host-owned lifecycle events.
 
+Watched ranges are opt-in through `onWatchedRanges`: merged media ranges that
+played since the last report, delivered on pause, end, close, page hide, at 64
+ranges, or on `controller.flushWatchedRanges()`. The host owns transport,
+identity, sampling and aggregation (for example into the normalized values that
+`VibePlayerHeatmap` draws). Callback failures report as nonfatal
+`integrationerror` events with `operation: "watched-ranges"`.
+
+Offscreen and hidden-tab release never stops a player that is in
+Picture-in-Picture; the policy applies again after the window closes.
+
 Top-level product actions, such as "Watch on YouTube", should be passed as
 host-owned UI through player composition props rather than hardcoded in the
 package.

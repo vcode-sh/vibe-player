@@ -5,7 +5,11 @@ import {
   useRef,
 } from "react";
 import type { VibePlayerSurface } from "./vibe-player-surface-types";
-import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
+import {
+  useVibePlayerUI,
+  VibePlayerTimelineBackgroundLayer,
+  vibePlayerClassName,
+} from "./vibe-player-ui-context";
 
 /** Styleable seek track; the visual parts are spans the skin CSS draws. */
 export interface VibePlayerScrubberProps {
@@ -90,6 +94,10 @@ export function VibePlayerScrubber({
       tabIndex={0}
       {...pointerEvents}
     >
+      <VibePlayerTimelineBackgroundLayer
+        className="vibe-player-scrubber__background"
+        duration={state.duration}
+      />
       <span className="vibe-player-scrubber__rail" ref={rail}>
         <span className="vibe-player-scrubber__fill" />
       </span>

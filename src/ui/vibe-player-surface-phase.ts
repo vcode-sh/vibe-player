@@ -11,8 +11,8 @@ export function isVibePlayerSurfacePlaying(phase: VibePlayerSurfacePhase) {
 
 /**
  * Folds `readyState` into a chrome phase. `previous` keeps a mid-playback
- * stall or renewal from reading as a fresh load, and keeps a ready but never
- * played source idle.
+ * stall, a resume from a pause or a renewal from reading as a fresh load, and
+ * keeps a ready but never played source idle.
  */
 export function getVibePlayerSurfacePhase(
   { currentTime, paused, readyState }: VibePlayerSnapshot,
@@ -31,7 +31,9 @@ export function getVibePlayerSurfacePhase(
   }
   if (!paused) {
     const waiting = readyState === "loading" || readyState === "buffering";
-    return waiting && !steady ? "loading" : "playing";
+    // A resume keeps the paused frame; a slow one surfaces as a stall.
+    const resuming = previous === "paused" && readyState === "buffering";
+    return waiting && !(steady || resuming) ? "loading" : "playing";
   }
   return startPhases.has(previous) && currentTime === 0 ? "idle" : "paused";
 }

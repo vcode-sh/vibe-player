@@ -1,5 +1,5 @@
 import { type FocusEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { VibePlayerShortcutAction } from "../core";
+import type { VibePlayerCapabilities, VibePlayerShortcutAction } from "../core";
 import { useVibePlayerDelayedFlag } from "../react/use-vibe-player-delayed-flag";
 import { useVibePlayerStagePlayback } from "./use-vibe-player-stage-playback";
 import { isKeyboardControlFocus } from "./use-vibe-player-stage-root-events";
@@ -26,6 +26,23 @@ export interface UseVibePlayerSurfaceOptions extends VibePlayerStageProps {
 }
 
 const keyboardSeekSeconds = 5;
+
+/** Host choices narrowed by what the provider can honestly do. */
+function getVibePlayerSurfaceControls(
+  { controls, onExpand }: UseVibePlayerSurfaceOptions,
+  capabilities: VibePlayerCapabilities
+): VibePlayerSurface["controls"] {
+  return {
+    fullscreen:
+      (controls?.fullscreen ?? true) &&
+      (onExpand !== undefined || capabilities.canFullscreen),
+    mute: (controls?.mute ?? true) && capabilities.supportsMute,
+    pictureInPicture:
+      (controls?.pictureInPicture ?? false) && capabilities.canPictureInPicture,
+    seek: (controls?.seek ?? true) && capabilities.canSeek,
+    time: controls?.time ?? true,
+  };
+}
 const ignore = () => undefined;
 
 /** Compact surface: chrome policy, phase, busy delays, scrub and input. */
@@ -126,17 +143,11 @@ export function useVibePlayerSurface(
       setMuteTouched(true);
       stage.toggleMute();
     },
+    togglePictureInPicture: stage.togglePictureInPicture,
   };
   const surface: VibePlayerSurface = {
     actions,
-    controls: {
-      fullscreen:
-        (props.controls?.fullscreen ?? true) &&
-        (props.onExpand !== undefined || capabilities.canFullscreen),
-      mute: (props.controls?.mute ?? true) && capabilities.supportsMute,
-      seek: (props.controls?.seek ?? true) && capabilities.canSeek,
-      time: props.controls?.time ?? true,
-    },
+    controls: getVibePlayerSurfaceControls(props, capabilities),
     state: {
       autoplayMuted:
         Boolean(props.autoPlay || props.autoplayWhenVisible) &&
@@ -150,6 +161,7 @@ export function useVibePlayerSurface(
       hold,
       muted: snapshot.muted,
       phase,
+      pictureInPicture: snapshot.isPictureInPicture ?? false,
       previewTime: scrub.previewTime,
       scrubbing: scrub.scrubbing,
       time: shownTime.current,

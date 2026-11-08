@@ -62,7 +62,10 @@ rows.push(
       // 2026-11-06: 16,000 -> 18,500 B for the shared compact surface (phase,
       // delayed busy, scrub session, pointer policy) and the Glass skin. The
       // Chips skin is a deferred chunk and is not counted here.
-      limit: 18_500,
+      // 2026-11-08: 18,500 -> 19,500 B for the detached host frame, the
+      // timeline background layer, the opt-in Picture-in-Picture control and
+      // watched-range tracking in the controller.
+      limit: 19_500,
       mode: "gzip",
     },
     initial.map((chunk) => chunk.code)

@@ -43,7 +43,8 @@ export const packageSizeBudgets = [
     extension: ".d.ts",
     label: "types raw",
     // 2026-11-06: documented surface, skin and slot types for custom overlays.
-    limit: 72 * kib,
+    // 2026-11-08: host frame, heatmap, timeline background and watched ranges.
+    limit: 76 * kib,
     mode: "raw",
   },
 ];

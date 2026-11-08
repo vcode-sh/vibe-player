@@ -36,9 +36,14 @@ interface VisibleAutoplaySession {
   started: boolean;
 }
 
+/** Picture-in-Picture is the viewer's choice to keep watching elsewhere. */
 function releaseActivePlayer(controller: VibePlayerController): void {
   const { currentSource, snapshot } = controller.getState();
-  if (currentSource && snapshot.readyState !== "idle") {
+  if (
+    currentSource &&
+    snapshot.readyState !== "idle" &&
+    !snapshot.isPictureInPicture
+  ) {
     controller.stop().catch(() => undefined);
   }
 }
@@ -98,7 +103,8 @@ export function useVibePlayerVisibility({
     const session = autoplaySession.current;
     const threshold = getVisibilityThreshold(offscreenThreshold);
     let current = true;
-    let visible = false;
+    // Unknown until the first entry, so a state change cannot release early.
+    let visible: boolean | null = null;
     const onVisible = () => {
       if (isPlaybackHidden(pauseWhenHidden)) {
         return;
@@ -140,9 +146,18 @@ export function useVibePlayerVisibility({
         onVisible();
       }
     );
+    // Leaving Picture-in-Picture while offscreen applies the deferred release.
+    const unsubscribe = stopWhenOffscreen
+      ? controller.subscribe(() => {
+          if (current && visible === false) {
+            releaseActivePlayer(controller);
+          }
+        })
+      : undefined;
     return () => {
       current = false;
       unobserve();
+      unsubscribe?.();
     };
   }, [
     autoplayWhenVisible,

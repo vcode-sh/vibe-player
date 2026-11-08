@@ -42,6 +42,11 @@
   background: var(--_vibe-accent);
 }
 
+.vibe-player-chips__rail .vibe-player-scrubber__background {
+  color: var(--_vp-chip-fg);
+  opacity: 1;
+}
+
 .vibe-player-chips__rail .vibe-player-scrubber__thumb-track {
   inset: 0;
 }

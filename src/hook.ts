@@ -28,6 +28,9 @@ export {
   type VibePlayerSource,
   type VibePlayerSourceMetadata,
   type VibePlayerStopEvent,
+  type VibePlayerWatchedRange,
+  type VibePlayerWatchedRangesReason,
+  type VibePlayerWatchedRangesReport,
 } from "./core";
 export {
   createVibePlayerAudioFocusParticipant,

@@ -19,6 +19,23 @@ describe("compact surface phase", () => {
     expect(getVibePlayerSurfacePhase(waiting, false, "idle")).toBe("loading");
   });
 
+  it("resumes from a pause without a load phase, unless media is renewed", () => {
+    // Play publishes buffering before the browser's play event; the paused
+    // frame stays and controls keep working instead of a poster flash.
+    const resuming = snapshot({
+      currentTime: 4,
+      paused: false,
+      readyState: "buffering",
+    });
+    expect(getVibePlayerSurfacePhase(resuming, false, "paused")).toBe(
+      "playing"
+    );
+    expect(getVibePlayerSurfaceBusyDelay("playing", "buffering")).toBe(320);
+    // An expired delivery reloads media, so the resume is a fresh load.
+    const renewal = { ...resuming, readyState: "loading" as const };
+    expect(getVibePlayerSurfacePhase(renewal, true, "paused")).toBe("loading");
+  });
+
   it("reports renewal only when it interrupts playback", () => {
     const suspended = snapshot({ paused: false, readyState: "loading" });
     expect(getVibePlayerSurfacePhase(suspended, true, "playing")).toBe(

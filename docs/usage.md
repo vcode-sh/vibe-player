@@ -292,6 +292,27 @@ provider details. Updating these callbacks does not restart the player.
 />;
 ```
 
+`onWatchedRanges` (opt-in) reports which parts of the media actually played,
+for "most replayed" data or completion that ignores skipping. Each report holds
+the merged, sorted ranges (seconds) since the previous one and why it was
+sent: `pause` (including stop and offscreen release), `ended`, `close` (source
+changed, closed or unmounted), `hidden` (page hidden or `pagehide`), `limit`
+(64 separate ranges) or `flush` (`controller.flushWatchedRanges()`). Only
+progress while playing counts, and only as fast as the wall clock allows, so
+seeks, scrubs, loops and stalls never do. Nothing is sent or stored by the
+package; use `navigator.sendBeacon` or your API client:
+
+```tsx
+import { VibePlayerCompact } from "vibe-player/compact";
+
+<VibePlayerCompact
+  onWatchedRanges={(report) =>
+    navigator.sendBeacon("/api/watched", JSON.stringify(report))
+  }
+  source={source}
+/>;
+```
+
 `VibePlayerInline` and `VibePlayerModal` accept the same playback options,
 including autoplay, callbacks, and `topActions`. Use `autoHideControls={false}`
 when controls should remain visible. The default follows the adapter's normalized
@@ -357,8 +378,14 @@ keep turning because loading is real.
 
 Options:
 - `controls={{ fullscreen, mute, seek, time }}` switches off default parts
-  (capabilities still apply). The compact skins have no volume slider or
-  picture-in-picture.
+  (capabilities still apply). `pictureInPicture: true` opts in to a
+  Picture-in-Picture button where the provider supports it (file and HLS in
+  browsers with the API; never YouTube). The compact skins have no volume
+  slider.
+- `host` renders the player into an element you own and moves it there while
+  playing; see [Detached Hosts](#detached-hosts).
+- `timelineBackground` draws under the scrubber; see
+  [Timeline Background](#timeline-background).
 - `onExpand` replaces fullscreen on the expand control, e.g. to open a viewer.
 - `slots={{ idle, ended, error }}` replaces one state panel; `null` renders
   nothing there.
@@ -383,7 +410,8 @@ Styling contract for host CSS and tests:
 
 Every drawn part carries `data-part` (`overlay`, `play-button`, `duration`,
 `controls`, `toggle`, `track`, `time`, `fullscreen`, `mute`, `unmute`,
-`renewing`, `scrub-bubble`, `error`, `retry`, `poster`). The root exposes
+`picture-in-picture`, `renewing`, `scrub-bubble`, `error`, `retry`, `poster`,
+`timeline-background`, `heatmap`). The root exposes
 `--vibe-player-progress` (0..1, written only while controls show or a scrub
 runs). Theme variables: `--vibe-player-accent` (chip rail fill),
 `--vibe-player-focus-color`, `--vibe-player-radius`, `--vibe-player-font`,
@@ -398,6 +426,118 @@ CSS styles. A custom overlay can reuse it with `surface`.
 `controller.getState().renewing` is true while an expired or failed delivery
 is renewed; the surface reports it as `renewing` only when it interrupts
 playback.
+
+## Detached Hosts
+
+A mini-player, a docked player or a picture that follows the reader needs one
+session to move between places without restarting. Give `VibePlayerCompact` a
+`host` element; changing it moves the same media element, chrome, React state
+and buffer there:
+
+```tsx
+import { useState } from "react";
+import {
+  VibePlayerCompact,
+  type VibePlayerMp4Source,
+} from "vibe-player/compact";
+
+export function FeedClip({ source }: { source: VibePlayerMp4Source }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [mini, setMini] = useState<HTMLElement | null>(null);
+  const [floating, setFloating] = useState(false);
+  return (
+    <>
+      <div className="clip-slot" ref={setSlot} />
+      {floating ? <aside className="mini-player" ref={setMini} /> : null}
+      <button onClick={() => setFloating((value) => !value)} type="button">
+        {floating ? "Dock" : "Float"}
+      </button>
+      <VibePlayerCompact
+        host={floating ? mini : slot}
+        source={source}
+        stopWhenOffscreen={false}
+        variant="feed"
+      />
+    </>
+  );
+}
+```
+
+- `null` keeps the player in its last host, so a host that mounts one commit
+  later (as above) causes no gap. Omitting `host` renders in place as before;
+  pick the mode when the player mounts, because switching between the two
+  modes remounts it.
+- The player renders nothing on the server and appears after the first client
+  commit, inside a `display: contents` wrapper appended to the host. Size the
+  host; the player fills it like any other frame.
+- Moves are synchronous, so `<video>` keeps playing in every engine and fires
+  no `emptied` or `loadstart`. Where `Element.moveBefore()` exists the move is
+  also state-preserving for focus and iframes.
+- **YouTube:** the iframe survives a move only with `moveBefore()` (Chromium).
+  Other engines reload a moved iframe, which restarts the YouTube player.
+  Offer a floating YouTube player only when
+  `"moveBefore" in Element.prototype`, or keep YouTube inline.
+- Visibility follows the player: `stopWhenOffscreen` and
+  `autoplayWhenVisible` observe it in whichever host shows it. A player that
+  floats _because_ its slot scrolled away should pass
+  `stopWhenOffscreen={false}` so the release and the float do not race.
+- React context and events follow the React tree, not the host's DOM: a click
+  inside the floating player still bubbles to the component that renders it.
+  CSS custom properties follow the DOM, so set theme variables on (or above)
+  every host.
+- Picture-in-Picture is separate: the browser window keeps playing while the
+  page frame is offscreen or the tab hidden, and the usual release applies
+  after it closes.
+
+Custom UI built on `useVibePlayer` can wrap its own markup in
+`VibePlayerHostFrame`; the same rules apply:
+
+```tsx
+import type { ReactNode } from "react";
+import { VibePlayerHostFrame } from "vibe-player/compact";
+
+export function MovablePlayer(props: {
+  children: ReactNode;
+  host: HTMLElement | null;
+}) {
+  return (
+    <VibePlayerHostFrame host={props.host}>
+      {props.children}
+    </VibePlayerHostFrame>
+  );
+}
+```
+
+## Timeline Background
+
+`timelineBackground` draws host content under the progress fill of every
+package timeline: the glass capsule, the chips rail and the full-stage
+timeline. It receives `{ duration }` (seconds, 0 until known), gets no pointer
+input, and leaves the seek hit area unchanged. It rests at 45 % opacity and
+comes forward while the viewer hovers, focuses or scrubs the timeline; reduced
+motion makes that change instant.
+
+`VibePlayerHeatmap` is a ready-made "most replayed" graph for it. Pass replay
+intensity for equal slices of the duration, normalized to 0..1:
+
+```tsx
+import { VibePlayerCompact, VibePlayerHeatmap } from "vibe-player/compact";
+
+const replayIntensity = [0.2, 0.35, 1, 0.6, 0.3, 0.8];
+
+<VibePlayerCompact
+  source={source}
+  timelineBackground={() => <VibePlayerHeatmap values={replayIntensity} />}
+/>;
+```
+
+The layer rises from the rail's bottom edge:
+`--vibe-player-timeline-background-height` (16 px compact, 24 px full),
+`--vibe-player-timeline-background-rest-opacity`, and for the graph
+`--vibe-player-heatmap-color` (defaults to the timeline's foreground) and
+`--vibe-player-heatmap-opacity`. Chapter marks or ad markers can use the same
+slot with `duration`. `onWatchedRanges` below supplies the data a server can
+aggregate into those values.
 
 ## Custom And Headless UI
 
