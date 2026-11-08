@@ -67,7 +67,9 @@ export function VibePlayerSkipControl({
       label={side < 0 ? labels.seekBackward(step) : labels.seekForward(step)}
       onClick={() => onSkip(side * step)}
       shortcut={side < 0 ? "J" : "L"}
-      tooltipAlign={side < 0 ? "start" : "center"}
+      // Both sit at the bar's start, where a centred "Forward 10 seconds · L"
+      // overflows a narrow stage.
+      tooltipAlign="start"
     >
       <VibePlayerSkipGlyph side={side} step={step} />
     </VibePlayerToggleButton>
