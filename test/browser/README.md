@@ -41,6 +41,16 @@ at 320/390/768px viewports and 240/280px embedded widths in a wider viewport.
 Seek preview acceptance covers decoded sprite crops and standalone frames,
 hover without seeking, pointer/keyboard seeking, image failure fallback, and
 preview bounds in Chromium and WebKit at 240/320/390/1100px player widths.
+The heatmap page (Chromium) checks that the "most replayed" graph is not
+painted at rest, reveals on hover, retracts from mid-reveal, follows the pointer
+with its dot, reaches its states at once under reduced motion, shows during
+keyboard and touch scrubs, crops the hovered sprite tile, and replaces the
+glass, chips and full-stage readouts.
+The media session page (Chromium) records what the real
+`navigator.mediaSession` accepts: metadata, playback state and position from
+the audible file player, every registered action including
+`enterpictureinpicture`, system seek and pause driving the media, a second
+(HLS) player taking the session over, and stop releasing it.
 The selector tests own exact-duration frame selection. Browser keyboard checks
 use Home and ArrowRight: during acceptance, Linux WebKit intermittently reported
 zero after an exact-end seek, even after initially reporting the requested end.

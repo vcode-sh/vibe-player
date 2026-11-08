@@ -188,6 +188,43 @@ attributes. Supported keyboard shortcuts are shown directly in the tooltip:
 `Space / K` for play/pause, `M` for mute, `C` for captions, `F` for fullscreen,
 and `← / →` for timeline seek.
 
+### Media Session ownership
+
+`mediaSession` is opt-in; see
+[System Media Controls](./usage.md#system-media-controls). By default the
+player that most recently became audible owns the page's single media session
+and keeps it while paused. An application that already decides which media is
+audible (its own registry, voice notes, calls) should state the owner
+explicitly, so a player never holds the lock screen while the app's own audio
+plays:
+
+```tsx
+import { useId } from "react";
+import { VibePlayerCompact, type VibePlayerSource } from "vibe-player/compact";
+
+// The app's own focus registry.
+declare function useAudibleOwner(): string | null;
+declare function claimWhenAudible(key: string, state: unknown): void;
+
+function FeedVideo(props: { author: string; source: VibePlayerSource }) {
+  const { author, source } = props;
+  const key = useId();
+  const ownsAudio = useAudibleOwner() === key;
+  return (
+    <VibePlayerCompact
+      audioFocus={false}
+      mediaSession={{ active: ownsAudio, metadata: { artist: author } }}
+      onStateChange={(state) => claimWhenAudible(key, state)}
+      source={source}
+    />
+  );
+}
+```
+
+`active: false` releases the session; a release never clears metadata that
+other page code set after the player. The package does not pause the app's
+other media for the session: audio focus stays the app's decision.
+
 ## CORS And Credentials
 
 For managed HLS, `crossOrigin: "use-credentials"` also configures `hls.js`
@@ -219,7 +256,7 @@ Watched ranges are opt-in through `onWatchedRanges`: merged media ranges that
 played since the last report, delivered on pause, end, close, page hide, at 64
 ranges, or on `controller.flushWatchedRanges()`. The host owns transport,
 identity, sampling and aggregation (for example into the normalized values that
-`VibePlayerHeatmap` draws). Callback failures report as nonfatal
+`VibePlayerHeatmap` draws on hover and scrub). Callback failures report as nonfatal
 `integrationerror` events with `operation: "watched-ranges"`.
 
 Offscreen and hidden-tab release never stops a player that is in

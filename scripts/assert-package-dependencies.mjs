@@ -17,6 +17,7 @@ const expectedSections = {
     "@vitejs/plugin-react",
     "happy-dom",
     "hls.js",
+    "lightningcss",
     "publint",
     "react",
     "react-dom",

@@ -1,81 +1,127 @@
-import { vibePlayerClassName } from "./vibe-player-ui-context";
+import { useEffect, useMemo, useRef } from "react";
+import {
+  createVibePlayerHeatmapLine,
+  findVibePlayerHeatmapPeaks,
+  getVibePlayerHeatmapLevel,
+  getVibePlayerHeatmapY,
+  isNearVibePlayerHeatmapPeak,
+  sampleVibePlayerHeatmap,
+} from "./vibe-player-heatmap-geometry";
+import { bindVibePlayerHeatmapPreview } from "./vibe-player-heatmap-preview";
+import {
+  useVibePlayerTimeline,
+  useVibePlayerUI,
+  vibePlayerClassName,
+} from "./vibe-player-ui-context";
 
 /** A "most replayed" graph for `timelineBackground`. */
 export interface VibePlayerHeatmapProps {
   className?: string | undefined;
   /**
+   * Duration fractions (0..1) the preview names `labels.mostReplayed`.
+   * Defaults to the top three local maxima at or above `peakThreshold`,
+   * ignoring the first 3 %.
+   */
+  peaks?: readonly number[] | undefined;
+  /** Lowest value a detected peak may have; defaults to 0.6. */
+  peakThreshold?: number | undefined;
+  /**
    * Relative replay intensity for equal slices of the duration, first to
-   * last, each normalized to 0..1. Out-of-range values are clamped and
-   * non-finite ones read as 0. Fewer than two values render nothing.
+   * last, each normalized to 0..1 (typically 100). Out-of-range values are
+   * clamped and non-finite ones read as 0. Fewer than two render nothing.
    */
   values: readonly number[];
-}
-
-const width = 1000;
-const height = 100;
-
-function round(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
-function intensity(value: number): number {
-  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+  /**
+   * Hidden at rest; shown while the timeline is hovered or scrubbed.
+   * `glide` (default) draws a line left to right with a dot under the
+   * pointer; `curve` raises a filled curve.
+   */
+  variant?: "curve" | "glide" | undefined;
 }
 
 /**
- * A closed area under a curve through each slice's centre, smoothed with
- * quadratic segments between midpoints and held flat to both edges.
- */
-export function createVibePlayerHeatmapPath(values: readonly number[]): string {
-  const points = values.map((value, index) => ({
-    x: round(((index + 0.5) / values.length) * width),
-    y: round(height - intensity(value) * height),
-  }));
-  const [first] = points;
-  const last = points.at(-1);
-  if (!(first && last) || points.length < 2) {
-    return "";
-  }
-  const segments = [`M0 ${height}`, `L0 ${first.y}`, `L${first.x} ${first.y}`];
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const point = points[index];
-    if (previous && point) {
-      const midX = round((previous.x + point.x) / 2);
-      const midY = round((previous.y + point.y) / 2);
-      segments.push(`Q${previous.x} ${previous.y} ${midX} ${midY}`);
-    }
-  }
-  segments.push(
-    `L${last.x} ${last.y}`,
-    `L${width} ${last.y}`,
-    `L${width} ${height}Z`
-  );
-  return segments.join(" ");
-}
-
-/**
- * Draws replay intensity across the whole timeline width. Colour and height
- * follow `--vibe-player-heatmap-color` and the timeline background layer.
+ * Draws replay intensity over the timeline and, above it, a preview of the
+ * hovered moment: the seek frame when the player has `seekThumbnails`, the
+ * time, and `labels.mostReplayed` near a peak or `labels.replayValue`.
  */
 export function VibePlayerHeatmap({
   className,
+  peaks,
+  peakThreshold = 0.6,
   values,
+  variant = "glide",
 }: VibePlayerHeatmapProps) {
-  const path = createVibePlayerHeatmapPath(values);
-  if (!path) {
+  const { formatTime, labels } = useVibePlayerUI();
+  const timeline = useVibePlayerTimeline();
+  const root = useRef<HTMLSpanElement>(null);
+  const line = useMemo(() => createVibePlayerHeatmapLine(values), [values]);
+  const named = useMemo(
+    () => peaks ?? findVibePlayerHeatmapPeaks(values, peakThreshold),
+    [peakThreshold, peaks, values]
+  );
+  useEffect(() => {
+    const element = root.current;
+    if (!(element && timeline)) {
+      return;
+    }
+    const count = values.length;
+    return bindVibePlayerHeatmapPreview(element, {
+      ...timeline,
+      formatTime,
+      label: (fraction) =>
+        isNearVibePlayerHeatmapPeak(named, fraction, count)
+          ? labels.mostReplayed
+          : labels.replayValue(
+              getVibePlayerHeatmapLevel(
+                values[Math.min(count - 1, Math.floor(fraction * count))]
+              )
+            ),
+      y: (fraction) =>
+        getVibePlayerHeatmapY(sampleVibePlayerHeatmap(values, fraction)),
+    });
+  }, [formatTime, labels, named, timeline, values]);
+  if (!line) {
     return null;
   }
   return (
-    <svg
+    <span
       aria-hidden
       className={vibePlayerClassName("vibe-player-heatmap", className)}
       data-part="heatmap"
+      data-variant={variant}
+      ref={root}
+    >
+      <span className="vibe-player-heatmap__graph">
+        <HeatmapPath className="area" d={`${line} L100 100 L0 100Z`} />
+        <HeatmapPath className="line" d={line} />
+      </span>
+      <span className="vibe-player-heatmap__rider">
+        <span className="vibe-player-heatmap__dot" />
+      </span>
+      <span className="vibe-player-heatmap__preview">
+        <span className="vibe-player-heatmap__frame" hidden>
+          {/* biome-ignore lint/correctness/useImageSize: The preview sizes the image from the selected sprite tile. */}
+          <img alt="" draggable={false} />
+        </span>
+        <span className="vibe-player-heatmap__chip">
+          <span className="vibe-player-heatmap__time" />
+          <span className="vibe-player-heatmap__label" />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function HeatmapPath({ className, d }: { className: string; d: string }) {
+  return (
+    <svg
+      aria-hidden
+      className={`vibe-player-heatmap__${className}`}
       focusable="false"
       preserveAspectRatio="none"
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox="0 0 100 100"
     >
-      <path d={path} />
+      <path d={d} vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

@@ -141,6 +141,26 @@ function generateVariant({ lanes, name, seconds }) {
       directory
     );
   }
+  if (name === "landscape") {
+    // A storyboard sprite for the demo feed card: one 160 x 90 tile per
+    // second, four per row.
+    ffmpeg(
+      [
+        "-f",
+        "lavfi",
+        "-i",
+        `testsrc2=size=160x90:rate=1:duration=${seconds}`,
+        "-vf",
+        "tile=4x2",
+        "-frames:v",
+        "1",
+        "-q:v",
+        "5",
+        "storyboard.jpg",
+      ],
+      directory
+    );
+  }
 }
 
 rmSync(outputRoot, { force: true, recursive: true });

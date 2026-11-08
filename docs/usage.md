@@ -136,7 +136,10 @@ mutating an already supplied source in place.
 Pass `seekThumbnails` to `VibePlayerStage`, `VibePlayerInline`, or
 `VibePlayerModal` to show a frame above the timeline while hovering, dragging,
 or seeking with the keyboard. Custom controls and timelines accept the same
-prop. Supply generated images and their time map from your application:
+prop. `VibePlayerCompact` (glass and chips, compact and feed) accepts it too and
+shows the frame in the [heatmap](#timeline-background) preview; without a
+heatmap its skins keep their time-only scrub readout. Supply generated images
+and their time map from your application:
 
 ```tsx
 import { VibePlayerStage, type VibePlayerSeekThumbnail } from "vibe-player";
@@ -173,6 +176,29 @@ const thumbnails = [
 <VibePlayerStage seekThumbnails={thumbnails} source={source} />;
 ```
 
+A storyboard sheet of equal tiles, left to right and row by row, needs only its
+geometry. Tile `n` covers `[n * interval, (n + 1) * interval)`; with
+`duration`, the last tile reaches the end of the media:
+
+```tsx
+import { createVibePlayerSeekThumbnails } from "vibe-player";
+
+// A 1600 x 900 sheet: 10 columns of 160 x 90 tiles, one every 5 seconds.
+const thumbnails = createVibePlayerSeekThumbnails({
+  columns: 10,
+  count: 96,
+  duration: 478.4,
+  height: 90,
+  interval: 5,
+  url: "https://media.example.com/v/42/storyboard.jpg",
+  width: 160,
+});
+```
+
+A WebVTT thumbnail track (cues naming `sheet.jpg#xywh=x,y,w,h` or a standalone
+image) converts with `parseVibePlayerSeekThumbnailsVtt(text, trackUrl)`;
+relative image URLs resolve against `trackUrl`. Fetch the track yourself.
+
 Times are seconds: start is inclusive and end is exclusive. At the exact media
 duration, a frame ending at that duration remains available. The first matching
 valid entry wins; sorting is not required. Use finite, nonnegative times with
@@ -183,7 +209,7 @@ Gaps, invalid entries, loading images, and failed images keep the time-only
 tooltip. Thumbnail preview does not seek the video; moving over the timeline
 leaves playback untouched. Clicking, dragging, and keyboard commands retain
 their normal seek behavior. The package does not generate frames, fetch a
-WebVTT thumbnail map, or obtain thumbnails from provider APIs.
+WebVTT thumbnail track, or obtain thumbnails from provider APIs.
 
 Replace the thumbnail array together with the source when switching videos.
 Thumbnail updates are presentation changes and do not reload playback. Omit
@@ -252,6 +278,58 @@ gesture and audible playback is intended:
 ```tsx
 <VibePlayerStage autoPlay autoPlayMutedBootstrap={false} source={source} />;
 ```
+
+### System Media Controls
+
+`mediaSession` (off by default) connects a player to the browser's
+[Media Session API](https://developer.mozilla.org/en-US/docs/Web/API/Media_Session_API):
+lock screens, notifications, media hubs and hardware media keys show the
+video and control it. Every assembly and `useVibePlayer` accept it.
+
+```tsx
+import { VibePlayerInline } from "vibe-player/stage";
+
+declare function playNext(): void;
+
+<VibePlayerInline
+  mediaSession={{
+    metadata: {
+      album: "Season two",
+      artist: "Ana Berg",
+      artwork: [
+        { sizes: "512x512", src: "/art/episode-4.jpg", type: "image/jpeg" },
+      ],
+    },
+    onNextTrack: () => playNext(),
+    seekBackwardSeconds: 15,
+  }}
+  source={source}
+/>;
+```
+
+- `mediaSession` (or `true`) uses `source.title` and `source.posterUrl`;
+  `metadata` overrides any field. Nothing is hard-coded.
+- Play, pause and stop are always offered. Seek backward, forward and to a
+  position (offsets default to 10 s; a system offset wins) need a seekable
+  provider; a burst of `fastSeek` positions while scrubbing keeps only the
+  latest. Previous and next track appear only with `onPreviousTrack` /
+  `onNextTrack`.
+- `enterpictureinpicture` is registered when the provider supports
+  Picture-in-Picture. Desktop Chrome then also opens it automatically when the
+  viewer switches tabs during audible playback; `pictureInPicture: false`
+  turns that off.
+- Playback state and position (duration, rate, position) follow the player;
+  live and unknown durations clear the position.
+- A page has one media session. A player claims it when it becomes audible
+  and keeps it while paused, so the lock screen can resume it. Stopping,
+  closing, failing or unmounting releases it, clearing only what this player
+  set; another player becoming audible takes it over.
+- Hosts with their own audio focus registry pass `active`: `true` for the
+  player that owns the session, `false` for every other one.
+- YouTube sources never claim the session: their media plays in YouTube's own
+  frame, and YouTube's embed controls that frame's session. Where the API is
+  missing (server rendering, older browsers) the option does nothing; its code
+  loads only for players that opt in.
 
 ## Host Hooks
 
@@ -384,7 +462,8 @@ Options:
   slider.
 - `host` renders the player into an element you own and moves it there while
   playing; see [Detached Hosts](#detached-hosts).
-- `timelineBackground` draws under the scrubber; see
+- `timelineBackground` draws with the scrubber, e.g. the "most replayed"
+  heatmap, and `seekThumbnails` feeds its frame preview; see
   [Timeline Background](#timeline-background).
 - `onExpand` replaces fullscreen on the expand control, e.g. to open a viewer.
 - `slots={{ idle, ended, error }}` replaces one state panel; `null` renders
@@ -411,7 +490,8 @@ Styling contract for host CSS and tests:
 Every drawn part carries `data-part` (`overlay`, `play-button`, `duration`,
 `controls`, `toggle`, `track`, `time`, `fullscreen`, `mute`, `unmute`,
 `picture-in-picture`, `renewing`, `scrub-bubble`, `error`, `retry`, `poster`,
-`timeline-background`, `heatmap`). The root exposes
+`timeline-background`, `heatmap` with `data-variant` and `data-active` while
+shown). The root exposes
 `--vibe-player-progress` (0..1, written only while controls show or a scrub
 runs). Theme variables: `--vibe-player-accent` (chip rail fill),
 `--vibe-player-focus-color`, `--vibe-player-radius`, `--vibe-player-font`,
@@ -510,34 +590,78 @@ export function MovablePlayer(props: {
 
 ## Timeline Background
 
-`timelineBackground` draws host content under the progress fill of every
-package timeline: the glass capsule, the chips rail and the full-stage
-timeline. It receives `{ duration }` (seconds, 0 until known), gets no pointer
-input, and leaves the seek hit area unchanged. It rests at 45 % opacity and
-comes forward while the viewer hovers, focuses or scrubs the timeline; reduced
-motion makes that change instant.
+`timelineBackground` draws host content with every package timeline: the glass
+capsule, the chips rail and the full-stage timeline. It is rendered under the
+progress fill, gets no pointer input, and leaves the seek hit area unchanged.
+Its context carries `duration` (seconds, 0 until known), the player's
+`seekThumbnails`, and `preview`: the moment being previewed. `preview.fraction`
+(0..1, or null at rest) follows the pointer, a scrub or a keyboard seek;
+`preview.subscribe(listener)` reports each change outside React, so a custom
+background can move its parts through refs without re-rendering on every
+pointer move. A plain background (chapter marks, ad markers) rests at 45 %
+opacity and comes forward while the viewer hovers, focuses or scrubs.
 
-`VibePlayerHeatmap` is a ready-made "most replayed" graph for it. Pass replay
-intensity for equal slices of the duration, normalized to 0..1:
+### Most replayed
+
+`VibePlayerHeatmap` draws replay intensity for equal slices of the duration,
+normalized to 0..1 (typically 100 values). Nothing shows at rest. While the
+viewer hovers or scrubs the timeline (pointer, touch or keyboard):
+- `variant="glide"` (default): one thin smooth line reveals left to right over
+  the rail (400 ms, retracting in 240 ms from wherever it got to), with a soft
+  gradient under it and a dot riding the line at the pointer.
+- `variant="curve"`: a filled curve rises over the rail.
+
+Above it, a preview shows the seek frame (when the player has
+`seekThumbnails`), the time, and a label: `labels.mostReplayed` near a peak,
+otherwise `labels.replayValue(value)` for that slice. `replayValue` returns ""
+by default, so only hosts whose values mean something to viewers show them.
+The preview replaces the skin's own scrub readout (glass bubble, chips time
+chip, full-stage tooltip) and stays inside the player.
 
 ```tsx
-import { VibePlayerCompact, VibePlayerHeatmap } from "vibe-player/compact";
+import {
+  createVibePlayerSeekThumbnails,
+  VibePlayerCompact,
+  VibePlayerHeatmap,
+} from "vibe-player/compact";
 
-const replayIntensity = [0.2, 0.35, 1, 0.6, 0.3, 0.8];
+// From your server: the share of viewers who reached each of 100 slices.
+declare const replayShare: readonly number[];
+
+const thumbnails = createVibePlayerSeekThumbnails({
+  columns: 10,
+  count: 96,
+  height: 90,
+  interval: 5,
+  url: "/v/42/storyboard.jpg",
+  width: 160,
+});
 
 <VibePlayerCompact
+  labels={{
+    mostReplayed: "Most replayed",
+    replayValue: (share) => `${Math.round(share * 100)}% of viewers`,
+  }}
+  seekThumbnails={thumbnails}
   source={source}
-  timelineBackground={() => <VibePlayerHeatmap values={replayIntensity} />}
+  timelineBackground={() => <VibePlayerHeatmap values={replayShare} />}
+  variant="feed"
 />;
 ```
 
-The layer rises from the rail's bottom edge:
-`--vibe-player-timeline-background-height` (16 px compact, 24 px full),
-`--vibe-player-timeline-background-rest-opacity`, and for the graph
-`--vibe-player-heatmap-color` (defaults to the timeline's foreground) and
-`--vibe-player-heatmap-opacity`. Chapter marks or ad markers can use the same
-slot with `duration`. `onWatchedRanges` below supplies the data a server can
-aggregate into those values.
+Peaks are the top three local maxima at or above `peakThreshold` (default
+0.6), ignoring the first 3 % of the video, whose opening is always replayed.
+Pass `peaks` (duration fractions, 0..1) to name them yourself. Keep `values`
+and `peaks` referentially stable between renders.
+
+CSS custom properties: `--vibe-player-heatmap-color` (defaults to the
+timeline's foreground; white on the chips rail), `--vibe-player-heatmap-height`
+(40 px glide, 26 px curve, 28 px in players narrower than 360 px),
+`--vibe-player-heatmap-gap` (above the rail), `--vibe-player-heatmap-opacity`
+(area fill) and `--vibe-player-heatmap-frame-width` (132 px, 96 px narrow).
+Reduced motion reaches the same states instantly. The graph moves only
+`clip-path`, `transform` and `opacity`. `onWatchedRanges` below supplies the
+data a server can aggregate into those values.
 
 ## Custom And Headless UI
 

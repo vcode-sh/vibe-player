@@ -16,13 +16,16 @@ export const packageSizeBudgets = [
     extension: ".js",
     label: "runtime ESM gzip",
     // 2026-11-06: +4 KiB for the compact surface, Glass and the lazy Chips skin.
-    limit: 42 * kib,
+    // 2026-11-08: 42 -> 47 KiB (measured 46,180 B) for the Glide/Curve heatmap
+    // preview, seek thumbnails and the lazy Media Session chunk.
+    limit: 47 * kib,
     mode: "gzip",
   },
   {
     filePath: "dist/styles.css",
     label: "stylesheet raw",
     // 2026-11-06: Glass Capsule styles; gzip stays under its 10 KiB limit.
+    // 2026-11-08: shipped stylesheets are minified (62,314 -> 50,052 B raw).
     limit: 58 * kib,
     mode: "raw",
   },
@@ -44,7 +47,9 @@ export const packageSizeBudgets = [
     label: "types raw",
     // 2026-11-06: documented surface, skin and slot types for custom overlays.
     // 2026-11-08: host frame, heatmap, timeline background and watched ranges.
-    limit: 76 * kib,
+    // 2026-11-08: 76 -> 86 KiB (measured 83,531 B) for heatmap variants, seek
+    // thumbnails and Media Session options.
+    limit: 86 * kib,
     mode: "raw",
   },
 ];

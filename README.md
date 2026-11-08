@@ -121,13 +121,17 @@ compact surface; see [Compact Skins](./docs/usage.md#compact-skins).
 `host` moves one playing compact player between host elements (inline slot,
 mini-player) without restarting it; see
 [Detached Hosts](./docs/usage.md#detached-hosts). `timelineBackground` and
-`VibePlayerHeatmap` draw a "most replayed" graph under the timeline, and the
-opt-in `onWatchedRanges` reports the ranges actually watched so the host can
+`VibePlayerHeatmap` draw a "most replayed" line over the timeline while the
+viewer hovers or scrubs it, with the seek frame above it, and the opt-in
+`onWatchedRanges` reports the ranges actually watched so the host can
 aggregate them.
 `VibePlayerModal` starts playback when it opens; pass `autoPlay={false}` to
 wait for Play.
 `audioFocus` groups coordinate audible players and host media. Hidden tabs and
 offscreen players release playback by default; each policy can be disabled.
+The opt-in `mediaSession` drives lock-screen and media-key controls for the
+audible player; see
+[System Media Controls](./docs/usage.md#system-media-controls).
 Autoplay while visible is opt-in and muted. Hosts own session retirement and
 should call `stop()` or close/unmount the player when access ends.
 

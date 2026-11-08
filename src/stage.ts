@@ -29,11 +29,21 @@ export {
   VibePlayerModal,
   type VibePlayerModalProps,
 } from "./ui/vibe-player-modal";
+export {
+  createVibePlayerSeekThumbnails,
+  parseVibePlayerSeekThumbnailsVtt,
+  type VibePlayerSeekThumbnailGrid,
+} from "./ui/vibe-player-seek-thumbnail-sources";
+export type {
+  VibePlayerSeekThumbnail,
+  VibePlayerSeekThumbnailSprite,
+} from "./ui/vibe-player-seek-thumbnail-types";
 export { VibePlayerStage } from "./ui/vibe-player-stage";
 export type {
   VibePlayerPlaybackOptions,
   VibePlayerStageProps,
 } from "./ui/vibe-player-stage-types";
+export type { VibePlayerTimelinePreview } from "./ui/vibe-player-timeline-preview";
 export type {
   VibePlayerTimelineBackground,
   VibePlayerTimelineBackgroundContext,

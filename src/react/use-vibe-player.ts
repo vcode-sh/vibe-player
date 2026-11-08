@@ -11,6 +11,10 @@ import {
   useVibePlayerController,
 } from "./use-vibe-player-controller";
 import {
+  type UseVibePlayerMediaSessionOptions,
+  useVibePlayerMediaSession,
+} from "./use-vibe-player-media-session";
+import {
   useVibePlayerVisibility,
   type VibePlayerVisibilityOptions,
 } from "./use-vibe-player-visibility";
@@ -26,6 +30,11 @@ export interface UseVibePlayerOptions
   autoPlayMutedBootstrap?: boolean | undefined;
   /** The bare hook retains eager loading; inline assemblies default to onPlay. */
   load?: VibePlayerLoadMode | undefined;
+  /**
+   * Opt-in system media controls (lock screen, notifications, media keys)
+   * through `navigator.mediaSession`. `true` uses the source title and poster.
+   */
+  mediaSession?: boolean | UseVibePlayerMediaSessionOptions | undefined;
   open?: boolean | undefined;
   /** Fullscreen container; defaults to the bound media target. */
   presentationTarget?: HTMLElement | null | undefined;
@@ -56,6 +65,7 @@ export function useVibePlayer({
   autoPlayMutedBootstrap = true,
   autoplayWhenVisible = false,
   load = "eager",
+  mediaSession,
   offscreenThreshold,
   open = true,
   pauseWhenHidden = true,
@@ -72,6 +82,7 @@ export function useVibePlayer({
   const loadGeneration = useRef(0);
 
   useVibePlayerAudibleFocus({ controller, group: audioFocus, state });
+  useVibePlayerMediaSession(controller, mediaSession);
   useVibePlayerVisibility({
     autoplayWhenVisible,
     controller,

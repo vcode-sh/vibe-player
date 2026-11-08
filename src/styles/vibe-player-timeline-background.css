@@ -1,6 +1,7 @@
 /* Timeline background: host content under the progress fill (for example
-   VibePlayerHeatmap). It rises from the rail's bottom edge, never takes
-   pointer input and dims at rest so the fill stays the primary signal. */
+   chapter marks). It rises from the rail's bottom edge, never takes pointer
+   input and dims at rest so the fill stays the primary signal. A heatmap is
+   hidden at rest instead and draws at full strength. */
 .vibe-player-scrubber__background,
 .vibe-player-timeline__background {
   position: absolute;
@@ -46,15 +47,9 @@
   }
 }
 
-svg.vibe-player-heatmap[data-part="heatmap"] {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  fill: var(--vibe-player-heatmap-color, currentColor);
-  fill-opacity: var(--vibe-player-heatmap-opacity, 0.35);
+.vibe-player-scrubber__background:has(.vibe-player-heatmap),
+.vibe-player-timeline__background:has(.vibe-player-heatmap) {
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

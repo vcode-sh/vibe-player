@@ -1,0 +1,197 @@
+/* "Most replayed" (VibePlayerHeatmap): nothing at rest. While the timeline is
+   hovered or scrubbed, glide draws a line left to right and curve raises a
+   filled curve; a preview of the moment floats above. Entry 400 ms, exit
+   240 ms; transitions reverse from wherever they are. */
+.vibe-player-heatmap {
+  --_vp-heat-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --_vp-heat-h: var(--vibe-player-heatmap-height, 40px);
+  --_vp-heat-gap: var(--vibe-player-heatmap-gap, 8px);
+  --_vp-heat-frame: var(--vibe-player-heatmap-frame-width, 132px);
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  color: var(--vibe-player-heatmap-color, currentColor);
+  transition: visibility 0s linear 240ms;
+}
+
+.vibe-player-heatmap[data-variant="curve"] {
+  --_vp-heat-h: var(--vibe-player-heatmap-height, 26px);
+}
+
+.vibe-player-heatmap__graph,
+.vibe-player-heatmap__rider {
+  position: absolute;
+  right: 0;
+  bottom: var(--_vp-heat-gap);
+  left: 0;
+  height: var(--_vp-heat-h);
+}
+
+/* Matches the compact icon rule (.vibe-player-surface svg) and wins by order. */
+.vibe-player-heatmap__graph svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.vibe-player-heatmap__area {
+  fill: currentColor;
+  fill-opacity: var(--vibe-player-heatmap-opacity, 0.28);
+}
+
+.vibe-player-heatmap__line {
+  filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 0.45));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vibe-player-heatmap__rider,
+.vibe-player-heatmap__preview {
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.vibe-player-heatmap__dot {
+  position: absolute;
+  top: -4.5px;
+  left: -4.5px;
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.vibe-player-heatmap__preview {
+  position: absolute;
+  bottom: calc(var(--_vp-heat-gap) + var(--_vp-heat-h) + 10px);
+  left: 0;
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  color: #fff;
+}
+
+.vibe-player-heatmap__frame {
+  position: relative;
+  width: var(--_vp-heat-frame);
+  overflow: hidden;
+  background: #000;
+  border-radius: 9px;
+  box-shadow:
+    0 10px 24px -8px rgb(0 0 0 / 0.7),
+    0 0 0 1px rgb(255 255 255 / 0.18);
+}
+
+.vibe-player-heatmap__frame[hidden],
+.vibe-player-heatmap__label:empty {
+  display: none;
+}
+
+.vibe-player-heatmap__frame img {
+  position: absolute;
+  max-width: none;
+  height: auto;
+}
+
+.vibe-player-heatmap__chip {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+  white-space: nowrap;
+  background: rgb(0 0 0 / 0.6);
+  border-radius: 999px;
+}
+
+.vibe-player-heatmap__time {
+  font-weight: 600;
+}
+
+.vibe-player-heatmap__label {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.vibe-player-heatmap[data-variant="glide"] .vibe-player-heatmap__area {
+  opacity: 0;
+  mask-image: linear-gradient(#000, transparent);
+  transition: opacity 220ms ease;
+}
+
+.vibe-player-heatmap[data-variant="curve"] .vibe-player-heatmap__line {
+  stroke-opacity: 0.75;
+}
+
+.vibe-player-heatmap[data-variant="curve"] .vibe-player-heatmap__rider {
+  display: none;
+}
+
+.vibe-player-heatmap[data-variant="glide"] .vibe-player-heatmap__graph {
+  clip-path: inset(-8px 100% -2px 0);
+  transition: clip-path 240ms var(--_vp-heat-ease);
+}
+
+.vibe-player-heatmap[data-variant="curve"] .vibe-player-heatmap__graph {
+  opacity: 0;
+  transform: scaleY(0.4);
+  transform-origin: bottom;
+  transition:
+    opacity 160ms ease,
+    transform 200ms var(--_vp-heat-ease);
+}
+
+/* Active: the pointer, a scrub or a keyboard seek is on the timeline. */
+.vibe-player-heatmap[data-active] {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.vibe-player-heatmap[data-active]
+  :is(
+    .vibe-player-heatmap__area,
+    .vibe-player-heatmap__rider,
+    .vibe-player-heatmap__preview
+  ) {
+  opacity: 1;
+}
+
+.vibe-player-heatmap[data-variant="glide"][data-active]
+  .vibe-player-heatmap__graph {
+  clip-path: inset(-8px -2px -2px -2px);
+  transition-duration: 400ms;
+}
+
+.vibe-player-heatmap[data-variant="curve"][data-active]
+  .vibe-player-heatmap__graph {
+  opacity: 1;
+  transform: none;
+}
+
+@container vibe-player (max-width: 359px) {
+  .vibe-player-heatmap {
+    --_vp-heat-h: var(--vibe-player-heatmap-height, 28px);
+    --_vp-heat-frame: var(--vibe-player-heatmap-frame-width, 96px);
+  }
+}
+
+/* The preview replaces each skin's own time readout. */
+.vibe-player-glass__track:has(.vibe-player-heatmap) .vibe-player-glass__bubble,
+.vibe-player-timeline:has(.vibe-player-heatmap) .vibe-player-timeline__tooltip {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-heatmap,
+  .vibe-player-heatmap * {
+    transition-delay: 0s !important;
+    transition-duration: 0s !important;
+  }
+}

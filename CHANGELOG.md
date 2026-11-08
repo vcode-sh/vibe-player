@@ -2,6 +2,58 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-08
+
+### Changed
+
+- `VibePlayerHeatmap` no longer shows at rest. While the viewer hovers or
+  scrubs the timeline (pointer, touch or keyboard) it reveals a "most
+  replayed" graph: `variant="glide"` (default) draws one smooth line left to
+  right with a dot riding it under the pointer; `variant="curve"` raises a
+  filled curve. Above it, a preview shows the seek frame, the time, and
+  `labels.mostReplayed` near a peak or `labels.replayValue(value)` elsewhere
+  (empty by default). The preview replaces each skin's own scrub readout.
+  Peaks are detected (top three local maxima at or above `peakThreshold`,
+  default 0.6, ignoring the first 3 %) or passed as `peaks`. Reduced motion
+  reaches the same states instantly. New CSS properties:
+  `--vibe-player-heatmap-height`, `-gap` and `-frame-width`.
+
+### Added
+
+- `VibePlayerCompact` accepts `seekThumbnails`; glass and chips show the frame
+  in the heatmap preview.
+- `createVibePlayerSeekThumbnails({ url, columns, count, width, height,
+interval })` maps a storyboard sprite sheet to seek thumbnails, and
+  `parseVibePlayerSeekThumbnailsVtt(text, trackUrl)` reads a WebVTT thumbnail
+  track (`sheet.jpg#xywh=x,y,w,h`).
+- The `timelineBackground` context adds `seekThumbnails` and `preview`
+  (`VibePlayerTimelinePreview`): the previewed fraction of the duration, with
+  `subscribe` for updates outside React rendering.
+- Opt-in `mediaSession` on `useVibePlayer` and every assembly connects the
+  audible player to the browser Media Session API: title, artist, album and
+  artwork (defaulting to the source title and poster), play, pause, stop,
+  seek backward/forward/to (configurable offsets; `fastSeek` bursts keep the
+  latest position), previous/next track only with `onPreviousTrack` /
+  `onNextTrack`, and `enterpictureinpicture` where the provider supports
+  Picture-in-Picture (desktop Chrome's automatic PiP; `pictureInPicture: false`
+  opts out). Playback state and position stay in sync. One player owns the
+  page session: the one that last became audible, or the one the host marks
+  `active`; stopping, closing or unmounting releases only what it set.
+  YouTube sources do not claim it, and its code loads only for players that
+  opt in.
+
+### Upgrading
+
+- `VibePlayerHeatmap` is now hidden at rest (changed from 0.4.0, where it was
+  always drawn under the timeline). It appears only while the viewer hovers or
+  scrubs; hosts that relied on an always-visible graph have no switch to keep
+  the old behavior. Its preview replaces the skin's own scrub readout while a
+  heatmap is present.
+- The published `styles.css` and `chips.css` are now minified. Class names,
+  `data-*` attributes and CSS custom properties are unchanged.
+- Size budgets move: runtime ESM gzip 42 -> 47 KiB, types 76 -> 86 KiB, and
+  the initial compact + hook gzip budget 19,500 -> 20,500 B.
+
 ## [0.4.0] - 2026-11-08
 
 ### Added

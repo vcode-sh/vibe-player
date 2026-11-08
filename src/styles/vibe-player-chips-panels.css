@@ -47,6 +47,11 @@
   opacity: 1;
 }
 
+.vibe-player-chips__rail .vibe-player-heatmap {
+  --_vp-heat-gap: var(--vibe-player-heatmap-gap, 12px);
+  color: var(--vibe-player-heatmap-color, #fff);
+}
+
 .vibe-player-chips__rail .vibe-player-scrubber__thumb-track {
   inset: 0;
 }
@@ -81,6 +86,11 @@
 
 .vibe-player-chips__bubble[data-visible="true"] {
   transform: translateX(-50%);
+}
+
+/* The heatmap preview replaces the scrub readout. */
+.vibe-player-chips:has(.vibe-player-heatmap) .vibe-player-chips__bubble {
+  display: none;
 }
 
 .vibe-player-chips__error {

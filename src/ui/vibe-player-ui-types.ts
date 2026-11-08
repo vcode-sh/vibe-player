@@ -49,6 +49,8 @@ export interface VibePlayerLabels {
   hideCaptions: string;
   loading: string;
   manualQuality: string;
+  /** Heatmap preview near a peak. */
+  mostReplayed: string;
   mute: string;
   muteShortcut: string;
   pause: string;
@@ -61,6 +63,9 @@ export interface VibePlayerLabels {
   quality: string;
   qualityValue: (quality: string) => string;
   replay: string;
+  /** Heatmap preview elsewhere: the slice's 0..1 value as text, e.g.
+   * "31% of viewers" for 0.31. The default "" shows only the time. */
+  replayValue: (value: number) => string;
   retry: string;
   retryCaptions: string;
   seek: string;

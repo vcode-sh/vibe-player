@@ -2,9 +2,12 @@ import {
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
+  useEffect,
   useRef,
+  useState,
 } from "react";
 import type { VibePlayerSurface } from "./vibe-player-surface-types";
+import { createVibePlayerTimelinePreview } from "./vibe-player-timeline-preview";
 import {
   useVibePlayerUI,
   VibePlayerTimelineBackgroundLayer,
@@ -34,10 +37,24 @@ export function VibePlayerScrubber({
   const { classNames, formatTime, labels } = useVibePlayerUI();
   const rail = useRef<HTMLSpanElement>(null);
   const pointer = useRef<number | null>(null);
+  const [preview] = useState(createVibePlayerTimelinePreview);
+  // Hover wins over a scrub or keyboard seek; both feed the background.
+  const hover = useRef<number | null>(null);
+  const scrub = useRef<number | null>(null);
   const { actions, state } = surface;
+  const scrubFraction =
+    state.scrubbing && state.duration > 0 ? state.time / state.duration : null;
+  useEffect(() => {
+    scrub.current = scrubFraction;
+    preview.set(hover.current ?? scrubFraction);
+  }, [preview, scrubFraction]);
   const fraction = (event: PointerEvent<HTMLElement>) => {
     const box = rail.current?.getBoundingClientRect();
     return box && box.width > 0 ? (event.clientX - box.left) / box.width : 0;
+  };
+  const point = (event: PointerEvent<HTMLElement> | null) => {
+    hover.current = event && fraction(event);
+    preview.set(hover.current ?? scrub.current);
   };
   const end = (event: PointerEvent<HTMLElement>) => {
     if (pointer.current === event.pointerId) {
@@ -58,7 +75,10 @@ export function VibePlayerScrubber({
           actions.scrubStart();
           actions.scrubTo(fraction(event));
         },
+        onPointerEnter: point,
+        onPointerLeave: () => point(null),
         onPointerMove: (event: PointerEvent<HTMLElement>) => {
+          point(event);
           if (pointer.current === event.pointerId) {
             actions.scrubTo(fraction(event));
           }
@@ -97,6 +117,7 @@ export function VibePlayerScrubber({
       <VibePlayerTimelineBackgroundLayer
         className="vibe-player-scrubber__background"
         duration={state.duration}
+        preview={preview}
       />
       <span className="vibe-player-scrubber__rail" ref={rail}>
         <span className="vibe-player-scrubber__fill" />

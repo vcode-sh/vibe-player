@@ -24,6 +24,7 @@ export {
   type UseVibePlayerControllerOptions,
   useVibePlayerController,
 } from "./use-vibe-player-controller";
+export type { UseVibePlayerMediaSessionOptions } from "./use-vibe-player-media-session";
 export {
   useVibePlayerOverlayPresence,
   VIBE_PLAYER_OVERLAY_EXIT_MS,

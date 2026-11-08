@@ -3,6 +3,8 @@ import {
   defaultVibePlayerLabels,
   defaultVibePlayerTimeFormatter,
 } from "./vibe-player-labels";
+import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
+import type { VibePlayerTimelinePreview } from "./vibe-player-timeline-preview";
 import type {
   VibePlayerClassNames,
   VibePlayerIcons,
@@ -13,12 +15,16 @@ import type {
 export interface VibePlayerTimelineBackgroundContext {
   /** Media duration in seconds; 0 until known. */
   duration: number;
+  /** The previewed moment (pointer, scrub, keyboard seek), outside React. */
+  preview: VibePlayerTimelinePreview;
+  /** The player's `seekThumbnails`, for a preview drawn above the rail. */
+  seekThumbnails: readonly VibePlayerSeekThumbnail[] | undefined;
 }
 
 /**
- * Content drawn under the progress fill of every package timeline (glass,
- * chips and full stage), e.g. `VibePlayerHeatmap` or chapter marks. It never
- * receives pointer input, so the seek hit area is unchanged.
+ * Content drawn with every package timeline (glass, chips and full stage),
+ * e.g. `VibePlayerHeatmap` or chapter marks. It never receives pointer input,
+ * so the seek hit area is unchanged.
  */
 export type VibePlayerTimelineBackground = (
   context: VibePlayerTimelineBackgroundContext
@@ -32,11 +38,17 @@ export interface VibePlayerUIOptions {
   timelineBackground?: VibePlayerTimelineBackground | undefined;
 }
 
+interface VibePlayerUIProviderProps extends VibePlayerUIOptions {
+  children: ReactNode;
+  seekThumbnails?: readonly VibePlayerSeekThumbnail[] | undefined;
+}
+
 interface VibePlayerUIContextValue {
   classNames: VibePlayerClassNames;
   formatTime: (seconds: number) => string;
   icons: VibePlayerIcons;
   labels: VibePlayerLabels;
+  seekThumbnails: readonly VibePlayerSeekThumbnail[] | undefined;
   timelineBackground: VibePlayerTimelineBackground | undefined;
 }
 
@@ -45,8 +57,11 @@ const context = createContext<VibePlayerUIContextValue>({
   formatTime: defaultVibePlayerTimeFormatter,
   icons: {},
   labels: defaultVibePlayerLabels,
+  seekThumbnails: undefined,
   timelineBackground: undefined,
 });
+const timelineContext =
+  createContext<VibePlayerTimelineBackgroundContext | null>(null);
 
 export function VibePlayerUIProvider({
   children,
@@ -54,17 +69,19 @@ export function VibePlayerUIProvider({
   formatTime,
   icons,
   labels,
+  seekThumbnails,
   timelineBackground,
-}: VibePlayerUIOptions & { children: ReactNode }) {
+}: VibePlayerUIProviderProps) {
   const value = useMemo(
     () => ({
       classNames: classNames ?? {},
       formatTime: formatTime ?? defaultVibePlayerTimeFormatter,
       icons: icons ?? {},
       labels: { ...defaultVibePlayerLabels, ...labels },
+      seekThumbnails,
       timelineBackground,
     }),
-    [classNames, formatTime, icons, labels, timelineBackground]
+    [classNames, formatTime, icons, labels, seekThumbnails, timelineBackground]
   );
   return <context.Provider value={value}>{children}</context.Provider>;
 }
@@ -73,21 +90,34 @@ export function useVibePlayerUI(): VibePlayerUIContextValue {
   return useContext(context);
 }
 
+/** The timeline a background is drawn in; null outside a timeline. */
+export function useVibePlayerTimeline(): VibePlayerTimelineBackgroundContext | null {
+  return useContext(timelineContext);
+}
+
 /** The layer under a timeline's fill; absent without a background. */
 export function VibePlayerTimelineBackgroundLayer({
   className,
   duration,
+  preview,
 }: {
   className: string;
   duration: number;
+  preview: VibePlayerTimelinePreview;
 }) {
-  const { timelineBackground } = useVibePlayerUI();
+  const { seekThumbnails, timelineBackground } = useVibePlayerUI();
+  const value = useMemo(
+    () => ({ duration, preview, seekThumbnails }),
+    [duration, preview, seekThumbnails]
+  );
   if (!timelineBackground) {
     return null;
   }
   return (
     <span aria-hidden className={className} data-part="timeline-background">
-      {timelineBackground({ duration })}
+      <timelineContext.Provider value={value}>
+        {timelineBackground(value)}
+      </timelineContext.Provider>
     </span>
   );
 }

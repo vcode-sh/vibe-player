@@ -2,8 +2,12 @@ import { defineConfig } from "tsdown";
 
 const playerModulePattern =
   /src[\\/](?:core|react|ui|captions|skins|preview)[\\/]/;
-/** Lazily loaded skins keep their own chunk, off the compact initial path. */
-const lazySkinPattern = /vibe-player-chips-skin\.tsx$/;
+/**
+ * Lazily loaded skins and the opt-in media session keep their own chunks, off
+ * the compact initial path.
+ */
+const lazyModulePattern =
+  /[\\/]vibe-player-(?:chips-skin\.tsx|media-session(?:-[a-z]+)?\.ts)$/;
 
 export default defineConfig({
   banner: '"use client";',
@@ -32,7 +36,7 @@ export default defineConfig({
           test: (id) =>
             playerModulePattern.test(id) &&
             !id.endsWith(".d.ts") &&
-            !lazySkinPattern.test(id),
+            !lazyModulePattern.test(id),
         },
       ],
     },

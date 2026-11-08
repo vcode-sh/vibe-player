@@ -39,6 +39,11 @@ export {
   VibePlayerScrubber,
   type VibePlayerScrubberProps,
 } from "./vibe-player-scrubber";
+export {
+  createVibePlayerSeekThumbnails,
+  parseVibePlayerSeekThumbnailsVtt,
+  type VibePlayerSeekThumbnailGrid,
+} from "./vibe-player-seek-thumbnail-sources";
 export type {
   VibePlayerSeekThumbnail,
   VibePlayerSeekThumbnailSprite,
@@ -69,6 +74,7 @@ export {
   VibePlayerTimeline,
   type VibePlayerTimelineProps,
 } from "./vibe-player-timeline";
+export type { VibePlayerTimelinePreview } from "./vibe-player-timeline-preview";
 export type {
   VibePlayerTimelineBackground,
   VibePlayerTimelineBackgroundContext,

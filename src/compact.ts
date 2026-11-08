@@ -34,6 +34,15 @@ export {
   VibePlayerScrubber,
   type VibePlayerScrubberProps,
 } from "./ui/vibe-player-scrubber";
+export {
+  createVibePlayerSeekThumbnails,
+  parseVibePlayerSeekThumbnailsVtt,
+  type VibePlayerSeekThumbnailGrid,
+} from "./ui/vibe-player-seek-thumbnail-sources";
+export type {
+  VibePlayerSeekThumbnail,
+  VibePlayerSeekThumbnailSprite,
+} from "./ui/vibe-player-seek-thumbnail-types";
 export type {
   VibePlayerCompactControls,
   VibePlayerCompactSkin,
@@ -43,6 +52,7 @@ export type {
   VibePlayerSurfacePhase,
   VibePlayerSurfaceState,
 } from "./ui/vibe-player-surface-types";
+export type { VibePlayerTimelinePreview } from "./ui/vibe-player-timeline-preview";
 export type {
   VibePlayerTimelineBackground,
   VibePlayerTimelineBackgroundContext,

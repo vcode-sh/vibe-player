@@ -1,10 +1,28 @@
+import { Buffer } from "node:buffer";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { Features, transform } from "lightningcss";
 
 const lineBreakPattern = /\r\n|\r|\n/;
 const localImportPattern = /^@import\s+"\.\/([^"]+)";$/;
 const stylesDir = resolve(import.meta.dirname, "../src/styles");
 const distDir = resolve(import.meta.dirname, "../dist");
+/**
+ * Minify only. Targets the oldest engine the package supports (iOS 17.1+) so
+ * Safari keeps the `-webkit-backdrop-filter` it needs; every other lowering
+ * (`light-dark()`, selectors, colors) stays off. Class names and custom
+ * properties are never renamed; `src/styles` stays the readable source.
+ */
+/** lightningcss encodes a browser version as `major << 16`. */
+const safari17 = 17 * 2 ** 16;
+const minifyTargets = { ios_saf: safari17, safari: safari17 };
+/** Every single-feature lowering flag except vendor prefixes. */
+const skippedLowerings = Object.entries(Features)
+  .filter(
+    ([name, flag]) =>
+      name !== "VendorPrefixes" && Number.isInteger(Math.log2(flag))
+  )
+  .reduce((mask, [, flag]) => mask + flag, 0);
 /** Each public stylesheet is one flattened file; skins opt in separately. */
 const stylesheets = [
   { input: "vibe-player.css", output: "styles.css" },
@@ -46,7 +64,14 @@ async function buildStylesheet({ input, output }) {
   }
   const outputPath = resolve(distDir, output);
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, `${blocks.join("\n\n")}\n`);
+  const { code } = transform({
+    code: Buffer.from(blocks.join("\n\n")),
+    exclude: skippedLowerings,
+    filename: output,
+    minify: true,
+    targets: minifyTargets,
+  });
+  await writeFile(outputPath, code);
   console.log(`Built ${outputPath}`);
 }
 

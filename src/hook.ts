@@ -36,6 +36,11 @@ export {
   createVibePlayerAudioFocusParticipant,
   type VibePlayerAudioFocusParticipant,
 } from "./core/vibe-player-audio-focus";
+export type {
+  VibePlayerMediaSessionArtwork,
+  VibePlayerMediaSessionMetadata,
+  VibePlayerMediaSessionOptions,
+} from "./core/vibe-player-media-session-types";
 export {
   type UseVibePlayerOptions,
   useVibePlayer,
@@ -49,4 +54,5 @@ export {
   type UseVibePlayerControllerOptions,
   useVibePlayerController,
 } from "./react/use-vibe-player-controller";
+export type { UseVibePlayerMediaSessionOptions } from "./react/use-vibe-player-media-session";
 export type { VibePlayerVisibilityOptions } from "./react/use-vibe-player-visibility";

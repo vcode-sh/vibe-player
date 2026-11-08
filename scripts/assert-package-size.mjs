@@ -65,7 +65,9 @@ rows.push(
       // 2026-11-08: 18,500 -> 19,500 B for the detached host frame, the
       // timeline background layer, the opt-in Picture-in-Picture control and
       // watched-range tracking in the controller.
-      limit: 19_500,
+      // 2026-11-08: 19,500 -> 20,500 B (measured 19,463 B, 37 B headroom) for
+      // the heatmap preview and seek thumbnails; Media Session is deferred.
+      limit: 20_500,
       mode: "gzip",
     },
     initial.map((chunk) => chunk.code)

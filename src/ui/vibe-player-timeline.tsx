@@ -8,6 +8,7 @@ import {
 } from "react";
 import { VibePlayerSeekPreview } from "./vibe-player-seek-preview";
 import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
+import { createVibePlayerTimelinePreview } from "./vibe-player-timeline-preview";
 import {
   useVibePlayerUI,
   VibePlayerTimelineBackgroundLayer,
@@ -55,7 +56,8 @@ export function VibePlayerTimeline({
 }: VibePlayerTimelineProps) {
   const { classNames, formatTime, labels } = useVibePlayerUI();
   const [hoverPercent, setHoverPercent] = useState<number | null>(null);
-  const [focused, setFocused] = useState(false);
+  // Pointer seeks focus the input too; only keyboard focus keeps a preview.
+  const [focused, setFocused] = useState<false | "keyboard" | "pointer">(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pointerPositionRef = useRef<PointerPosition | null>(null);
   const pointerSeekingRef = useRef<number | null>(null);
@@ -68,6 +70,12 @@ export function VibePlayerTimeline({
   const tooltipTime =
     hoverTime ?? (focused && hasDuration ? currentTime : null);
   const rawTooltipPercent = hoverPercent ?? progress;
+  const [preview] = useState(createVibePlayerTimelinePreview);
+  const previewFraction =
+    hasDuration && (hoverPercent !== null || focused === "keyboard")
+      ? rawTooltipPercent / 100
+      : null;
+  useEffect(() => preview.set(previewFraction), [preview, previewFraction]);
 
   useEffect(() => {
     const pointerId = pointerSeekingRef.current;
@@ -143,6 +151,7 @@ export function VibePlayerTimeline({
         event.preventDefault();
         pointerSeekingRef.current = event.pointerId;
         inputRef.current?.focus({ preventScroll: true });
+        setFocused("pointer");
         event.currentTarget.setPointerCapture(event.pointerId);
         seekFromPointer(event);
       }}
@@ -179,7 +188,8 @@ export function VibePlayerTimeline({
           setHoverPercent(null);
           onSeek(Number(event.currentTarget.value));
         }}
-        onFocus={() => setFocused(true)}
+        onFocus={() => setFocused("keyboard")}
+        onKeyDown={() => setFocused("keyboard")}
         ref={inputRef}
         step={0.1}
         type="range"
@@ -191,6 +201,7 @@ export function VibePlayerTimeline({
         <VibePlayerTimelineBackgroundLayer
           className="vibe-player-timeline__background"
           duration={hasDuration ? duration : 0}
+          preview={preview}
         />
         <div
           className="vibe-player-timeline__progress"

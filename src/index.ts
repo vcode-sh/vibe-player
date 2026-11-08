@@ -95,6 +95,11 @@ export {
   createVibePlayerAudioFocusParticipant,
   type VibePlayerAudioFocusParticipant,
 } from "./core/vibe-player-audio-focus";
+export type {
+  VibePlayerMediaSessionArtwork,
+  VibePlayerMediaSessionMetadata,
+  VibePlayerMediaSessionOptions,
+} from "./core/vibe-player-media-session-types";
 export {
   VibePlayerAmbientPreview,
   type VibePlayerAmbientPreviewProps,
@@ -107,6 +112,7 @@ export {
   type UseVibePlayerCaptionsOptions,
   type UseVibePlayerChromeOptions,
   type UseVibePlayerControllerOptions,
+  type UseVibePlayerMediaSessionOptions,
   type UseVibePlayerOptions,
   type UseVibePlayerShortcutsOptions,
   useVibePlayer,
@@ -146,6 +152,8 @@ export {
   type VibePlayerSkinPreset,
 } from "./skins";
 export {
+  createVibePlayerSeekThumbnails,
+  parseVibePlayerSeekThumbnailsVtt,
   VibePlayerCaptionOverlay,
   type VibePlayerCaptionOverlayProps,
   type VibePlayerClassNames,
@@ -176,6 +184,7 @@ export {
   VibePlayerScrubber,
   type VibePlayerScrubberProps,
   type VibePlayerSeekThumbnail,
+  type VibePlayerSeekThumbnailGrid,
   type VibePlayerSeekThumbnailSprite,
   VibePlayerShell,
   type VibePlayerShellProps,
@@ -190,6 +199,7 @@ export {
   VibePlayerTimeline,
   type VibePlayerTimelineBackground,
   type VibePlayerTimelineBackgroundContext,
+  type VibePlayerTimelinePreview,
   type VibePlayerTimelineProps,
   type VibePlayerUIOptions,
   type VibePlayerVariant,
