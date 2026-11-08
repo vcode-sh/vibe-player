@@ -55,7 +55,7 @@ export function App() {
           <span>vibe-player</span>
         </div>
         <nav aria-label="Demo links">
-          <a href="?demo=adoption">Inline variants</a>
+          <a href="?">Feature showcase</a>
           <a
             href="https://www.npmjs.com/package/vibe-player"
             rel="noreferrer"

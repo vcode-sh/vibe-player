@@ -2,9 +2,11 @@ import {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 import type { VibePlayerShortcutAction } from "../core";
+import { resolveVibePlayerSeekStep } from "../core/vibe-player-seek-step";
 import { createIdleCapabilities } from "../core/vibe-player-time";
 import { useVibePlayer } from "../react/use-vibe-player";
 import {
@@ -63,14 +65,18 @@ export function useVibePlayerStagePlayback(
       state.renewing ||
       (!state.snapshot.paused && state.snapshot.readyState === "playing"),
   });
+  const seekStep = resolveVibePlayerSeekStep(options.seekStep);
   const actions = useVibePlayerStageActions({
     controller,
+    seekStep,
     setCaptionsEnabled,
     snapshot: state.snapshot,
   });
+  const pointerType = useRef("mouse");
   const rootEvents = useVibePlayerStageRootEvents({
     chrome,
     hideOnPointerLeave: policy.hideOnPointerLeave,
+    pointerType,
     rootElement,
     togglePlay: actions.togglePlay,
   });
@@ -111,8 +117,10 @@ export function useVibePlayerStagePlayback(
     captionsEnabled,
     chrome,
     playerTitle: title ?? activeSource.title,
+    pointerType,
     rootElement,
     rootEvents,
+    seekStep,
     setRootElement,
   };
 }

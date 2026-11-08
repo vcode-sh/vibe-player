@@ -56,6 +56,8 @@ export function Film() {
 - compliant YouTube external handoff when iframe chrome is the wrong answer
 - package-owned controls, timeline, captions, volume, quality, PiP, fullscreen
 - keyboard shortcuts and real tooltips instead of browser-default mystery meat
+- one configurable seek step (`seekStep`, default 10 s) for skip buttons,
+  arrows and J/L, YouTube-style double-tap seeking and system media controls
 - package-owned headless lifecycle, controller, volume, and quality helpers
 - state observers and source-aware errors for host integrations
 - ambient preview primitives and a neutral cinematic skin
@@ -132,6 +134,9 @@ offscreen players release playback by default; each policy can be disabled.
 The opt-in `mediaSession` drives lock-screen and media-key controls for the
 audible player; see
 [System Media Controls](./docs/usage.md#system-media-controls).
+`seekStep` sets how far skip buttons, ←/→ and J/L, double taps and system seek
+controls move; skip buttons and double-tap seek are on in the full stage and
+opt-in for compact and feed; see [Seeking](./docs/usage.md#seeking).
 Autoplay while visible is opt-in and muted. Hosts own session retirement and
 should call `stop()` or close/unmount the player when access ends.
 
@@ -161,16 +166,20 @@ bun run demo:vite
 bun run demo:vite:packaged
 ```
 
-The demo exercises file, HLS, YouTube iframe, and YouTube external handoff
-modes through the real package player. No pretend product shell required.
-Open `?demo=adoption` for local portrait/landscape fMP4 in a 236 px chat bubble,
-feed card, viewer, and custom headless surface. These fixture videos are generated
-test patterns, not product media.
+`/` is the feature showcase: every public feature with a working example and
+the props it uses (compact and feed players in both skins, the full stage,
+inline and modal viewers, skip buttons and double-tap seek with a switchable
+`seekStep`, the detached host, the heatmap and seek frames, watched ranges,
+Media Session, Picture-in-Picture and headless controls). It plays generated
+test-pattern clips; run `bun run test:browser:host:media` once after a fresh
+clone. `?demo=workbench` is the provider workbench: one full stage switching
+between remote file, HLS, Bunny Stream, YouTube iframe and YouTube handoff
+sources. See [`demo/vite/README.md`](demo/vite/README.md).
 
 ## Bundle Size
 
 `bun run package:size` measures built output and enforces an initial combined
-compact + hook budget of **19,500 B gzip**, excluding React, React DOM, and
+compact + hook budget of **22,360 B gzip**, excluding React, React DOM, and
 `hls.js`. Provider bridges and the Ink Chips skin are separate chunks loaded
 on first use; the report also includes their deferred bytes and the complete
 consumer bundle.
@@ -189,7 +198,7 @@ the new consumer uses compact plus hook. Both measurements use a minified Vite
 application, include non-peer dependencies, exclude React/React DOM/hls.js, and
 sum each emitted chunk's gzip size. The initial budget includes every static
 dependency; provider bridges load on activation. All package ESM files retain
-their separate 42 KiB gzip limit.
+their separate 47 KiB gzip limit.
 
 ## Media Audit
 

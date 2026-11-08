@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { bindVibePlayerFramePreview } from "./vibe-player-frame-preview";
 import {
   createVibePlayerHeatmapLine,
   findVibePlayerHeatmapPeaks,
@@ -7,7 +8,6 @@ import {
   isNearVibePlayerHeatmapPeak,
   sampleVibePlayerHeatmap,
 } from "./vibe-player-heatmap-geometry";
-import { bindVibePlayerHeatmapPreview } from "./vibe-player-heatmap-preview";
 import {
   useVibePlayerTimeline,
   useVibePlayerUI,
@@ -65,7 +65,7 @@ export function VibePlayerHeatmap({
       return;
     }
     const count = values.length;
-    return bindVibePlayerHeatmapPreview(element, {
+    return bindVibePlayerFramePreview(element, "vibe-player-heatmap", {
       ...timeline,
       formatTime,
       label: (fraction) =>

@@ -29,6 +29,8 @@ describe("getVibePlayerShortcutAction", () => {
     ["f", "fullscreen"],
     ["ArrowLeft", "seek-backward"],
     ["ArrowRight", "seek-forward"],
+    ["j", "seek-backward"],
+    ["L", "seek-forward"],
     ["Escape", null],
   ])("maps %s to the documented action", (key, expected) => {
     expect(
@@ -42,6 +44,8 @@ describe("getVibePlayerShortcutAction", () => {
     ["f", "canFullscreen"],
     ["ArrowLeft", "canSeek"],
     ["ArrowRight", "canSeek"],
+    ["j", "canSeek"],
+    ["l", "canSeek"],
   ] as const)(
     "gates %s on %s without blocking unrelated playback",
     (key, capability) => {

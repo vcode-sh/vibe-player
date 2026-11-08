@@ -77,7 +77,9 @@
   color: #fff;
 }
 
-.vibe-player-heatmap__frame {
+/* Shared with the compact scrub frame (vibe-player-scrub-frame.css). */
+.vibe-player-heatmap__frame,
+.vibe-player-scrub-frame__frame {
   position: relative;
   width: var(--_vp-heat-frame);
   overflow: hidden;
@@ -89,11 +91,13 @@
 }
 
 .vibe-player-heatmap__frame[hidden],
+.vibe-player-scrub-frame__frame[hidden],
 .vibe-player-heatmap__label:empty {
   display: none;
 }
 
-.vibe-player-heatmap__frame img {
+.vibe-player-heatmap__frame img,
+.vibe-player-scrub-frame__frame img {
   position: absolute;
   max-width: none;
   height: auto;
@@ -176,7 +180,8 @@
 }
 
 @container vibe-player (max-width: 359px) {
-  .vibe-player-heatmap {
+  .vibe-player-heatmap,
+  .vibe-player-scrub-frame {
     --_vp-heat-h: var(--vibe-player-heatmap-height, 28px);
     --_vp-heat-frame: var(--vibe-player-heatmap-frame-width, 96px);
   }

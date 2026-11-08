@@ -2,15 +2,25 @@ import { useEffect, useRef } from "react";
 import type { VibePlayerController } from "../core/vibe-player-controller";
 import type { VibePlayerMediaSessionConnection } from "../core/vibe-player-media-session-connect";
 import type { UseVibePlayerMediaSessionOptions } from "../core/vibe-player-media-session-types";
+import { resolveVibePlayerSeekStep } from "../core/vibe-player-seek-step";
 
 export type { UseVibePlayerMediaSessionOptions } from "../core/vibe-player-media-session-types";
 
 /** Loads the session integration only for players that opt in. */
 export function useVibePlayerMediaSession(
   controller: VibePlayerController,
-  options: boolean | UseVibePlayerMediaSessionOptions | undefined
+  setting: boolean | UseVibePlayerMediaSessionOptions | undefined,
+  seekStep?: number
 ): void {
-  const enabled = Boolean(options);
+  const enabled = Boolean(setting);
+  const step = resolveVibePlayerSeekStep(seekStep);
+  // The player's seek step is the default; explicit offsets still win.
+  const custom = typeof setting === "object" ? setting : undefined;
+  const options = setting && {
+    ...custom,
+    seekBackwardSeconds: custom?.seekBackwardSeconds ?? step,
+    seekForwardSeconds: custom?.seekForwardSeconds ?? step,
+  };
   const latest = useRef(options);
   const connection = useRef<VibePlayerMediaSessionConnection | null>(null);
   useEffect(() => {

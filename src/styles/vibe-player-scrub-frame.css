@@ -1,0 +1,59 @@
+/* Compact scrub frame (seekThumbnails without a heatmap): the seek frame above
+   the previewed time, in place of the skin's time bubble. It shares the
+   heatmap preview's frame look and fades in 140 ms; the frame itself is
+   styled with the heatmap frame in vibe-player-heatmap.css. */
+.vibe-player-scrub-frame {
+  --_vp-heat-frame: var(--vibe-player-heatmap-frame-width, 132px);
+  position: absolute;
+  inset: 0 4px;
+  pointer-events: none;
+}
+
+.vibe-player-scrub-frame__preview {
+  position: absolute;
+  bottom: 36px;
+  left: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.vibe-player-scrub-frame[data-active] .vibe-player-scrub-frame__preview {
+  opacity: 1;
+}
+
+.vibe-player-scrub-frame__time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Glass: the time reads like the capsule's scrub bubble. */
+.vibe-player-glass__track .vibe-player-scrub-frame__time {
+  height: 26px;
+  padding: 0 9px;
+  font-size: 13px;
+  line-height: 26px;
+  background: rgb(18 18 18 / 0.58);
+  border-radius: 13px;
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.18);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
+  backdrop-filter: blur(12px) saturate(1.05);
+}
+
+/* A heatmap draws its own frame preview; the scrub frame replaces only the
+   skin's bubble. */
+.vibe-player-scrubber:has(.vibe-player-heatmap) .vibe-player-scrub-frame,
+.vibe-player-glass__track:has(.vibe-player-scrub-frame)
+  .vibe-player-glass__bubble {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-scrub-frame__preview {
+    transition-duration: 0s;
+  }
+}

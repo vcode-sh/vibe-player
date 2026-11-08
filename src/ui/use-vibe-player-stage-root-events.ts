@@ -2,8 +2,8 @@ import {
   type FocusEvent,
   type KeyboardEvent,
   type PointerEvent,
+  type RefObject,
   useCallback,
-  useRef,
 } from "react";
 import { flushSync } from "react-dom";
 import { shouldRevealVibePlayerChromeForKey } from "../core";
@@ -14,6 +14,8 @@ export interface UseVibePlayerStageRootEventsInput {
   chrome: VibePlayerChromeState;
   /** Compact surfaces clear the video as soon as a mouse leaves. */
   hideOnPointerLeave: boolean;
+  /** The last pointer's type; touch clicks never toggle playback. */
+  pointerType: RefObject<string>;
   rootElement: HTMLElement | null;
   togglePlay: () => void;
 }
@@ -49,10 +51,10 @@ export function isKeyboardControlFocus(
 export function useVibePlayerStageRootEvents({
   chrome,
   hideOnPointerLeave,
+  pointerType,
   rootElement,
   togglePlay,
 }: UseVibePlayerStageRootEventsInput): VibePlayerStageRootEvents {
-  const pointerType = useRef("mouse");
   const onClick = useVibePlayerStageClick({
     pointerType,
     rootElement,

@@ -137,6 +137,23 @@ export function QualityIcon(props: VibePlayerIconProps) {
   );
 }
 
+/** An open ring turning back; skip buttons draw the step inside it. */
+export function SeekBackwardIcon(props: VibePlayerIconProps) {
+  return (
+    <VibePlayerIconBase icon="seekBackward" {...props}>
+      <path d="M12 4a8 8 0 1 1-7.4 5M14.5 1.5 12 4l2.5 2.5" />
+    </VibePlayerIconBase>
+  );
+}
+
+export function SeekForwardIcon(props: VibePlayerIconProps) {
+  return (
+    <VibePlayerIconBase icon="seekForward" {...props}>
+      <path d="M12 4a8 8 0 1 0 7.4 5M9.5 1.5 12 4 9.5 6.5" />
+    </VibePlayerIconBase>
+  );
+}
+
 export function VolumeIcon(props: VibePlayerIconProps) {
   return (
     <VibePlayerIconBase icon="volumeHigh" {...props}>

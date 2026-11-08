@@ -2,15 +2,15 @@ import { selectVibePlayerSeekThumbnail } from "./select-vibe-player-seek-thumbna
 import type { VibePlayerSeekThumbnail } from "./vibe-player-seek-thumbnail-types";
 import type { VibePlayerTimelinePreview } from "./vibe-player-timeline-preview";
 
-export interface VibePlayerHeatmapPreviewOptions {
+export interface VibePlayerFramePreviewOptions {
   duration: number;
   formatTime: (seconds: number) => string;
   /** The chip label at a fraction: "Most replayed", a host value, or "". */
-  label: (fraction: number) => string;
+  label?: ((fraction: number) => string) | undefined;
   preview: VibePlayerTimelinePreview;
   seekThumbnails: readonly VibePlayerSeekThumbnail[] | undefined;
-  /** The dot's vertical position (0..100) at a fraction. */
-  y: (fraction: number) => number;
+  /** The rider dot's vertical position (0..100) at a fraction. */
+  y?: ((fraction: number) => number) | undefined;
 }
 
 interface Bounds {
@@ -32,8 +32,12 @@ function measure(root: HTMLElement): Bounds {
   };
 }
 
-function part<T extends Element>(root: HTMLElement, name: string): T | null {
-  return root.querySelector<T>(`.vibe-player-heatmap__${name}`);
+function part<T extends Element>(
+  root: HTMLElement,
+  block: string,
+  name: string
+): T | null {
+  return root.querySelector<T>(`.${block}__${name}`);
 }
 
 /** Positions a sprite tile (or a whole frame) inside the frame box. */
@@ -62,20 +66,22 @@ function showFrame(
 }
 
 /**
- * Drives the dot, frame, time and label from the timeline preview through
- * the DOM, so pointer moves never re-render React. Returns the cleanup.
+ * Drives the `${block}__` parts (optional rider dot and label, the preview
+ * box, frame and time) from the timeline preview through the DOM, so pointer
+ * moves never re-render React. Returns the cleanup.
  */
-export function bindVibePlayerHeatmapPreview(
+export function bindVibePlayerFramePreview(
   root: HTMLElement,
-  options: VibePlayerHeatmapPreviewOptions
+  block: string,
+  options: VibePlayerFramePreviewOptions
 ): () => void {
-  const rider = part<HTMLElement>(root, "rider");
-  const box = part<HTMLElement>(root, "preview");
-  const frame = part<HTMLElement>(root, "frame");
+  const rider = part<HTMLElement>(root, block, "rider");
+  const box = part<HTMLElement>(root, block, "preview");
+  const frame = part<HTMLElement>(root, block, "frame");
   const image = frame?.querySelector("img");
-  const time = part<HTMLElement>(root, "time");
-  const label = part<HTMLElement>(root, "label");
-  if (!(box && frame && image && time && label)) {
+  const time = part<HTMLElement>(root, block, "time");
+  const label = part<HTMLElement>(root, block, "label");
+  if (!(box && frame && image && time)) {
     return () => undefined;
   }
   const failed = new Set<string>();
@@ -101,8 +107,10 @@ export function bindVibePlayerHeatmapPreview(
     }
     showFrame(frame, image, url ? thumbnail : undefined);
     time.textContent = options.formatTime(seconds);
-    label.textContent = options.label(fraction);
-    if (rider) {
+    if (label && options.label) {
+      label.textContent = options.label(fraction);
+    }
+    if (rider && options.y) {
       rider.style.transform = `translate(${fraction * 100}%, ${options.y(fraction)}%)`;
     }
     const half = box.offsetWidth / 2;

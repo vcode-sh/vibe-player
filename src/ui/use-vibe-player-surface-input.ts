@@ -1,4 +1,5 @@
 import { type MouseEvent, type PointerEvent, useRef } from "react";
+import type { useVibePlayerTapSeek } from "./use-vibe-player-tap-seek";
 import {
   canScrubVibePlayerSurface,
   isVibePlayerSurfacePlaying,
@@ -24,6 +25,8 @@ interface SurfaceDrag {
 
 export interface UseVibePlayerSurfaceInputOptions {
   actions: VibePlayerSurfaceActions;
+  /** Routes touch taps through double-tap seeking. */
+  doubleTap: ReturnType<typeof useVibePlayerTapSeek>["tap"];
   /** A horizontal drag anywhere on the picture scrubs (Ink Chips). */
   dragToScrub: boolean;
   state: VibePlayerSurfaceState;
@@ -40,6 +43,7 @@ function ownsInput(target: EventTarget) {
  */
 export function useVibePlayerSurfaceInput({
   actions,
+  doubleTap,
   dragToScrub,
   state,
 }: UseVibePlayerSurfaceInputOptions) {
@@ -98,12 +102,19 @@ export function useVibePlayerSurfaceInput({
     }
   }
 
+  // A delayed single tap acts on the state at that moment.
+  const latestTap = useRef(tap);
+  latestTap.current = tap;
   return {
     onClick: (event: MouseEvent<HTMLElement>) => {
       if (suppressClick.current) {
         suppressClick.current = false;
       } else if (!(event.defaultPrevented || ownsInput(event.target))) {
-        tap();
+        if (pointerType.current === "touch") {
+          doubleTap(event, event.currentTarget, () => latestTap.current());
+        } else {
+          tap();
+        }
       }
       if (event.detail > 0) {
         event.currentTarget.focus({ preventScroll: true });

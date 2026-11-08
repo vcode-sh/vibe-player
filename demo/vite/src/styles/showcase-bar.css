@@ -1,0 +1,119 @@
+/* Showcase navigation bar, skip link and visually hidden text. */
+.sc-skip {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 30;
+  padding: 8px 12px;
+  background: var(--sc-surface);
+  border-radius: 8px;
+  transform: translateY(-200%);
+}
+
+.sc-skip:focus-visible {
+  transform: none;
+}
+
+.sc-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.sc-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-height: 60px;
+  padding: 10px var(--sc-gutter);
+  background: color-mix(in srgb, var(--sc-bg) 86%, transparent);
+  border-bottom: 1px solid var(--sc-border);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+
+.sc-brand {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.sc-brand__mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--sc-accent-ink);
+  letter-spacing: 0.04em;
+  background: var(--sc-accent);
+  border-radius: 50%;
+}
+
+.sc-bar__sections {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sc-bar__sections a {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--sc-muted);
+  white-space: nowrap;
+  text-decoration: none;
+  border-radius: 999px;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.sc-bar__sections a:hover,
+.sc-bar__sections a[aria-current="true"] {
+  color: var(--sc-text);
+  background: var(--sc-surface-2);
+}
+
+.sc-bar__end {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.sc-bar__route {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .sc-bar {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .sc-bar__sections {
+    flex-basis: 100%;
+    order: 3;
+    padding: 0 var(--sc-gutter);
+    margin: 0 calc(var(--sc-gutter) * -1);
+  }
+
+  .sc-bar__end {
+    margin-left: auto;
+  }
+}

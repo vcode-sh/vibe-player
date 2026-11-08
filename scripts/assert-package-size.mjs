@@ -67,7 +67,10 @@ rows.push(
       // watched-range tracking in the controller.
       // 2026-11-08: 19,500 -> 20,500 B (measured 19,463 B, 37 B headroom) for
       // the heatmap preview and seek thumbnails; Media Session is deferred.
-      limit: 20_500,
+      // 2026-11-08: 20,500 -> 22,360 B (measured 21,295 B + 5 %) for seek
+      // step, skip buttons, double-tap seek and the compact scrub frame
+      // (seek thumbnails without a heatmap).
+      limit: 22_360,
       mode: "gzip",
     },
     initial.map((chunk) => chunk.code)

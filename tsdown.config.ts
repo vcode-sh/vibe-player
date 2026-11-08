@@ -3,11 +3,11 @@ import { defineConfig } from "tsdown";
 const playerModulePattern =
   /src[\\/](?:core|react|ui|captions|skins|preview)[\\/]/;
 /**
- * Lazily loaded skins and the opt-in media session keep their own chunks, off
- * the compact initial path.
+ * Lazily loaded skins, the opt-in media session and double-tap seek keep their
+ * own chunks, off the compact initial path.
  */
 const lazyModulePattern =
-  /[\\/]vibe-player-(?:chips-skin\.tsx|media-session(?:-[a-z]+)?\.ts)$/;
+  /[\\/]vibe-player-(?:chips-skin\.tsx|media-session(?:-[a-z]+)?\.ts|tap-seek\.ts)$/;
 
 export default defineConfig({
   banner: '"use client";',

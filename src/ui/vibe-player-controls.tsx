@@ -17,11 +17,18 @@ export interface VibePlayerControlsProps {
   onSetPlaybackRate: (rate: number) => void;
   onSetQuality?: ((qualityId: string) => void) | undefined;
   onSetVolume?: ((volume: number) => void) | undefined;
+  /**
+   * Seeks relative to the position; given, skip back/forward buttons flank
+   * Play wherever the media can seek.
+   */
+  onSkip?: ((seconds: number) => void) | undefined;
   onToggleCaptions?: () => void;
   onToggleFullscreen?: () => void;
   onToggleMute: () => void;
   onTogglePictureInPicture?: () => void;
   onTogglePlay: () => void;
+  /** Seconds a skip button moves. Default 10. */
+  seekStep?: number | undefined;
   seekThumbnails?: readonly VibePlayerSeekThumbnail[] | undefined;
   snapshot: VibePlayerSnapshot;
   title?: string | undefined;
@@ -84,11 +91,13 @@ export function VibePlayerControls({
   onSetPlaybackRate,
   onSetQuality,
   onSetVolume,
+  onSkip,
   onToggleCaptions,
   onToggleFullscreen,
   onToggleMute,
   onTogglePictureInPicture,
   onTogglePlay,
+  seekStep,
   seekThumbnails,
   snapshot,
   title,
@@ -126,11 +135,13 @@ export function VibePlayerControls({
             onSetPlaybackRate={onSetPlaybackRate}
             onSetQuality={onSetQuality}
             onSetVolume={onSetVolume}
+            onSkip={onSkip}
             onToggleCaptions={onToggleCaptions}
             onToggleFullscreen={onToggleFullscreen}
             onToggleMute={onToggleMute}
             onTogglePictureInPicture={onTogglePictureInPicture}
             onTogglePlay={onTogglePlay}
+            seekStep={seekStep}
             seekThumbnails={seekThumbnails}
             snapshot={snapshot}
           />

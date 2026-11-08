@@ -5,6 +5,7 @@ import {
   VolumeIcon,
 } from "./vibe-player-icons";
 import { VibePlayerScrubber } from "./vibe-player-scrubber";
+import { VibePlayerSkipGlyph } from "./vibe-player-skip-glyph";
 import {
   playbackSwapItems,
   revealProps,
@@ -14,7 +15,7 @@ import { isVibePlayerSurfacePlaying } from "./vibe-player-surface-phase";
 import type { VibePlayerSurface } from "./vibe-player-surface-types";
 import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 
-/** The capsule: play, a short inset scrubber, time and mute. */
+/** The capsule: optional skips around play, a short scrubber, time and mute. */
 export function VibePlayerGlassBar({
   surface,
 }: {
@@ -30,6 +31,22 @@ export function VibePlayerGlassBar({
     classNames.button
   );
   const time = formatTime(state.time);
+  const skip = (side: -1 | 1) =>
+    controls.skip ? (
+      <button
+        aria-label={
+          side < 0
+            ? labels.seekBackward(state.seekStep)
+            : labels.seekForward(state.seekStep)
+        }
+        className={`${button} vibe-player-glass__skip`}
+        data-part={side < 0 ? "skip-backward" : "skip-forward"}
+        onClick={() => actions.seekBy(side * state.seekStep)}
+        type="button"
+      >
+        <VibePlayerSkipGlyph side={side} step={state.seekStep} />
+      </button>
+    ) : null;
   return (
     <div
       {...revealProps(
@@ -39,6 +56,7 @@ export function VibePlayerGlassBar({
         classNames.controls
       )}
     >
+      {skip(-1)}
       <button
         aria-label={playing ? labels.pause : labels.play}
         className={button}
@@ -50,6 +68,7 @@ export function VibePlayerGlassBar({
           items={playbackSwapItems({ busy: false, ended: false, playing })}
         />
       </button>
+      {skip(1)}
       {controls.seek ? (
         <VibePlayerScrubber
           bubble={

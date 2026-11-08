@@ -12,10 +12,12 @@
 @import "./vibe-player-timeline.css";
 @import "./vibe-player-timeline-background.css";
 @import "./vibe-player-heatmap.css";
+@import "./vibe-player-scrub-frame.css";
 @import "./vibe-player-modal.css";
 @import "./vibe-player-preview.css";
 @import "./vibe-player-youtube-external.css";
 @import "./vibe-player-outside-controls.css";
+@import "./vibe-player-seek.css";
 
 /* Keep control gestures separate from selectable player and host content. */
 .vibe-player-controls__button,

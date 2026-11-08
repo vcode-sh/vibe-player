@@ -61,10 +61,11 @@ export function getVibePlayerShortcutAction(
   if (key === "m" && options.supportsMute) {
     return "toggle-mute";
   }
-  if (input.key === "ArrowLeft" && options.canSeek) {
+  // Arrows and J/L share one step (`seekStep`, default 10 s).
+  if ((input.key === "ArrowLeft" || key === "j") && options.canSeek) {
     return "seek-backward";
   }
-  if (input.key === "ArrowRight" && options.canSeek) {
+  if ((input.key === "ArrowRight" || key === "l") && options.canSeek) {
     return "seek-forward";
   }
   if (key === "f" && options.canFullscreen) {

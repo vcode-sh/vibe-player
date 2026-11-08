@@ -5,6 +5,7 @@ import {
   VibePlayerPictureInPictureControl,
   VibePlayerPlaybackControl,
   VibePlayerRateControl,
+  VibePlayerSkipControl,
 } from "./vibe-player-bottom-control-buttons";
 import { getVibePlayerChromeClassName } from "./vibe-player-control-chrome";
 import { VibePlayerQualityControl } from "./vibe-player-quality-control";
@@ -22,11 +23,13 @@ export interface VibePlayerBottomControlsProps {
   onSetPlaybackRate: (rate: number) => void;
   onSetQuality: ((qualityId: string) => void) | undefined;
   onSetVolume: ((volume: number) => void) | undefined;
+  onSkip?: ((seconds: number) => void) | undefined;
   onToggleCaptions: (() => void) | undefined;
   onToggleFullscreen: (() => void) | undefined;
   onToggleMute: () => void;
   onTogglePictureInPicture: (() => void) | undefined;
   onTogglePlay: () => void;
+  seekStep?: number | undefined;
   seekThumbnails?: readonly VibePlayerSeekThumbnail[] | undefined;
   snapshot: VibePlayerSnapshot;
 }
@@ -40,11 +43,13 @@ export function VibePlayerBottomControls({
   onSetPlaybackRate,
   onSetQuality,
   onSetVolume,
+  onSkip,
   onToggleCaptions,
   onToggleFullscreen,
   onToggleMute,
   onTogglePictureInPicture,
   onTogglePlay,
+  seekStep = 10,
   seekThumbnails,
   snapshot,
 }: VibePlayerBottomControlsProps) {
@@ -60,9 +65,21 @@ export function VibePlayerBottomControls({
       inert={chromeHidden ? true : undefined}
     >
       <div className="vibe-player-controls__playback">
+        <VibePlayerSkipControl
+          capabilities={capabilities}
+          onSkip={onSkip}
+          side={-1}
+          step={seekStep}
+        />
         <VibePlayerPlaybackControl
           onTogglePlay={onTogglePlay}
           snapshot={snapshot}
+        />
+        <VibePlayerSkipControl
+          capabilities={capabilities}
+          onSkip={onSkip}
+          side={1}
+          step={seekStep}
         />
         <VibePlayerVolumeControl
           capabilities={capabilities}

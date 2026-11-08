@@ -60,7 +60,11 @@ export {
   VibePlayerStageStatus,
   type VibePlayerStageStatusProps,
 } from "./vibe-player-stage-status";
-export type { VibePlayerPlaybackOptions } from "./vibe-player-stage-types";
+export type {
+  VibePlayerGestures,
+  VibePlayerPlaybackOptions,
+  VibePlayerStageControls,
+} from "./vibe-player-stage-types";
 export type {
   VibePlayerCompactControls,
   VibePlayerCompactSkin,

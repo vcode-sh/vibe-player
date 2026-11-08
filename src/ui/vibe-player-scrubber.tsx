@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { VibePlayerScrubFrame } from "./vibe-player-scrub-frame";
 import type { VibePlayerSurface } from "./vibe-player-surface-types";
 import { createVibePlayerTimelinePreview } from "./vibe-player-timeline-preview";
 import {
@@ -34,7 +35,7 @@ export function VibePlayerScrubber({
   interactive = true,
   surface,
 }: VibePlayerScrubberProps) {
-  const { classNames, formatTime, labels } = useVibePlayerUI();
+  const { classNames, formatTime, labels, seekThumbnails } = useVibePlayerUI();
   const rail = useRef<HTMLSpanElement>(null);
   const pointer = useRef<number | null>(null);
   const [preview] = useState(createVibePlayerTimelinePreview);
@@ -126,6 +127,9 @@ export function VibePlayerScrubber({
         <span className="vibe-player-scrubber__thumb" />
         {bubble}
       </span>
+      {seekThumbnails?.length ? (
+        <VibePlayerScrubFrame duration={state.duration} preview={preview} />
+      ) : null}
     </div>
   );
 }

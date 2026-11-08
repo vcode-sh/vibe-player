@@ -1,7 +1,7 @@
 import { formatVibePlayerTime } from "../core/vibe-player-time";
 import type { VibePlayerLabels } from "./vibe-player-ui-types";
 
-export const defaultVibePlayerLabels: VibePlayerLabels = {
+export const defaultVibePlayerLabels: Required<VibePlayerLabels> = {
   adaptiveQuality: "Adaptive",
   autoQuality: "Auto",
   bitrate: (megabits) => `${megabits} Mbps`,
@@ -34,6 +34,9 @@ export const defaultVibePlayerLabels: VibePlayerLabels = {
   retry: "Retry",
   retryCaptions: "Retry captions",
   seek: "Seek",
+  seekBackward: (seconds) => `Back ${seconds} seconds`,
+  seekForward: (seconds) => `Forward ${seconds} seconds`,
+  seekOffset: (seconds) => `${seconds} seconds`,
   seekShortcut: "← / →",
   seekValue: (time, duration) => `${time} of ${duration}`,
   showCaptions: "Show captions",

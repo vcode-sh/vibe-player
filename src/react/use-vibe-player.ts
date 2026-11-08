@@ -38,6 +38,12 @@ export interface UseVibePlayerOptions
   open?: boolean | undefined;
   /** Fullscreen container; defaults to the bound media target. */
   presentationTarget?: HTMLElement | null | undefined;
+  /**
+   * Seconds one skip moves: skip buttons, arrow keys and J/L, double-tap seek
+   * and the Media Session seek defaults (a system offset still wins). Any
+   * positive number; 10 (default), 15 and 30 are the common choices.
+   */
+  seekStep?: number | undefined;
   source: VibePlayerSource | null;
 }
 
@@ -70,6 +76,7 @@ export function useVibePlayer({
   open = true,
   pauseWhenHidden = true,
   presentationTarget,
+  seekStep,
   source: nextSource,
   stopWhenOffscreen = true,
   ...options
@@ -82,7 +89,7 @@ export function useVibePlayer({
   const loadGeneration = useRef(0);
 
   useVibePlayerAudibleFocus({ controller, group: audioFocus, state });
-  useVibePlayerMediaSession(controller, mediaSession);
+  useVibePlayerMediaSession(controller, mediaSession, seekStep);
   useVibePlayerVisibility({
     autoplayWhenVisible,
     controller,

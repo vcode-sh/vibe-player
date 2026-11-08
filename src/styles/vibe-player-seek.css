@@ -1,0 +1,114 @@
+/* Skip glyph: a ring icon with the seek step drawn inside it. */
+.vibe-player-skip {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.vibe-player-stage .vibe-player-skip > svg {
+  width: var(--vibe-player-skip-size, 22px);
+  height: var(--vibe-player-skip-size, 22px);
+}
+
+.vibe-player-skip__value {
+  position: absolute;
+  inset: 1px 0 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--vibe-player-skip-size, 22px) * 0.4);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Skips appear from 280 px wide, where the rest of the bar still fits. */
+@container vibe-player (max-width: 279px) {
+  .vibe-player-glass__skip,
+  .vibe-player-controls__playback
+    > .vibe-player-tooltip:has(.vibe-player-skip) {
+    display: none;
+  }
+}
+
+/* A double tap never zooms the page; panning and pinch zoom still work. */
+.vibe-player-stage[data-variant="full"] {
+  touch-action: manipulation;
+}
+
+/* Double-tap indicator: a soft wash on the tapped side that fades after the
+   burst, a wave that plays once per tap, and the burst total. */
+.vibe-player-seek-ripple {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  display: grid;
+  visibility: hidden;
+  place-items: center;
+  width: 40%;
+  overflow: hidden;
+  color: #fff;
+  pointer-events: none;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  opacity: 0;
+  transition:
+    opacity 240ms ease,
+    visibility 0s linear 240ms;
+}
+
+.vibe-player-seek-ripple[data-side="backward"] {
+  left: 0;
+  border-radius: 0 50% 50% 0 / 0 50% 50% 0;
+}
+
+.vibe-player-seek-ripple[data-side="forward"] {
+  right: 0;
+  border-radius: 50% 0 0 50% / 50% 0 0 50%;
+}
+
+.vibe-player-seek-ripple[data-active="true"] {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 120ms ease;
+}
+
+.vibe-player-seek-ripple__wave {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: vibe-player-seek-wave 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes vibe-player-seek-wave {
+  from {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+.vibe-player-seek-ripple__label {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+}
+
+/* Reduced motion: the same wash and total, without the travelling wave. */
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-seek-ripple__wave {
+    display: none;
+  }
+}

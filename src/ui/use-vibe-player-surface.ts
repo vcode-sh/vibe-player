@@ -5,6 +5,7 @@ import { useVibePlayerStagePlayback } from "./use-vibe-player-stage-playback";
 import { isKeyboardControlFocus } from "./use-vibe-player-stage-root-events";
 import { useVibePlayerSurfaceInput } from "./use-vibe-player-surface-input";
 import { useVibePlayerSurfaceScrub } from "./use-vibe-player-surface-scrub";
+import { useVibePlayerTapSeek } from "./use-vibe-player-tap-seek";
 import type { VibePlayerStageProps } from "./vibe-player-stage-types";
 import {
   canScrubVibePlayerSurface,
@@ -25,8 +26,6 @@ export interface UseVibePlayerSurfaceOptions extends VibePlayerStageProps {
   onExpand?: (() => void) | undefined;
 }
 
-const keyboardSeekSeconds = 5;
-
 /** Host choices narrowed by what the provider can honestly do. */
 function getVibePlayerSurfaceControls(
   { controls, onExpand }: UseVibePlayerSurfaceOptions,
@@ -40,6 +39,7 @@ function getVibePlayerSurfaceControls(
     pictureInPicture:
       (controls?.pictureInPicture ?? false) && capabilities.canPictureInPicture,
     seek: (controls?.seek ?? true) && capabilities.canSeek,
+    skip: (controls?.skip ?? false) && capabilities.canSeek,
     time: controls?.time ?? true,
   };
 }
@@ -164,6 +164,7 @@ export function useVibePlayerSurface(
       pictureInPicture: snapshot.isPictureInPicture ?? false,
       previewTime: scrub.previewTime,
       scrubbing: scrub.scrubbing,
+      seekStep: playback.seekStep,
       time: shownTime.current,
     },
   };
@@ -174,13 +175,23 @@ export function useVibePlayerSurface(
       actions.toggleMute();
     } else if (action === "seek-backward" || action === "seek-forward") {
       const sign = action === "seek-forward" ? 1 : -1;
-      actions.seekBy(sign * keyboardSeekSeconds);
+      actions.seekBy(sign * playback.seekStep);
     } else if (action === "fullscreen" && surface.controls.fullscreen) {
       actions.toggleFullscreen();
     }
   };
+  const tapSeek = useVibePlayerTapSeek({
+    duration,
+    enabled:
+      capabilities.canSeek && canScrubVibePlayerSurface(phase) && duration > 0,
+    getTime: () => controller.getState().snapshot.currentTime,
+    requested: props.gestures?.doubleTapSeek ?? false,
+    seekTo: stage.seekTo,
+    step: playback.seekStep,
+  });
   const input = useVibePlayerSurfaceInput({
     actions,
+    doubleTap: tapSeek.tap,
     dragToScrub: chips,
     state: surface.state,
   });
@@ -213,5 +224,5 @@ export function useVibePlayerSurface(
       setKeyboardHold(isKeyboardControlFocus(event));
     },
   };
-  return { events, playback, surface };
+  return { events, indicator: tapSeek.indicator, playback, surface };
 }

@@ -51,7 +51,7 @@ function VibePlayerCompactContent({
   ...props
 }: VibePlayerCompactProps) {
   const { classNames, labels } = useVibePlayerUI();
-  const { events, playback, surface } = useVibePlayerSurface(
+  const { events, indicator, playback, surface } = useVibePlayerSurface(
     { ...props, load },
     skin
   );
@@ -152,6 +152,7 @@ function VibePlayerCompactContent({
           {status}
         </span>
       ) : null}
+      {indicator}
       {overlay}
     </section>
   );

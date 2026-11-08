@@ -2,6 +2,69 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-08
+
+### Added
+
+- `seekStep` on `useVibePlayer` and every assembly: the seconds one relative
+  seek moves (any positive number; 10 by default, 15 and 30 are common). It
+  drives skip buttons, the arrow keys and J/L, double-tap seeking and the
+  Media Session `seekbackward` / `seekforward` defaults (explicit
+  `seekBackwardSeconds` / `seekForwardSeconds` and a system offset still win).
+- J and L seek back and forward by the step on the focused player, beside
+  ← and →.
+- Skip back/forward buttons showing the step inside a ring icon, named
+  "Back 10 seconds" / "Forward 10 seconds". On by default around Play in the
+  full stage (`controls={{ skip: false }}` removes them); opt-in in compact and
+  feed with `controls={{ skip: true }}` (glass capsule and chips). Every skin
+  shows them from 280 px wide; they are absent where the provider cannot seek. Custom bars get them from
+  `VibePlayerControls` with `onSkip` and `seekStep`.
+- Touch double-tap seeking: a double tap on the left or right third seeks by
+  the step, further taps add up (−10, −20, −30) and a side wash shows the
+  total, then fades. A side tap waits 300 ms for a second tap; centre taps
+  stay immediate. On by default in the full stage; opt-in in compact and feed
+  with `gestures={{ doubleTapSeek: true }}`, which loads a small chunk only
+  then. Reduced motion keeps the same states without the wave.
+- Compact and feed players (glass and chips) show `seekThumbnails` without a
+  heatmap: the scrub readout draws the seek frame above the time while
+  hovering, scrubbing or seeking with the keyboard, with the heatmap
+  preview's frame size, radius and shadow, kept inside the player. Before,
+  compact players showed frames only inside a `VibePlayerHeatmap` preview;
+  with a heatmap that preview still owns the single frame.
+- A mouse double-click on the full-stage picture toggles full screen
+  (YouTube's desktop behavior); a single click still toggles playback.
+- Types `VibePlayerGestures` and `VibePlayerStageControls`; icons
+  `seekBackward` and `seekForward`; optional labels `seekBackward`,
+  `seekForward` and `seekOffset` with English defaults. `VibePlayerSurfaceState`
+  gains `seekStep` and `VibePlayerCompactControls` gains `skip`. New
+  `data-part` values: `skip-backward`, `skip-forward`, `seek-ripple`.
+
+### Changed
+
+- Keyboard seeking is unified on `seekStep`: compact and feed players now move
+  10 s per arrow press (previously 5 s), the same as the full stage, and both
+  follow a configured step.
+- The full stage gains skip buttons around Play and double-tap seeking on
+  touch by default. Hosts that want the previous chrome pass
+  `controls={{ skip: false }}` and `gestures={{ doubleTapSeek: false }}`.
+
+### Upgrading
+
+- The new labels are optional, so a complete `VibePlayerLabels` object
+  (for example one checked with `satisfies VibePlayerLabels`) needs no
+  change.
+- Compact and feed arrow keys move 10 s instead of 5 s; pass `seekStep={5}`
+  to keep the old distance (skip buttons, J/L and double taps then use 5 s
+  too).
+
+### Documentation
+
+- 0.5.0 upgrading note that the release notes missed: `VibePlayerLabels`
+  gained two required fields, `mostReplayed` and `replayValue`. Apps that
+  pass a complete labels object checked against the type (for example with
+  `satisfies VibePlayerLabels`) must add them; the defaults are
+  `"Most replayed"` and `() => ""`.
+
 ## [0.5.0] - 2026-11-08
 
 ### Changed

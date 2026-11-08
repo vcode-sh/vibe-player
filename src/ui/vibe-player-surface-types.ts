@@ -36,6 +36,8 @@ export interface VibePlayerSurfaceState {
   /** Scrub or keyboard-seek target until the seek lands; null otherwise. */
   previewTime: number | null;
   scrubbing: boolean;
+  /** Seconds a skip, arrow or J/L press and a double tap move (`seekStep`). */
+  seekStep: number;
   /** Display time: preview, else playback time; frozen while hidden. */
   time: number;
 }
@@ -72,6 +74,11 @@ export interface VibePlayerCompactControls {
   /** Opt-in (default false); shown only where the provider supports it. */
   pictureInPicture?: boolean | undefined;
   seek?: boolean | undefined;
+  /**
+   * Opt-in (default false) skip back/forward buttons labelled with
+   * `seekStep`; shown where the media can seek, from 280 px wide.
+   */
+  skip?: boolean | undefined;
   time?: boolean | undefined;
 }
 

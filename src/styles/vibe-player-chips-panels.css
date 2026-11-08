@@ -88,9 +88,32 @@
   transform: translateX(-50%);
 }
 
-/* The heatmap preview replaces the scrub readout. */
-.vibe-player-chips:has(.vibe-player-heatmap) .vibe-player-chips__bubble {
+/* The heatmap preview or the scrub frame replaces the scrub readout. */
+.vibe-player-chips:has(.vibe-player-heatmap, .vibe-player-scrub-frame)
+  .vibe-player-chips__bubble {
   display: none;
+}
+
+/* The scrub frame's time reads like the readout chip, just above the rail. */
+.vibe-player-chips__rail .vibe-player-scrub-frame {
+  inset: 0;
+}
+
+.vibe-player-chips__rail .vibe-player-scrub-frame__preview {
+  bottom: 18px;
+}
+
+.vibe-player-chips__rail .vibe-player-scrub-frame__time {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 15px;
+  line-height: 32px;
+  color: var(--_vp-chip-fg);
+  background: var(--_vp-chip-bg);
+  border-radius: 16px;
+  box-shadow: var(--_vp-chip-shadow);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
 }
 
 .vibe-player-chips__error {

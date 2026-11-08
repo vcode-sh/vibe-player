@@ -136,10 +136,12 @@ mutating an already supplied source in place.
 Pass `seekThumbnails` to `VibePlayerStage`, `VibePlayerInline`, or
 `VibePlayerModal` to show a frame above the timeline while hovering, dragging,
 or seeking with the keyboard. Custom controls and timelines accept the same
-prop. `VibePlayerCompact` (glass and chips, compact and feed) accepts it too and
-shows the frame in the [heatmap](#timeline-background) preview; without a
-heatmap its skins keep their time-only scrub readout. Supply generated images
-and their time map from your application:
+prop. `VibePlayerCompact` (glass and chips, compact and feed) accepts it too:
+while hovering, scrubbing or seeking with the keyboard, its scrub readout shows
+the frame above the time, positioned over the scrub point and kept inside the
+player. With a [heatmap](#timeline-background), the frame appears in the
+heatmap preview instead, so only one frame shows. Supply generated images and
+their time map from your application:
 
 ```tsx
 import { VibePlayerStage, type VibePlayerSeekThumbnail } from "vibe-player";
@@ -310,7 +312,8 @@ declare function playNext(): void;
 - `mediaSession` (or `true`) uses `source.title` and `source.posterUrl`;
   `metadata` overrides any field. Nothing is hard-coded.
 - Play, pause and stop are always offered. Seek backward, forward and to a
-  position (offsets default to 10 s; a system offset wins) need a seekable
+  position (offsets default to the player's `seekStep`, 10 s unless set;
+  `seekBackwardSeconds` / `seekForwardSeconds` and a system offset win) need a seekable
   provider; a burst of `fastSeek` positions while scrubbing keeps only the
   latest. Previous and next track appear only with `onPreviousTrack` /
   `onNextTrack`.
@@ -330,6 +333,66 @@ declare function playNext(): void;
   frame, and YouTube's embed controls that frame's session. Where the API is
   missing (server rendering, older browsers) the option does nothing; its code
   loads only for players that opt in.
+
+## Seeking
+
+One option, `seekStep`, sets how far every relative seek moves: skip buttons,
+the arrow keys and J/L, double-tap seeking and the Media Session
+`seekbackward` / `seekforward` defaults. It accepts any positive number of
+seconds; 10 (default), 15 and 30 are the common choices. Every assembly and
+`useVibePlayer` accept it.
+
+```tsx
+import { VibePlayerCompact } from "vibe-player/compact";
+import { VibePlayerStage } from "vibe-player/stage";
+
+<VibePlayerStage seekStep={15} source={source} />;
+
+<VibePlayerCompact
+  controls={{ skip: true }}
+  gestures={{ doubleTapSeek: true }}
+  seekStep={15}
+  source={source}
+  variant="feed"
+/>;
+```
+
+- **Keyboard.** On the focused player, ← / → and J / L all move by the step
+  (one number to learn; there is no separate fine step). Space / K, M, F and C
+  are unchanged. Compact and full-stage players behave the same, except that
+  the full stage's focused timeline keeps its native slider arrows.
+- **Skip buttons.** ⟲ and ⟳ show the step inside the icon and are named from
+  `labels.seekBackward(seconds)` / `labels.seekForward(seconds)` ("Back 10
+  seconds", "Forward 10 seconds"). The full stage puts them around Play
+  (`controls={{ skip: false }}` removes them). Compact and feed opt in with
+  `controls={{ skip: true }}`: the glass capsule puts them around its play
+  toggle, chips beside the corner controls. Every skin shows them from 280 px
+  wide, where the rest of the bar still fits.
+  They are absent wherever the provider cannot seek (live streams, or a
+  provider whose capabilities say so). Replace the glyphs with
+  `icons.seekBackward` / `icons.seekForward`; the step is still drawn inside.
+  A custom bar built from `VibePlayerControls` shows them when given
+  `onSkip(seconds)` and `seekStep`.
+- **Double tap.** On touch, a double tap on the left or right third of the
+  picture seeks back or forward by the step; each further tap on that side
+  within 700 ms adds another step (−10, −20, −30), switching sides starts
+  again. A soft wash on that side shows the total
+  (`labels.seekOffset(seconds)`, "20 seconds"), a wave plays once per tap, and
+  the indicator fades 700 ms after the last tap. It is decorative and announces
+  nothing. On by default in the full stage; opt-in for compact and feed with
+  `gestures={{ doubleTapSeek: true }}`, whose small gesture chunk then loads.
+  - Thirds, not halves: the centre third keeps an undelayed single tap, which
+    is where the primary Play button sits.
+  - A single tap keeps its meaning. A side tap waits 300 ms (the platform
+    double-tap timeout) for a second tap; centre taps, and every tap with the
+    gesture off or the media unable to seek, act at once.
+  - Only taps count: a scroll or a chips drag never fires it, a double tap
+    never zooms the page (`touch-action: manipulation`), and taps on controls
+    keep their own meaning.
+  - A mouse never seeks this way. Following YouTube, a mouse double-click on
+    the full-stage picture toggles full screen; compact players keep a click as
+    play/pause.
+  - Reduced motion shows the same wash and total without the travelling wave.
 
 ## Host Hooks
 
@@ -456,14 +519,17 @@ keep turning because loading is real.
 
 Options:
 - `controls={{ fullscreen, mute, seek, time }}` switches off default parts
-  (capabilities still apply). `pictureInPicture: true` opts in to a
+  (capabilities still apply). `skip: true` opts in to skip back/forward
+  buttons and `gestures={{ doubleTapSeek: true }}` to double-tap seeking; both
+  move by `seekStep` (see [Seeking](#seeking)). `pictureInPicture: true` opts in to a
   Picture-in-Picture button where the provider supports it (file and HLS in
   browsers with the API; never YouTube). The compact skins have no volume
   slider.
 - `host` renders the player into an element you own and moves it there while
   playing; see [Detached Hosts](#detached-hosts).
 - `timelineBackground` draws with the scrubber, e.g. the "most replayed"
-  heatmap, and `seekThumbnails` feeds its frame preview; see
+  heatmap, and `seekThumbnails` feeds its frame preview (without a heatmap,
+  the scrub readout shows the frame); see
   [Timeline Background](#timeline-background).
 - `onExpand` replaces fullscreen on the expand control, e.g. to open a viewer.
 - `slots={{ idle, ended, error }}` replaces one state panel; `null` renders
@@ -471,7 +537,8 @@ Options:
 - `renderOverlay={(surface) => …}` replaces the whole overlay. The shell keeps
   media, poster, timing, keyboard, autoplay and audio focus; the overlay gets
   `surface.state`, `surface.actions` and `surface.controls`.
-- `icons` (add `unavailable` for the error glyph), `labels`, `formatTime` and
+- `icons` (add `unavailable` for the error glyph, `seekBackward` /
+  `seekForward` for skips), `labels`, `formatTime` and
   `classNames` (`playButton`, `duration`, `controls`, `progress`, `time`,
   `unmute`, `error`, `retry`, …) work as elsewhere.
 
@@ -489,7 +556,8 @@ Styling contract for host CSS and tests:
 
 Every drawn part carries `data-part` (`overlay`, `play-button`, `duration`,
 `controls`, `toggle`, `track`, `time`, `fullscreen`, `mute`, `unmute`,
-`picture-in-picture`, `renewing`, `scrub-bubble`, `error`, `retry`, `poster`,
+`picture-in-picture`, `skip-backward`, `skip-forward`, `seek-ripple` (with
+`data-side` and `data-active`), `renewing`, `scrub-bubble`, `error`, `retry`, `poster`,
 `timeline-background`, `heatmap` with `data-variant` and `data-active` while
 shown). The root exposes
 `--vibe-player-progress` (0..1, written only while controls show or a scrub
@@ -831,3 +899,11 @@ bun run demo:vite:packaged:build
 
 `demo:vite` uses source aliases for fast package work. `demo:vite:packaged`
 builds the package first and consumes the published `exports` surface.
+
+The demo has two pages. `/` is the feature showcase: every public feature with
+a working example and the props it uses, including a "Skip and double-tap
+seek" section with a `seekStep` switch (10, 15, 30 s), skip buttons in glass,
+chips and the full stage, and compact players showing seek frames without a
+heatmap. Its clips are generated: run `bun run test:browser:host:media` once
+after a fresh clone. `?demo=workbench` is the provider workbench (remote file,
+HLS, Bunny Stream, YouTube iframe and YouTube handoff).

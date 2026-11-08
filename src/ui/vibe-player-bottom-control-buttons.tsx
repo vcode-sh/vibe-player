@@ -16,6 +16,7 @@ import {
   useVibePlayerPlaybackLabel,
   VibePlayerPlaybackIcon,
 } from "./vibe-player-playback-label";
+import { VibePlayerSkipGlyph } from "./vibe-player-skip-glyph";
 import { VibePlayerToggleButton } from "./vibe-player-toggle-button";
 import { VibePlayerTooltip } from "./vibe-player-tooltip";
 import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
@@ -39,6 +40,36 @@ export function VibePlayerPlaybackControl({
       tooltipAlign="start"
     >
       <VibePlayerPlaybackIcon snapshot={snapshot} />
+    </VibePlayerToggleButton>
+  );
+}
+
+interface VibePlayerSkipControlProps {
+  capabilities: VibePlayerCapabilities;
+  onSkip: ((seconds: number) => void) | undefined;
+  side: -1 | 1;
+  step: number;
+}
+
+/** Skip back or forward by the step; absent where the media cannot seek. */
+export function VibePlayerSkipControl({
+  capabilities,
+  onSkip,
+  side,
+  step,
+}: VibePlayerSkipControlProps) {
+  const { labels } = useVibePlayerUI();
+  if (!(onSkip && capabilities.canSeek && capabilities.supportsDuration)) {
+    return null;
+  }
+  return (
+    <VibePlayerToggleButton
+      label={side < 0 ? labels.seekBackward(step) : labels.seekForward(step)}
+      onClick={() => onSkip(side * step)}
+      shortcut={side < 0 ? "J" : "L"}
+      tooltipAlign={side < 0 ? "start" : "center"}
+    >
+      <VibePlayerSkipGlyph side={side} step={step} />
     </VibePlayerToggleButton>
   );
 }

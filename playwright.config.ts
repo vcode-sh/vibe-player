@@ -16,6 +16,7 @@ export default defineConfig({
         "**/host-frame.browser.ts",
         "**/selection.browser.ts",
         "**/seek-thumbnails.browser.ts",
+        "**/scrub-frame.browser.ts",
       ],
       use: {
         ...devices["Desktop Safari"],

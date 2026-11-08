@@ -43,6 +43,7 @@ export type {
   VibePlayerSeekThumbnail,
   VibePlayerSeekThumbnailSprite,
 } from "./ui/vibe-player-seek-thumbnail-types";
+export type { VibePlayerGestures } from "./ui/vibe-player-stage-types";
 export type {
   VibePlayerCompactControls,
   VibePlayerCompactSkin,

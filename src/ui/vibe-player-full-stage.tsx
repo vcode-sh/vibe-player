@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useVibePlayerCaptions } from "../react/use-vibe-player-captions";
+import { useVibePlayerStageGestures } from "./use-vibe-player-stage-gestures";
 import { useVibePlayerStageObservers } from "./use-vibe-player-stage-observers";
 import { useVibePlayerStagePlayback } from "./use-vibe-player-stage-playback";
 import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
@@ -26,6 +27,10 @@ export function VibePlayerFullStage(props: VibePlayerStageProps) {
     rootElement,
     state,
   } = playback;
+  const gestures = useVibePlayerStageGestures(
+    playback,
+    props.gestures?.doubleTapSeek ?? true
+  );
   const captions = useVibePlayerCaptions({
     currentTime: state.snapshot.currentTime,
     enabled: captionsEnabled,
@@ -69,7 +74,7 @@ export function VibePlayerFullStage(props: VibePlayerStageProps) {
       data-seek-thumbnails={props.seekThumbnails?.length ? true : undefined}
       data-state={state.snapshot.readyState}
       data-variant="full"
-      {...playback.rootEvents}
+      {...gestures.events}
       ref={playback.setRootElement}
       style={getVibePlayerFrameStyle({
         maxRatio: props.maxRatio,
@@ -98,6 +103,7 @@ export function VibePlayerFullStage(props: VibePlayerStageProps) {
         snapshot={state.snapshot}
       />
       <VibePlayerCaptionOverlay lines={captions.activeLines} />
+      {gestures.indicator}
       <VibePlayerCaptionStatusNotice
         error={captions.error}
         onRetry={() => {
@@ -115,11 +121,13 @@ export function VibePlayerFullStage(props: VibePlayerStageProps) {
         onSetPlaybackRate={actions.setPlaybackRate}
         onSetQuality={actions.setQuality}
         onSetVolume={actions.setVolume}
+        onSkip={props.controls?.skip === false ? undefined : actions.seekBy}
         onToggleCaptions={actions.toggleCaptions}
         onToggleFullscreen={actions.toggleFullscreen}
         onToggleMute={actions.toggleMute}
         onTogglePictureInPicture={actions.togglePictureInPicture}
         onTogglePlay={actions.togglePlay}
+        seekStep={playback.seekStep}
         seekThumbnails={props.seekThumbnails}
         snapshot={state.snapshot}
         title={playerTitle}

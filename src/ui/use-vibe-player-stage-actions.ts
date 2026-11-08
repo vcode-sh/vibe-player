@@ -7,12 +7,16 @@ import type {
 
 export interface UseVibePlayerStageActionsInput {
   controller: VibePlayerController;
+  /** Seconds a seek shortcut moves. */
+  seekStep: number;
   setCaptionsEnabled: Dispatch<SetStateAction<boolean>>;
   snapshot: VibePlayerSnapshot;
 }
 
 export interface VibePlayerStageActions {
   handleShortcut: (action: VibePlayerShortcutAction) => void;
+  /** Seeks relative to the playback position. */
+  seekBy: (seconds: number) => void;
   seekTo: (seconds: number) => void;
   setMuted: (muted: boolean) => void;
   setPlaybackRate: (rate: number) => void;
@@ -27,10 +31,11 @@ export interface VibePlayerStageActions {
 
 export function useVibePlayerStageActions({
   controller,
+  seekStep,
   setCaptionsEnabled,
   snapshot,
 }: UseVibePlayerStageActionsInput): VibePlayerStageActions {
-  const seekRelative = useCallback(
+  const seekBy = useCallback(
     (seconds: number) => {
       controller.seekTo(snapshot.currentTime + seconds).catch(() => undefined);
     },
@@ -106,11 +111,11 @@ export function useVibePlayerStageActions({
         return;
       }
       if (action === "seek-backward") {
-        seekRelative(-10);
+        seekBy(-seekStep);
         return;
       }
       if (action === "seek-forward") {
-        seekRelative(10);
+        seekBy(seekStep);
         return;
       }
       if (action === "fullscreen") {
@@ -121,10 +126,11 @@ export function useVibePlayerStageActions({
         toggleCaptions();
       }
     },
-    [seekRelative, toggleCaptions, toggleFullscreen, toggleMute, togglePlay]
+    [seekBy, seekStep, toggleCaptions, toggleFullscreen, toggleMute, togglePlay]
   );
   return {
     handleShortcut,
+    seekBy,
     seekTo,
     setMuted,
     setPlaybackRate,

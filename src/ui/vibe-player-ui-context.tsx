@@ -47,7 +47,7 @@ interface VibePlayerUIContextValue {
   classNames: VibePlayerClassNames;
   formatTime: (seconds: number) => string;
   icons: VibePlayerIcons;
-  labels: VibePlayerLabels;
+  labels: Required<VibePlayerLabels>;
   seekThumbnails: readonly VibePlayerSeekThumbnail[] | undefined;
   timelineBackground: VibePlayerTimelineBackground | undefined;
 }

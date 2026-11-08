@@ -1,5 +1,16 @@
 import { type MouseEvent, type RefObject, useCallback } from "react";
 
+/** The media element under a click, or null for controls and overlays. */
+export function getVibePlayerClickedMedia(
+  event: MouseEvent<HTMLElement>,
+  rootElement: HTMLElement | null
+): Element | null {
+  const media = rootElement?.querySelector(".vibe-player-stage__media");
+  return media && event.target instanceof Node && media.contains(event.target)
+    ? media
+    : null;
+}
+
 export function useVibePlayerStageClick({
   pointerType,
   rootElement,
@@ -14,12 +25,7 @@ export function useVibePlayerStageClick({
       if (event.defaultPrevented || pointerType.current === "touch") {
         return;
       }
-      const mediaElement = rootElement?.querySelector(
-        ".vibe-player-stage__media"
-      );
-      const mediaWasClicked =
-        event.target instanceof Node && mediaElement?.contains(event.target);
-      if (mediaWasClicked) {
+      if (getVibePlayerClickedMedia(event, rootElement)) {
         togglePlay();
       }
     },

@@ -25,7 +25,8 @@ function source(title: string): VibePlayerSource {
 
 async function renderPlayer(
   mediaSession: UseVibePlayerOptions["mediaSession"],
-  title = "Aurora"
+  title = "Aurora",
+  seekStep?: number
 ) {
   const adapter = new TestAdapter();
   const factory = () => adapter;
@@ -35,6 +36,7 @@ async function renderPlayer(
         adapterFactory: factory,
         audioFocus: false,
         mediaSession: session,
+        seekStep,
         source: source(title),
       }),
     { initialProps: { session: mediaSession } }
@@ -107,5 +109,24 @@ describe("useVibePlayer mediaSession", () => {
     view.rerender({ session: options(false) });
     expect(page.metadata).toBeNull();
     view.unmount();
+  });
+
+  it("seeks by the player's seekStep unless an offset is given", async () => {
+    const page = installFakeMediaSession();
+    const step = await renderPlayer(true, "Step", 30);
+    act(() => step.adapter.emit("play", { ...audible, currentTime: 50 }));
+    await waitFor(() => expect(page.actions).toContain("seekbackward"));
+    page.trigger("seekbackward");
+    await waitFor(() => expect(step.adapter.calls).toContain("seek:20"));
+    page.trigger("seekforward", { seekOffset: 5 });
+    await waitFor(() => expect(step.adapter.calls).toContain("seek:25"));
+    step.view.unmount();
+
+    const own = await renderPlayer({ seekForwardSeconds: 15 }, "Own", 30);
+    act(() => own.adapter.emit("play", { ...audible, currentTime: 50 }));
+    await waitFor(() => expect(page.actions).toContain("seekforward"));
+    page.trigger("seekforward");
+    await waitFor(() => expect(own.adapter.calls).toContain("seek:65"));
+    own.view.unmount();
   });
 });

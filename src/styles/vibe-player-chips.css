@@ -128,6 +128,16 @@
   }
 }
 
+.vibe-player-chips__skip {
+  --vibe-player-skip-size: 20px;
+}
+
+@container vibe-player (max-width: 279px) {
+  .vibe-player-chips__skip {
+    display: none;
+  }
+}
+
 .vibe-player-chips__dot {
   display: grid;
   place-items: center;

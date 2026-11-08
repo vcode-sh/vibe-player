@@ -11,6 +11,7 @@ import {
   renderVibePlayerSlot,
   type VibePlayerSkinProps,
 } from "./vibe-player-skin-props";
+import { VibePlayerSkipGlyph } from "./vibe-player-skip-glyph";
 import {
   playbackSwapItems,
   revealProps,
@@ -140,14 +141,38 @@ export default function VibePlayerChipsSkin(props: VibePlayerSkinProps) {
   );
 }
 
-/** Corner controls: Picture-in-Picture, fullscreen and mute. */
+/** Corner controls: skips, Picture-in-Picture, fullscreen and mute. */
 function VibePlayerChipsSide({ surface }: { surface: VibePlayerSurface }) {
   const { classNames, labels } = useVibePlayerUI();
   const { actions, controls, state } = surface;
-  const { controlsVisible } = state;
+  const { controlsVisible, seekStep } = state;
   const hidden = isVibePlayerSurfacePlaying(state.phase) && !controlsVisible;
+  const skip = (side: -1 | 1) =>
+    controls.skip ? (
+      <button
+        {...revealProps(
+          controlsVisible,
+          "vibe-player-chips__round vibe-player-chips__skip",
+          side < 0 ? "skip-backward" : "skip-forward",
+          classNames.button
+        )}
+        aria-label={
+          side < 0
+            ? labels.seekBackward(seekStep)
+            : labels.seekForward(seekStep)
+        }
+        onClick={() => actions.seekBy(side * seekStep)}
+        type="button"
+      >
+        <span className={`vibe-player-chips__dot ${chip}`}>
+          <VibePlayerSkipGlyph side={side} step={seekStep} />
+        </span>
+      </button>
+    ) : null;
   return (
     <span className="vibe-player-chips__side">
+      {skip(-1)}
+      {skip(1)}
       {controls.pictureInPicture ? (
         <button
           {...revealProps(

@@ -24,6 +24,10 @@ export interface VibePlayerIcons {
   play?: ComponentType<VibePlayerIconProps>;
   replay?: ComponentType<VibePlayerIconProps>;
   retry?: ComponentType<VibePlayerIconProps>;
+  /** Skip back and the double-tap indicator; the step is drawn inside it. */
+  seekBackward?: ComponentType<VibePlayerIconProps>;
+  /** Skip forward and the double-tap indicator. */
+  seekForward?: ComponentType<VibePlayerIconProps>;
   settings?: ComponentType<VibePlayerIconProps>;
   /** Compact error panel glyph, e.g. Tabler's `IconVideoOff`. */
   unavailable?: ComponentType<VibePlayerIconProps>;
@@ -69,6 +73,12 @@ export interface VibePlayerLabels {
   retry: string;
   retryCaptions: string;
   seek: string;
+  /** Skip back button, e.g. "Back 10 seconds". Defaults are provided. */
+  seekBackward?: (seconds: number) => string;
+  /** Skip forward button, e.g. "Forward 10 seconds". */
+  seekForward?: (seconds: number) => string;
+  /** Double-tap indicator total, e.g. "20 seconds". */
+  seekOffset?: (seconds: number) => string;
   seekShortcut: string;
   seekValue: (time: string, duration: string) => string;
   showCaptions: string;

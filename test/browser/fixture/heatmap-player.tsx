@@ -46,9 +46,11 @@ const shared = {
   },
   seekThumbnails: query.has("thumbnails") ? seekThumbnails : undefined,
   source,
-  timelineBackground: () => (
-    <VibePlayerHeatmap values={values} variant={variant} />
-  ),
+  // `heatmap=off` leaves the seek thumbnails as the only scrub preview.
+  timelineBackground:
+    query.get("heatmap") === "off"
+      ? undefined
+      : () => <VibePlayerHeatmap values={values} variant={variant} />,
 };
 
 function Player() {
