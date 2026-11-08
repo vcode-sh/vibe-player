@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-08
+
+### Added
+
+- Public sizing variables for the compact chrome, so a resizable mini player
+  can scale it: `--vibe-player-compact-control-size` (glass capsule height
+  and buttons, chips hit areas; 44 px), `-inset` (glass 8 px, chips 2 px),
+  `-gap` (0), `-icon-size` (glass 18 px, falling back to
+  `--vibe-player-icon-size`; chips 14 px and 12 px in the Play chip),
+  `-time-size` (12 px), `-scrubber-height` (glass 4 px, chips 6 px),
+  `-chip-size` (28 px), `-center-size` (56 px, 48 px below 300 px) and
+  `-center-icon-size` (24 px, 20 px below 300 px). Defaults are the current
+  sizes, so nothing changes without them. Container units resolve against the
+  player, and control and centre sizes never go below 24 px; keep 44 px on
+  coarse pointers. The full stage's `--vibe-player-control-size` and
+  `--vibe-player-spacing` are unaffected.
+- `controls={{ centerButton: "except-paused" }}` hides the glass centre button
+  while paused, when the capsule already offers Play, so small players show
+  one Play. `"always"` (default) keeps the current behaviour.
+
+### Documentation
+
+- README rewritten as a short current overview; entry points, theming tokens
+  and bundle size moved into `docs/usage.md`, which gains a Theming section
+  with a container-query example for scaling the compact chrome.
+- The demo showcase gains a "Sizing" section: glass and chips players in a
+  frame from 200 to 420 px wide whose chrome scales with it.
+
 ## [0.6.0] - 2026-11-08
 
 ### Added

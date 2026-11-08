@@ -69,6 +69,13 @@ export interface VibePlayerSurfaceActions {
 
 /** Default parts a host may switch off; capabilities still apply. */
 export interface VibePlayerCompactControls {
+  /**
+   * When the glass skin's centre Play/Replay button shows. `"always"`
+   * (default) shows it whenever the media is not playing; `"except-paused"`
+   * hides it while paused, when the capsule already offers Play, so small
+   * players show one Play. Idle, loading and ended keep it. Chips has none.
+   */
+  centerButton?: "always" | "except-paused" | undefined;
   fullscreen?: boolean | undefined;
   mute?: boolean | undefined;
   /** Opt-in (default false); shown only where the provider supports it. */

@@ -16,6 +16,22 @@ Import the stylesheet once from the app root:
 import "vibe-player/styles.css";
 ```
 
+| Entry                    | Purpose                                                   |
+| ------------------------ | --------------------------------------------------------- |
+| `vibe-player/compact`    | `VibePlayerCompact`, compact/feed chrome and its types    |
+| `vibe-player/stage`      | `VibePlayerStage`, full controls and assemblies           |
+| `vibe-player/hook`       | `useVibePlayer`, controller bindings and host audio focus |
+| `vibe-player/styles.css` | Scoped styles and host-overridable CSS variables          |
+| `vibe-player/chips.css`  | The Ink Chips skin, only when a player uses it            |
+| `vibe-player`            | Complete API, adapters, captions, previews and skins      |
+
+Client entry points carry `"use client"`; imports are safe during SSR.
+JavaScript is side-effect-free so bundlers can discard unused variants.
+`hls.js` is a peer dependency (`^1.6.0`); the host provides its one installed
+copy, and MP4 playback never imports it. A host serving private HLS can pass
+`loadHls={() => import("hls.js/light")}` to load the lighter build on first
+use.
+
 ## Render A Player
 
 ```tsx
@@ -514,7 +530,7 @@ leaving hides at once; movement reveals instantly; a first touch tap reveals
 and never pauses, a second hides; pointer clicks never pin the controls, only
 keyboard focus on a control does; paused, ended and error keep their affordance.
 Loading feedback waits 320 ms and mid-playback renewal 600 ms. Touch targets
-are at least 44 px. Reduced motion reaches the same states instantly; spinners
+are 44 px by default; see [Sizing The Compact Chrome](#sizing-the-compact-chrome). Reduced motion reaches the same states instantly; spinners
 keep turning because loading is real.
 
 Options:
@@ -524,7 +540,10 @@ Options:
   move by `seekStep` (see [Seeking](#seeking)). `pictureInPicture: true` opts in to a
   Picture-in-Picture button where the provider supports it (file and HLS in
   browsers with the API; never YouTube). The compact skins have no volume
-  slider.
+  slider. `centerButton: "except-paused"` hides the glass centre button while
+  paused, when the capsule already offers Play, so a small player shows one
+  Play; idle, loading and ended keep it (`"always"`, the default, shows it
+  whenever the media is not playing; chips has no centre button).
 - `host` renders the player into an element you own and moves it there while
   playing; see [Detached Hosts](#detached-hosts).
 - `timelineBackground` draws with the scrubber, e.g. the "most replayed"
@@ -574,6 +593,81 @@ CSS styles. A custom overlay can reuse it with `surface`.
 `controller.getState().renewing` is true while an expired or failed delivery
 is renewed; the surface reports it as `renewing` only when it interrupts
 playback.
+
+## Theming
+
+Styles are scoped to the player and read CSS custom properties from any
+ancestor. Full-stage tokens: `--vibe-player-text`, `--vibe-player-surface`,
+`--vibe-player-stage-background`, `--vibe-player-accent`,
+`--vibe-player-border`, `--vibe-player-radius`, `--vibe-player-control-size`,
+`--vibe-player-icon-size`, `--vibe-player-spacing`, `--vibe-player-font` and
+`--vibe-player-focus-color`. Compact colours (glass scrim, chips) are listed
+under [Compact Skins](#compact-skins). Customize `icons`, `labels`,
+`formatTime` and `classNames` part slots as props; times default to `0:07` /
+`1:05:09`.
+
+### Sizing The Compact Chrome
+
+Floating and mini players resize, so the compact chrome takes sizing
+variables. Each default is the chrome without them; set them on any ancestor:
+
+| Variable                                 | Glass                                   | Chips                      |
+| ---------------------------------------- | --------------------------------------- | -------------------------- |
+| `--vibe-player-compact-control-size`     | 44 px capsule height and its buttons    | 44 px corner hit areas     |
+| `--vibe-player-compact-inset`            | 8 px capsule and length pill from edges | 2 px hit areas from edges  |
+| `--vibe-player-compact-gap`              | 0 between capsule parts                 | 0 between corner buttons   |
+| `--vibe-player-compact-icon-size`        | 18 px (else `--vibe-player-icon-size`)  | 14 px buttons, 12 px Play  |
+| `--vibe-player-compact-time-size`        | 12 px time and length                   | 12 px chip text            |
+| `--vibe-player-compact-scrubber-height`  | 4 px rail                               | 6 px rail                  |
+| `--vibe-player-compact-chip-size`        | —                                       | 28 px chip height and dots |
+| `--vibe-player-compact-center-size`      | 56 px centre button (48 px below 300)   | —                          |
+| `--vibe-player-compact-center-icon-size` | 24 px (20 px below 300)                 | —                          |
+
+Control and centre sizes never resolve below 24 px, so a hit area stays at
+least 24 px (WCAG 2.2 target size). Keep 44 px on coarse pointers yourself.
+The full stage keeps its own `--vibe-player-control-size` and
+`--vibe-player-spacing`; the compact names never restyle it.
+
+Container units resolve against the player's own width (each player is a
+`vibe-player` size container), so one rule scales the chrome with the frame:
+
+```css
+.mini-player {
+  /* 28 px controls at 200 px wide, 44 px from about 420 px. */
+  --vibe-player-compact-control-size: clamp(28px, 10.5cqw, 44px);
+  --vibe-player-compact-inset: clamp(6px, 2cqw, 8px);
+  --vibe-player-compact-icon-size: clamp(14px, 4.3cqw, 18px);
+  --vibe-player-compact-time-size: clamp(11px, 3cqw, 12px);
+  --vibe-player-compact-center-size: clamp(36px, 13.4cqw, 56px);
+  --vibe-player-compact-center-icon-size: clamp(16px, 5.8cqw, 24px);
+  --vibe-player-compact-chip-size: clamp(22px, 7cqw, 28px);
+}
+
+/* Touch keeps 44 px targets at every size. */
+@media (pointer: coarse) {
+  .mini-player {
+    --vibe-player-compact-control-size: 44px;
+  }
+}
+```
+
+```tsx
+import { VibePlayerCompact } from "vibe-player/compact";
+
+export function MiniPlayer() {
+  return (
+    <div className="mini-player">
+      <VibePlayerCompact
+        controls={{ centerButton: "except-paused" }}
+        source={source}
+      />
+    </div>
+  );
+}
+```
+
+The glass time readout hides below 260 px and skip buttons below 280 px, at
+any size.
 
 ## Detached Hosts
 
@@ -869,6 +963,16 @@ live iframe. Moving it to another target preserves its browsing context when
 `Element.moveBefore` is available; older browsers fall back to moving the node
 and may reload embedded content. After SDK initialization fails, a later load
 can retry without refreshing the page.
+
+## Bundle Size
+
+`bun run package:size` measures built output and enforces an initial combined
+compact + hook budget of **22,360 B gzip**, excluding React, React DOM and
+`hls.js`. Provider bridges and the Ink Chips skin are separate chunks loaded on
+first use; the report also includes their deferred bytes and the complete
+consumer bundle. Measurements use a minified Vite application, include
+non-peer dependencies, exclude React/React DOM/hls.js, and sum each emitted
+chunk's gzip size. All package ESM files keep a separate 47 KiB gzip limit.
 
 ## Media Audit
 

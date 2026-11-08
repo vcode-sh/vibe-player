@@ -1,0 +1,21 @@
+/* Showcase sizing: compact chrome scaled by the player's own width (`cqw`). */
+.sc-sizing__frame {
+  --vibe-player-compact-control-size: clamp(28px, 10.5cqw, 44px);
+  --vibe-player-compact-inset: clamp(6px, 2cqw, 8px);
+  --vibe-player-compact-icon-size: clamp(14px, 4.3cqw, 18px);
+  --vibe-player-compact-time-size: clamp(11px, 3cqw, 12px);
+  --vibe-player-compact-center-size: clamp(36px, 13.4cqw, 56px);
+  --vibe-player-compact-center-icon-size: clamp(16px, 5.8cqw, 24px);
+  --vibe-player-compact-chip-size: clamp(22px, 7cqw, 28px);
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--sc-radius);
+  box-shadow: var(--sc-shadow);
+}
+
+/* Touch keeps 44 px targets whatever the frame width. */
+@media (pointer: coarse) {
+  .sc-sizing__frame {
+    --vibe-player-compact-control-size: 44px;
+  }
+}

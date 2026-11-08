@@ -1,11 +1,12 @@
 /* Ink Chips panels: transient rail, time readout and error. */
 .vibe-player-chips__rail {
+  --_vp-rail: var(--vibe-player-compact-scrubber-height, 6px);
   position: absolute;
-  right: 14px;
-  bottom: 56px;
-  left: 14px;
+  right: calc(var(--_vp-inset) + 12px);
+  bottom: calc(var(--_vp-inset) + var(--_vp-control) + 10px);
+  left: calc(var(--_vp-inset) + 12px);
   visibility: hidden;
-  height: 6px;
+  height: var(--_vp-rail);
   opacity: 0;
   transition:
     opacity var(--_vp-exit) ease,
@@ -28,13 +29,13 @@
   position: absolute;
   inset: 0;
   outline-offset: 4px;
-  border-radius: 3px;
+  border-radius: calc(var(--_vp-rail) / 2);
 }
 
 .vibe-player-chips__rail .vibe-player-scrubber__rail {
   inset: 0;
   background: var(--_vp-chip-bg);
-  border-radius: 3px;
+  border-radius: calc(var(--_vp-rail) / 2);
   box-shadow: var(--_vp-chip-shadow);
 }
 

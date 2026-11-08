@@ -5,6 +5,7 @@ import { HostSection, hostMeta } from "./sections/host-section";
 import { InsightsSection, insightsMeta } from "./sections/insights-section";
 import { RangesSection, rangesMeta } from "./sections/ranges-section";
 import { SeekSection, seekMeta } from "./sections/seek-section";
+import { SizingSection, sizingMeta } from "./sections/sizing-section";
 import { StageSection, stageMeta } from "./sections/stage-section";
 import { SurfacesSection, surfacesMeta } from "./sections/surfaces-section";
 import { SystemSection, systemMeta } from "./sections/system-section";
@@ -15,6 +16,7 @@ const sections = [
   stageMeta,
   seekMeta,
   hostMeta,
+  sizingMeta,
   heatmapMeta,
   rangesMeta,
   insightsMeta,
@@ -46,6 +48,7 @@ export function ShowcaseApp() {
         <StageSection />
         <SeekSection />
         <HostSection />
+        <SizingSection />
         <HeatmapSection />
         <RangesSection />
         <InsightsSection />

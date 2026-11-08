@@ -44,6 +44,13 @@
   filter: grayscale(1) brightness(0.6);
 }
 
+/* Public sizing variables resolve here; hit areas never drop below 24 px. */
+.vibe-player-chips {
+  --_vp-control: max(24px, var(--vibe-player-compact-control-size, 44px));
+  --_vp-inset: var(--vibe-player-compact-inset, 2px);
+  --_vp-chip: var(--vibe-player-compact-chip-size, 28px);
+}
+
 .vibe-player-chips__chip {
   color: var(--_vp-chip-fg);
   background: var(--_vp-chip-bg);
@@ -57,13 +64,13 @@
 }
 
 .vibe-player-chips__primary {
-  --_vp-icon: 12px;
+  --_vp-icon: var(--vibe-player-compact-icon-size, 12px);
   position: absolute;
-  bottom: 2px;
-  left: 2px;
+  bottom: var(--_vp-inset);
+  left: var(--_vp-inset);
   display: flex;
   align-items: center;
-  height: 44px;
+  height: var(--_vp-control);
   padding: 0 6px;
   cursor: pointer;
   background: transparent;
@@ -75,12 +82,12 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  height: 28px;
+  height: var(--_vp-chip);
   padding: 0 10px 0 9px;
-  font-size: 12px;
+  font-size: var(--vibe-player-compact-time-size, 12px);
   font-weight: 600;
-  line-height: 28px;
-  border-radius: 14px;
+  line-height: var(--_vp-chip);
+  border-radius: calc(var(--_vp-chip) / 2);
   transition:
     transform 100ms var(--_vp-ease),
     background-color 120ms ease;
@@ -93,24 +100,25 @@
 }
 
 .vibe-player-chips__label {
-  min-width: 28px;
+  min-width: var(--_vp-chip);
 }
 
 .vibe-player-chips__side {
   position: absolute;
-  right: 2px;
-  bottom: 2px;
+  right: var(--_vp-inset);
+  bottom: var(--_vp-inset);
   display: flex;
+  gap: var(--vibe-player-compact-gap, 0px);
 }
 
 .vibe-player-chips__round {
-  --_vp-icon: 14px;
+  --_vp-icon: var(--vibe-player-compact-icon-size, 14px);
   position: relative;
   display: grid;
   flex: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: var(--_vp-control);
+  height: var(--_vp-control);
   padding: 0;
   cursor: pointer;
   background: transparent;
@@ -141,8 +149,8 @@
 .vibe-player-chips__dot {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: var(--_vp-chip);
+  height: var(--_vp-chip);
   border-radius: 50%;
   transition: transform 100ms var(--_vp-ease);
 }

@@ -32,6 +32,7 @@ function getVibePlayerSurfaceControls(
   capabilities: VibePlayerCapabilities
 ): VibePlayerSurface["controls"] {
   return {
+    centerButton: controls?.centerButton ?? "always",
     fullscreen:
       (controls?.fullscreen ?? true) &&
       (onExpand !== undefined || capabilities.canFullscreen),

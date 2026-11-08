@@ -1,4 +1,5 @@
-/* Glass Capsule: frosted parts inset 8 px from every edge. */
+/* Glass Capsule: frosted parts inset 8 px from every edge. Public sizing
+   variables resolve here; hit areas never drop below 24 px. */
 .vibe-player-compact[data-skin="glass"][data-state="idle"]
   .vibe-player-surface__dim {
   opacity: 0.06;
@@ -26,14 +27,17 @@
 }
 
 .vibe-player-glass {
-  --_vp-big: 56px;
-  --_vp-big-icon: 24px;
+  --_vp-control: max(24px, var(--vibe-player-compact-control-size, 44px));
+  --_vp-inset: var(--vibe-player-compact-inset, 8px);
+  --_vp-time: var(--vibe-player-compact-time-size, 12px);
+  --_vp-big: max(24px, var(--vibe-player-compact-center-size, 56px));
+  --_vp-big-icon: var(--vibe-player-compact-center-icon-size, 24px);
 }
 
 @container vibe-player (max-width: 299px) {
   .vibe-player-glass {
-    --_vp-big: 48px;
-    --_vp-big-icon: 20px;
+    --_vp-big: max(24px, var(--vibe-player-compact-center-size, 48px));
+    --_vp-big-icon: var(--vibe-player-compact-center-icon-size, 20px);
   }
 }
 
@@ -90,27 +94,31 @@
 
 .vibe-player-glass__duration {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  bottom: var(--_vp-inset);
+  left: var(--_vp-inset);
   height: 22px;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: var(--_vp-time);
   font-weight: 500;
   line-height: 22px;
   border-radius: 999px;
 }
 
 .vibe-player-glass__bar {
-  --_vp-icon: var(--vibe-player-icon-size, 18px);
+  --_vp-icon: var(
+    --vibe-player-compact-icon-size,
+    var(--vibe-player-icon-size, 18px)
+  );
   position: absolute;
-  right: 8px;
-  bottom: 8px;
-  left: 8px;
+  right: var(--_vp-inset);
+  bottom: var(--_vp-inset);
+  left: var(--_vp-inset);
   display: flex;
+  gap: var(--vibe-player-compact-gap, 0px);
   align-items: center;
-  height: 44px;
+  height: var(--_vp-control);
   padding: 0;
-  border-radius: 22px;
+  border-radius: calc(var(--_vp-control) / 2);
 }
 
 .vibe-player-glass__button,
@@ -140,6 +148,11 @@
   transform: scale(0.96);
 }
 
+.vibe-player-glass__bar .vibe-player-glass__button {
+  width: var(--_vp-control);
+  height: var(--_vp-control);
+}
+
 .vibe-player-glass__expand {
   display: none;
 }
@@ -156,9 +169,9 @@
 
 .vibe-player-glass__time {
   flex: none;
-  min-width: 36px;
+  min-width: calc(var(--_vp-time) * 3);
   padding-right: 2px;
-  font-size: 12px;
+  font-size: var(--_vp-time);
   font-weight: 500;
   text-align: center;
 }
@@ -171,8 +184,8 @@
 
 .vibe-player-glass__track {
   flex: 1;
-  min-width: 48px;
-  height: 44px;
+  min-width: calc(var(--_vp-control) + 4px);
+  height: var(--_vp-control);
   cursor: pointer;
   outline-offset: -6px;
 }
@@ -181,10 +194,10 @@
   top: 50%;
   right: 4px;
   left: 4px;
-  height: 4px;
-  margin-top: -2px;
+  height: var(--vibe-player-compact-scrubber-height, 4px);
+  margin-top: calc(var(--vibe-player-compact-scrubber-height, 4px) / -2);
   background: rgb(255 255 255 / 0.3);
-  border-radius: 2px;
+  border-radius: calc(var(--vibe-player-compact-scrubber-height, 4px) / 2);
   transition: transform 140ms var(--_vp-ease);
 }
 

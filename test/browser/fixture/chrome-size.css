@@ -1,0 +1,23 @@
+.chrome-size--default {
+  width: 360px;
+}
+
+/* `cqw` resolves against the player, so 14cqw is 28 px at 200 px wide. */
+.chrome-size--small {
+  --vibe-player-compact-control-size: clamp(24px, 14cqw, 44px);
+  --vibe-player-compact-inset: 6px;
+  --vibe-player-compact-gap: 2px;
+  --vibe-player-compact-icon-size: 14px;
+  --vibe-player-compact-time-size: 11px;
+  --vibe-player-compact-scrubber-height: 3px;
+  --vibe-player-compact-chip-size: 22px;
+  --vibe-player-compact-center-size: 36px;
+  --vibe-player-compact-center-icon-size: 16px;
+  width: 200px;
+}
+
+.chrome-size--tiny {
+  --vibe-player-compact-control-size: 16px;
+  --vibe-player-compact-center-size: 12px;
+  width: 200px;
+}

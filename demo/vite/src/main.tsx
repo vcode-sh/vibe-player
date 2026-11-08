@@ -10,6 +10,7 @@ import "./styles/showcase.css";
 import "./styles/showcase-bar.css";
 import "./styles/showcase-parts.css";
 import "./styles/showcase-examples.css";
+import "./styles/showcase-sizing.css";
 import { App } from "./app";
 import { ShowcaseApp } from "./showcase/showcase-app";
 

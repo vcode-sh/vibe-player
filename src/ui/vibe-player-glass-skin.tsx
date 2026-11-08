@@ -22,7 +22,7 @@ const glass = "vibe-player-glass__glass";
  */
 export function VibePlayerGlassSkin(props: VibePlayerSkinProps) {
   const { classNames, formatTime, labels } = useVibePlayerUI();
-  const { actions, state } = props.surface;
+  const { actions, controls, state } = props.surface;
   const { busy, phase } = state;
   const playing = isVibePlayerSurfacePlaying(phase);
   const ended = phase === "ended";
@@ -32,11 +32,13 @@ export function VibePlayerGlassSkin(props: VibePlayerSkinProps) {
   const custom = idle.custom || end.custom;
   const hidden = playing && !state.controlsVisible;
   const primaryLabel = getVibePlayerPrimaryLabel(phase, labels);
+  const centerAside =
+    controls.centerButton === "except-paused" && phase === "paused";
   return (
     <div className="vibe-player-surface vibe-player-glass" data-part="overlay">
       <button
         {...revealProps(
-          !(custom || playing || phase === "error"),
+          !(custom || playing || centerAside || phase === "error"),
           `vibe-player-glass__primary ${glass}`,
           "play-button",
           vibePlayerClassName(classNames.playButton, classNames.button)

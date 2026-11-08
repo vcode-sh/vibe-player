@@ -1,7 +1,7 @@
 /* Glass Capsule panels: scrub bubble, unmute dot, renewal and error. */
 .vibe-player-glass__bubble {
   position: absolute;
-  bottom: 36px;
+  bottom: calc(var(--_vp-control) - 8px);
   left: 0;
   display: block;
   height: 26px;
@@ -129,5 +129,5 @@
   position: relative;
   inset: auto;
   grid-row: 4;
-  margin: 8px;
+  margin: var(--_vp-inset);
 }

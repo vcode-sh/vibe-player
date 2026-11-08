@@ -41,6 +41,9 @@ at 320/390/768px viewports and 240/280px embedded widths in a wider viewport.
 Seek preview acceptance covers decoded sprite crops and standalone frames,
 hover without seeking, pointer/keyboard seeking, image failure fallback, and
 preview bounds in Chromium and WebKit at 240/320/390/1100px player widths.
+The chrome size page (Chromium) measures glass and chips geometry without
+sizing variables (the 0.6.0 sizes), scaled by container units in a 200 px
+frame, and with variables below the 24 px hit-area floor.
 The heatmap page (Chromium) checks that the "most replayed" graph is not
 painted at rest, reveals on hover, retracts from mid-reveal, follows the pointer
 with its dot, reaches its states at once under reduced motion, shows during
