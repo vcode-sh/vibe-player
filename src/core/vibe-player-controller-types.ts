@@ -20,7 +20,7 @@ export interface VibePlayerResumeContext {
    * Why it saves: `progress` while playing (at most once per 2 seconds of
    * movement), `seek` once a seek settled, `pause` on pause or stop,
    * `hidden` when the page is hidden, `close` when the source closes,
-   * changes or unmounts.
+   * loads again, changes or unmounts.
    */
   reason: "close" | "hidden" | "pause" | "progress" | "seek";
 }

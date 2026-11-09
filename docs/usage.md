@@ -426,7 +426,8 @@ The resume store hears `set(sourceId, seconds, context)` with
 `context.duration` and `context.reason`. While media plays, the controller
 saves at most once per 2 seconds of movement (`progress`). It always saves
 once a seek settled (`seek`), on pause or stop (`pause`), when the page is
-hidden (`hidden`) and when the source closes, changes or unmounts (`close`).
+hidden (`hidden`) and when the source closes, loads again, changes or
+unmounts (`close`).
 The React bindings report a hidden page themselves; with a manual controller,
 call `controller.flushWatchedRanges("hidden")`. Positions the controller
 restores are not saved again, `ended` clears the position, and live sources

@@ -105,6 +105,15 @@ describe("controller resume writes", () => {
     ]);
   });
 
+  it("saves on close when the host loads the same source again", async () => {
+    const player = await createResumePlayer();
+    player.play(0, 1.5);
+    await player.controller.load(fileSource);
+
+    expect(player.writes).toEqual([["video-1", 1.5, "close"]]);
+    await player.controller.teardown();
+  });
+
   it("does not save a position the controller restores", async () => {
     const player = await createResumePlayer(30);
     player.adapter.emit("seeking", { currentTime: 30 });

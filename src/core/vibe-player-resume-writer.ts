@@ -36,7 +36,7 @@ interface ResumeMark {
 /**
  * Saves resume positions from the provider's own events. Progress saves at
  * most once per 2 seconds of movement; a settled seek, pause, stop, page
- * hide and close always save, once per boundary. Restored positions are
+ * hide and close (including a host load) always save, once per boundary. Restored positions are
  * never saved, nothing saves after `ended` (which clears the position), and
  * live sources never touch the store.
  */
@@ -64,6 +64,9 @@ export class VibePlayerResumeWriter {
       this.mark = { reason: null, seconds: target, sourceId: source.id };
     } else if (entry.kind === "release") {
       this.release(entry.reason);
+    } else if (entry.playback.cause === "load") {
+      // The host loaded a source, even the same one: what played closes.
+      this.release("close");
     }
   }
 
