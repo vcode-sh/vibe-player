@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createWatchedPlayer } from "./vibe-player-watched-test-helpers";
+import {
+  createWatchedPlayer,
+  type WatchedPlayer,
+} from "./vibe-player-watched-test-helpers";
 
 describe("VibePlayerController watched ranges", () => {
   beforeEach(() => {
@@ -110,26 +113,64 @@ describe("VibePlayerController watched ranges", () => {
     ]);
   });
 
-  it.each(["pause", "ended", "retry"] as const)(
+  it.each<[string, (player: WatchedPlayer) => unknown]>([
+    [
+      "a pause event",
+      ({ adapter }) =>
+        adapter.emit("pause", { paused: true, readyState: "ready" }),
+    ],
+    [
+      "an acknowledged pause",
+      async ({ controller }) => {
+        await controller.pause();
+        await controller.play();
+      },
+    ],
+    [
+      "the end",
+      ({ adapter }) =>
+        adapter.emit("ended", { paused: true, readyState: "ended" }),
+    ],
+    [
+      "a fatal error",
+      ({ adapter }) =>
+        adapter.emit("error", { readyState: "error" }, { fatal: true }),
+    ],
+    ["a retry", ({ controller }) => controller.retry()],
+  ])(
     "a seek the provider never finishes stops blocking watched time after %s",
-    async (finish) => {
-      const { adapter, controller, pause, play, reports } =
-        await createWatchedPlayer();
-      play(0, 2);
-      adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
-      if (finish === "retry") {
-        await controller.retry();
-      } else {
-        adapter.emit(finish, {
-          paused: true,
-          readyState: finish === "ended" ? "ended" : "ready",
-        });
-      }
-      play(40, 42);
-      pause();
-      expect(reports.at(-1)?.ranges).toEqual([{ end: 42, start: 40 }]);
+    async (_, finish) => {
+      const player = await createWatchedPlayer();
+      player.play(0, 2);
+      player.adapter.emit("seeking", {
+        currentTime: 30,
+        readyState: "buffering",
+      });
+      await finish(player);
+      player.play(40, 42);
+      player.pause();
+      expect(player.reports.at(-1)?.ranges).toEqual([{ end: 42, start: 40 }]);
     }
   );
+
+  it("keeps a seek open through a nonfatal provider error", async () => {
+    const { adapter, pause, play, reports } = await createWatchedPlayer();
+    play(0, 2);
+    adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
+    adapter.emit("error", {}, { fatal: false, message: "Fragment retry" });
+    // Progress reported before `seeked` belongs to the unfinished seek.
+    for (const currentTime of [10.25, 10.5, 10.75]) {
+      vi.advanceTimersByTime(250);
+      adapter.emit("timeupdate", { currentTime, readyState: "playing" });
+    }
+    adapter.emit("seeked", { currentTime: 30, readyState: "playing" });
+    play(30, 32);
+    pause();
+    expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
+      { ranges: [{ end: 2, start: 0 }], reason: "flush" },
+      { ranges: [{ end: 32, start: 30 }], reason: "pause" },
+    ]);
+  });
 
   it("bounds a batch by flushing early at 64 separate ranges", async () => {
     const { controller, play, reports } = await createWatchedPlayer();

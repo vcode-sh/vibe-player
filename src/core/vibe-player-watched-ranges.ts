@@ -46,7 +46,6 @@ const jitterSeconds = 1;
 /** A seek the provider abandons without `seeked` must not block counting. */
 const seekEndingEvents: ReadonlySet<VibePlayerEventName> = new Set([
   "ended",
-  "error",
   "pause",
   "seeked",
 ]);
@@ -60,7 +59,8 @@ interface Sample {
  * Turns the controller's raw adapter feed into watched ranges. Only progress
  * while `readyState` is `playing` counts, and only when media time advanced
  * no faster than the wall clock allows. Seek boundaries keep jumps out of
- * playback; a seek ends on `seeked`, `pause`, `ended`, `error` or a release.
+ * playback; a seek ends on `seeked`, `pause`, `ended`, a fatal `error`, an
+ * acknowledged pause or a release.
  */
 export class VibePlayerWatchedRangesTracker {
   private duration = 0;
@@ -111,8 +111,9 @@ export class VibePlayerWatchedRangesTracker {
 
   private observeEvent(
     source: VibePlayerSource,
-    { snapshot, type }: VibePlayerAdapterEvent
+    event: VibePlayerAdapterEvent
   ): void {
+    const { snapshot, type } = event;
     if (source.id !== this.source?.id) {
       this.release("close");
     }
@@ -120,7 +121,7 @@ export class VibePlayerWatchedRangesTracker {
     if (Number.isFinite(snapshot.duration) && snapshot.duration > 0) {
       this.duration = snapshot.duration;
     }
-    if (this.observeSeek(type)) {
+    if (this.observeSeek(event)) {
       return;
     }
     if (this.last) {
@@ -153,6 +154,7 @@ export class VibePlayerWatchedRangesTracker {
     if (source.id !== this.source?.id || !snapshot.paused) {
       return;
     }
+    this.seeking = false;
     if (this.last) {
       this.advance(snapshot.currentTime, snapshot.playbackRate);
     }
@@ -173,11 +175,15 @@ export class VibePlayerWatchedRangesTracker {
     }
   }
 
-  private observeSeek(type: VibePlayerEventName): boolean {
+  private observeSeek({ payload, type }: VibePlayerAdapterEvent): boolean {
     if (type === "seeking") {
       this.flush("flush");
       this.seeking = true;
-    } else if (seekEndingEvents.has(type)) {
+    } else if (
+      seekEndingEvents.has(type) ||
+      // Nonfatal provider diagnostics (for example HLS retries) keep seeking.
+      (type === "error" && payload?.fatal !== false)
+    ) {
       this.seeking = false;
     }
     if (this.seeking) {

@@ -1,24 +1,20 @@
-import { VibePlayerControllerActions } from "./vibe-player-controller-actions";
-import { dispatchVibePlayerAdapterEvent } from "./vibe-player-controller-dispatch";
-import { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
-import { VibePlayerControllerRuntime } from "./vibe-player-controller-runtime";
+import type { VibePlayerControllerActions } from "./vibe-player-controller-actions";
+import type { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
+import { createVibePlayerControllerParts } from "./vibe-player-controller-parts";
+import type { VibePlayerControllerRuntime } from "./vibe-player-controller-runtime";
 import type {
   VibePlayerEventOfType,
   VibePlayerEventType,
 } from "./vibe-player-host-events";
-import {
-  createVibePlayerPosterRenewal,
-  type VibePlayerPosterRenewal,
-} from "./vibe-player-poster-renewal";
-import { VibePlayerRawFeed } from "./vibe-player-raw-feed";
-import { VibePlayerSourceSession } from "./vibe-player-source-session";
+import type { VibePlayerPosterRenewal } from "./vibe-player-poster-renewal";
+import type { VibePlayerSourceSession } from "./vibe-player-source-session";
 import type {
   VibePlayerControllerOptions,
   VibePlayerControllerState,
   VibePlayerLoadMode,
   VibePlayerSource,
 } from "./vibe-player-types";
-import { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
+import type { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
 
 /** Provider-neutral playback, renewable deliveries and explicit resource ownership. */
 export class VibePlayerController {
@@ -27,91 +23,17 @@ export class VibePlayerController {
   private readonly session: VibePlayerSourceSession;
   private readonly runtime: VibePlayerControllerRuntime;
   private readonly poster: VibePlayerPosterRenewal;
-  private readonly feed = new VibePlayerRawFeed();
-  private readonly watched: VibePlayerWatchedRangesTracker | null = null;
+  private readonly watched: VibePlayerWatchedRangesTracker | null;
 
   /** Creates an idle controller; nothing loads until `load()`. */
   constructor(options: VibePlayerControllerOptions) {
-    this.observers = new VibePlayerControllerObservers(options);
-    if (options.onWatchedRanges) {
-      const watched = new VibePlayerWatchedRangesTracker(
-        this.observers.emitWatchedRanges
-      );
-      this.watched = watched;
-      this.feed.subscribe((entry) => watched.observe(entry));
-    }
-    this.runtime = new VibePlayerControllerRuntime({
-      applyPreferences: () => this.actions.applyPreferences(),
-      clearIntent: () => this.actions.clear(),
-      event: (event) =>
-        dispatchVibePlayerAdapterEvent(
-          {
-            actions: this.actions,
-            feed: this.feed,
-            observers: this.observers,
-            runtime: this.runtime,
-            session: this.session,
-          },
-          event
-        ),
-      feed: this.feed,
-      isPlayRequested: () => this.session.playbackRequested,
-      observers: this.observers,
-      options,
-    });
-    this.actions = new VibePlayerControllerActions(
-      {
-        acknowledgePause: (snapshot) => {
-          const source = this.observers.state.currentSource;
-          if (source) {
-            this.feed.command("pause", snapshot, source);
-          }
-        },
-        adapter: () => this.runtime.adapter,
-        emitAnalytics: this.observers.emitAnalytics,
-        emitEvent: (event) => this.observers.emitEvent(event),
-        generation: () => this.runtime.operationGeneration,
-        state: () => this.observers.state,
-        sync: () => this.runtime.syncFromAdapter(),
-        update: (next) => this.runtime.updateState(next),
-      },
-      this.runtime.resumeStore
-    );
-    this.session = new VibePlayerSourceSession(
-      {
-        attach: (source) => this.runtime.attachSource(source),
-        command: (command) => this.actions.playback(command),
-        fail: (cause) => this.runtime.failRenewal(cause),
-        getState: () => this.observers.state,
-        hasAdapter: () => this.runtime.adapter !== null,
-        prepare: (source) => this.runtime.prepareSource(source),
-        renewed: (previous, source) => {
-          const generation = this.runtime.operationGeneration;
-          this.observers.renewed(previous, source, () =>
-            this.runtime.isCurrentOperation(generation)
-          );
-        },
-        renewing: (renewing) => {
-          if (this.observers.state.renewing !== renewing) {
-            this.observers.updateState({ renewing });
-          }
-        },
-        restore: (snapshot) => this.actions.restore(snapshot),
-        suspend: (loading) => this.runtime.suspend(loading),
-      },
-      options
-    );
-    this.poster = createVibePlayerPosterRenewal({
-      idleSource: () =>
-        this.runtime.adapter ? null : this.observers.state.currentSource,
-      renewSource: () => options.renewSource,
-      replace: (previous, next) => {
-        if (this.session.replaceIdle(previous, next)) {
-          this.observers.updateState({ currentSource: next });
-          this.observers.renewed(previous, next);
-        }
-      },
-    });
+    const parts = createVibePlayerControllerParts(options);
+    this.observers = parts.observers;
+    this.actions = parts.actions;
+    this.session = parts.session;
+    this.runtime = parts.runtime;
+    this.poster = parts.poster;
+    this.watched = parts.watched;
   }
 
   /** The latest normalized state. */

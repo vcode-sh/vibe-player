@@ -19,15 +19,10 @@ export interface VibePlayerAdapterEventDispatch {
  * command intent, recovery and controller effects handle it.
  */
 export function dispatchVibePlayerAdapterEvent(
-  {
-    actions,
-    feed,
-    observers,
-    runtime,
-    session,
-  }: VibePlayerAdapterEventDispatch,
+  parts: VibePlayerAdapterEventDispatch,
   event: VibePlayerAdapterEvent
 ): void {
+  const { feed, observers, runtime } = parts;
   const { adapter, operationGeneration } = runtime;
   const { currentSource } = observers.state;
   const isCurrent = () =>
@@ -37,10 +32,18 @@ export function dispatchVibePlayerAdapterEvent(
   if (currentSource) {
     feed.event(event, currentSource);
   }
-  if (!isCurrent()) {
-    // A raw feed observer already replaced or released this adapter.
-    return;
+  // A raw feed observer may already have replaced or released this adapter.
+  if (isCurrent()) {
+    applyAdapterEvent(parts, event, isCurrent);
   }
+}
+
+function applyAdapterEvent(
+  { actions, observers, runtime, session }: VibePlayerAdapterEventDispatch,
+  event: VibePlayerAdapterEvent,
+  isCurrent: () => boolean
+): void {
+  const { currentSource } = observers.state;
   const preservePausedIntent = actions.preservePause(event);
   if (
     (event.type === "error" && event.payload?.fatal === false) ||
@@ -50,7 +53,7 @@ export function dispatchVibePlayerAdapterEvent(
     return;
   }
   handleVibePlayerAdapterEvent({
-    adapter,
+    adapter: runtime.adapter,
     analyticsSession: runtime.analyticsSession,
     currentSource,
     emitAnalytics: observers.emitAnalytics,

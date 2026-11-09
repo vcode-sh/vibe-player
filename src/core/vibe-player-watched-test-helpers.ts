@@ -3,6 +3,8 @@ import { VibePlayerController } from "./vibe-player-controller";
 import { fileSource, TestAdapter } from "./vibe-player-controller-test-helpers";
 import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
 
+export type WatchedPlayer = Awaited<ReturnType<typeof createWatchedPlayer>>;
+
 /** A loaded controller with watched ranges on; tests own fake timers. */
 export async function createWatchedPlayer() {
   const adapter = new TestAdapter();

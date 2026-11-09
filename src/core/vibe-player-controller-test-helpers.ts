@@ -37,9 +37,17 @@ export class TestAdapter implements VibePlayerAdapter {
   private listener: ((event: VibePlayerAdapterEvent) => void) | null = null;
   private snapshot = createIdleSnapshot();
 
-  emit(type: VibePlayerEventName, patch: Partial<VibePlayerSnapshot>): void {
+  emit(
+    type: VibePlayerEventName,
+    patch: Partial<VibePlayerSnapshot>,
+    payload?: VibePlayerAdapterEvent["payload"]
+  ): void {
     this.snapshot = { ...this.snapshot, ...patch };
-    this.listener?.({ snapshot: this.snapshot, type });
+    this.listener?.({
+      ...(payload ? { payload } : {}),
+      snapshot: this.snapshot,
+      type,
+    });
   }
 
   getSnapshot(): VibePlayerSnapshot {
