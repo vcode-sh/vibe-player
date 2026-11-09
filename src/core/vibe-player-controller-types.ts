@@ -33,8 +33,17 @@ export type VibePlayerAnalyticsEventName =
 
 /** Package analytics payload for host-owned telemetry sinks. */
 export interface VibePlayerAnalyticsEvent {
+  /** Media position in seconds; for `seek`, the position the seek went to. */
   currentTime?: number;
   duration?: number;
+  /** Set on every `seek`: the position in seconds the seek left. */
+  from?: number;
+  /**
+   * Set on every `seek`: `controller` for `seekTo()` (package controls,
+   * shortcuts, Media Session or host code), `media` for a seek the media
+   * started itself (native controls, Picture-in-Picture, the browser).
+   */
+  initiator?: "controller" | "media";
   provider: VibePlayerSource["type"];
   sourceId: string;
   type: VibePlayerAnalyticsEventName;

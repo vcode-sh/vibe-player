@@ -33,6 +33,20 @@ export interface VibePlayerRawCommandEntry {
   source: VibePlayerSource;
 }
 
+/**
+ * The controller is about to seek the adapter: a `seekTo()` call
+ * (`controller`) or a resume, recovery or replay position it restores
+ * (`restore`). `snapshot` is the adapter's own state before the seek.
+ */
+export interface VibePlayerRawSeekEntry {
+  initiator: "controller" | "restore";
+  kind: "seek";
+  snapshot: VibePlayerSnapshot;
+  source: VibePlayerSource;
+  /** The accepted target position, in seconds. */
+  target: number;
+}
+
 /** The controller released its adapter; its later events are ignored. */
 export interface VibePlayerRawReleaseEntry {
   kind: "release";
@@ -42,7 +56,8 @@ export interface VibePlayerRawReleaseEntry {
 export type VibePlayerRawFeedEntry =
   | VibePlayerRawCommandEntry
   | VibePlayerRawEventEntry
-  | VibePlayerRawReleaseEntry;
+  | VibePlayerRawReleaseEntry
+  | VibePlayerRawSeekEntry;
 
 type RawFeedConsumer = (entry: VibePlayerRawFeedEntry) => void;
 
@@ -57,8 +72,8 @@ export function getVibePlayerReleaseReason(
 /**
  * Internal, ordered feed of provider activity for controller-owned trackers.
  * Consumers see every adapter event of the current adapter, acknowledged
- * commands and every release, in order, before controller state applies
- * pending command intent.
+ * commands, announced seeks and every release, in order,
+ * before controller state applies pending command intent.
  */
 export class VibePlayerRawFeed {
   private readonly consumers = new Set<RawFeedConsumer>();
@@ -88,5 +103,9 @@ export class VibePlayerRawFeed {
 
   release(reason: VibePlayerRawReleaseReason): void {
     this.delivery.publish({ kind: "release", reason });
+  }
+
+  seek(seek: Omit<VibePlayerRawSeekEntry, "kind">): void {
+    this.delivery.publish({ ...seek, kind: "seek" });
   }
 }

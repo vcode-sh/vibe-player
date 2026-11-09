@@ -7,6 +7,7 @@ import {
   type VibePlayerPosterRenewal,
 } from "./vibe-player-poster-renewal";
 import { VibePlayerRawFeed } from "./vibe-player-raw-feed";
+import { VibePlayerSeekAnalytics } from "./vibe-player-seek-analytics";
 import { VibePlayerSourceSession } from "./vibe-player-source-session";
 import type { VibePlayerControllerOptions } from "./vibe-player-types";
 import { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
@@ -40,6 +41,11 @@ export function createVibePlayerControllerParts(
     session,
     watched: createWatchedRanges(options, observers, feed),
   };
+  if (options.onAnalyticsEvent) {
+    const seeks = new VibePlayerSeekAnalytics(observers.emitAnalytics);
+    // After watched ranges, so a seek's report precedes its analytics.
+    feed.subscribe((entry) => seeks.observe(entry));
+  }
   return parts;
 }
 
@@ -74,6 +80,12 @@ function createActions(
         }
       },
       adapter: () => runtime.adapter,
+      announceSeek: (initiator, snapshot, target) => {
+        const source = observers.state.currentSource;
+        if (source) {
+          feed.seek({ initiator, snapshot, source, target });
+        }
+      },
       emitAnalytics: observers.emitAnalytics,
       emitEvent: (event) => observers.emitEvent(event),
       generation: () => runtime.operationGeneration,

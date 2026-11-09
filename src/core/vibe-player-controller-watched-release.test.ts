@@ -47,16 +47,31 @@ describe("VibePlayerController watched ranges across media release", () => {
     await controller.teardown();
   });
 
-  it("keeps one batch while a retry reattaches the same source", async () => {
-    const { controller, pause, play, reports } = await createWatchedPlayer();
-    play(0, 3);
-    await controller.retry();
-    expect(reports).toEqual([]);
-    play(3, 5);
-    pause();
-    expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
-      { ranges: [{ end: 5, start: 0 }], reason: "pause" },
-    ]);
-    await controller.teardown();
-  });
+  it.each([
+    { renewSource: undefined, way: "a retry" },
+    {
+      renewSource: () =>
+        Promise.resolve({ ...fileSource, expiresAt: Date.now() + 600_000 }),
+      way: "a renewal",
+    },
+  ])(
+    "delivers the batch as reload when $way reattaches the source",
+    async ({ renewSource }) => {
+      const { controller, pause, play, reports } = await createWatchedPlayer({
+        renewSource,
+      });
+      play(0, 3);
+      await controller.retry();
+      expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual(
+        [{ ranges: [{ end: 3, start: 0 }], reason: "reload" }]
+      );
+      play(3, 5);
+      pause();
+      expect(reports[1]).toMatchObject({
+        ranges: [{ end: 5, start: 3 }],
+        reason: "pause",
+      });
+      await controller.teardown();
+    }
+  );
 });

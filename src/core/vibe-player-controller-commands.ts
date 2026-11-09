@@ -89,6 +89,8 @@ function createPauseIntentSnapshot(
 
 export interface HandleVibePlayerControllerSeekInput {
   adapter: VibePlayerAdapter | null;
+  /** Runs right before the adapter seeks, with its own prior snapshot. */
+  announce: (snapshot: VibePlayerSnapshot, target: number) => void;
   currentSource: VibePlayerSource | null;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
   isCurrent: () => boolean;
@@ -99,6 +101,7 @@ export interface HandleVibePlayerControllerSeekInput {
 
 export async function handleVibePlayerControllerSeek({
   adapter,
+  announce,
   currentSource,
   emitAnalytics,
   isCurrent,
@@ -109,8 +112,14 @@ export async function handleVibePlayerControllerSeek({
   if (!(adapter && currentSource && adapter.capabilities.canSeek)) {
     return;
   }
-  const { duration } = adapter.getSnapshot();
+  const snapshot = adapter.getSnapshot();
+  const { currentTime: from, duration } = snapshot;
   const acceptedTime = clampVibePlayerTime(seconds, duration, false);
+  announce(snapshot, acceptedTime);
+  // Seek observers (watched ranges) may already have replaced the source.
+  if (!isCurrent()) {
+    return;
+  }
   await adapter.seekTo(acceptedTime);
   if (!isCurrent()) {
     return;
@@ -126,6 +135,8 @@ export async function handleVibePlayerControllerSeek({
   emitAnalytics({
     currentTime: acceptedTime,
     duration,
+    from,
+    initiator: "controller",
     provider: currentSource.type,
     sourceId: currentSource.id,
     type: "seek",

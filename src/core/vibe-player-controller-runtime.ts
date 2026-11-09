@@ -77,9 +77,7 @@ export class VibePlayerControllerRuntime {
   }
 
   async unmount(): Promise<void> {
-    this.operationGeneration += 1;
-    this.hooks.clearIntent();
-    const { operationGeneration } = this;
+    const operationGeneration = this.beginOperation();
     this.target = null;
     this.presentationTarget = null;
     await this.teardownAdapter("close");
@@ -96,36 +94,28 @@ export class VibePlayerControllerRuntime {
     }
   }
 
-  async closeSource(): Promise<void> {
-    this.operationGeneration += 1;
-    this.hooks.clearIntent();
-    const { operationGeneration } = this;
+  /** Releases the adapter and the source; `dispose` drops the mount too. */
+  async closeSource(dispose = false): Promise<void> {
+    const operationGeneration = this.beginOperation();
     this.analyticsSession.close(this.observers.state);
     await this.teardownAdapter("close");
-    if (this.isCurrentOperation(operationGeneration)) {
-      this.analyticsSession.clear();
-      this.observers.reset(this.observers.state.isMounted);
+    if (!this.isCurrentOperation(operationGeneration)) {
+      return;
     }
-  }
-
-  async teardown(): Promise<void> {
-    this.operationGeneration += 1;
-    this.hooks.clearIntent();
-    const { operationGeneration } = this;
-    this.analyticsSession.close(this.observers.state);
-    await this.teardownAdapter("close");
-    if (this.isCurrentOperation(operationGeneration)) {
-      this.analyticsSession.clear();
+    this.analyticsSession.clear();
+    if (dispose) {
       this.target = null;
       this.presentationTarget = null;
-      this.observers.reset();
     }
+    this.observers.reset(!dispose && this.observers.state.isMounted);
+  }
+
+  teardown(): Promise<void> {
+    return this.closeSource(true);
   }
 
   async attachSource(source: VibePlayerSource): Promise<void> {
-    this.operationGeneration += 1;
-    this.hooks.clearIntent();
-    const { operationGeneration } = this;
+    const operationGeneration = this.beginOperation();
     const reason = getVibePlayerReleaseReason(
       this.observers.state.currentSource,
       source
@@ -136,6 +126,7 @@ export class VibePlayerControllerRuntime {
       beginSession: () => this.observers.beginSession(),
       currentState: this.observers.state,
       emitAnalytics: this.observers.emitAnalytics,
+      feed: this.hooks.feed,
       handleAdapterEvent: (event) => this.hooks.event(event),
       isCurrentOperation: (generation) => this.isCurrentOperation(generation),
       operationGeneration,
@@ -159,9 +150,7 @@ export class VibePlayerControllerRuntime {
   }
 
   async prepareSource(source: VibePlayerSource): Promise<void> {
-    this.operationGeneration += 1;
-    this.hooks.clearIntent();
-    const { operationGeneration } = this;
+    const operationGeneration = this.beginOperation();
     this.analyticsSession.close(this.observers.state);
     await this.teardownAdapter(
       getVibePlayerReleaseReason(this.observers.state.currentSource, source)
@@ -185,9 +174,7 @@ export class VibePlayerControllerRuntime {
   }
 
   async suspend(loading: boolean): Promise<void> {
-    this.operationGeneration += 1;
-    this.hooks.clearIntent();
-    const { operationGeneration } = this;
+    const operationGeneration = this.beginOperation();
     const { snapshot, currentSource } = this.observers.state;
     await this.teardownAdapter(loading ? "reload" : "stop");
     if (!this.isCurrentOperation(operationGeneration)) {
@@ -260,5 +247,11 @@ export class VibePlayerControllerRuntime {
   }
   isCurrentOperation(generation: number): boolean {
     return this.operationGeneration === generation;
+  }
+  /** Supersedes every pending operation and command intent. */
+  private beginOperation(): number {
+    this.operationGeneration += 1;
+    this.hooks.clearIntent();
+    return this.operationGeneration;
   }
 }

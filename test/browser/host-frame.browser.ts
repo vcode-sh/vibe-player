@@ -116,7 +116,7 @@ test("native seeks flush observed playback and leave skipped time out of the nex
   const output = page.getByRole("status", { name: "Watched ranges" });
   await expect(output).not.toHaveText("none");
   const before = JSON.parse((await output.textContent()) ?? "null");
-  expect(before.reason).toBe("flush");
+  expect(before.reason).toBe("seek");
   expect(before.ranges.at(-1).end).toBeLessThan(target - 0.45);
 
   await expect

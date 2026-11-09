@@ -54,6 +54,8 @@ describe("controller seek outcomes", () => {
       expect(onAnalyticsEvent).toHaveBeenLastCalledWith({
         currentTime: 37,
         duration: 100,
+        from: 0,
+        initiator: "controller",
         provider: "file",
         sourceId: "video-1",
         type: "seek",

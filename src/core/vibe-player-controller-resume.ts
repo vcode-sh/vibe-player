@@ -7,6 +7,8 @@ import type {
 
 export interface RestoreVibePlayerResumePositionInput {
   adapter: VibePlayerAdapter;
+  /** Runs right before the adapter seeks to the resume position. */
+  announce: (target: number) => void;
   isCurrentOperation: (operationGeneration: number) => boolean;
   operationGeneration: number;
   resumeStore: VibePlayerResumeStore | undefined;
@@ -16,6 +18,7 @@ export interface RestoreVibePlayerResumePositionInput {
 
 export async function restoreVibePlayerResumePosition({
   adapter,
+  announce,
   isCurrentOperation,
   operationGeneration,
   resumeStore,
@@ -33,6 +36,10 @@ export async function restoreVibePlayerResumePosition({
     resumeTime,
   });
   if (!(shouldRestore && resumeTime)) {
+    return;
+  }
+  announce(resumeTime);
+  if (!isCurrentOperation(operationGeneration)) {
     return;
   }
   await adapter.seekTo(resumeTime);

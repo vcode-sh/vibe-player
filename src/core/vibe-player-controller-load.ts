@@ -1,6 +1,7 @@
 import type { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
 import { handleVibePlayerLoadError } from "./vibe-player-controller-load-error";
 import { restoreVibePlayerResumePosition } from "./vibe-player-controller-resume";
+import type { VibePlayerRawFeed } from "./vibe-player-raw-feed";
 import { createIdleSnapshot } from "./vibe-player-time";
 import type {
   VibePlayerAdapter,
@@ -18,6 +19,8 @@ export interface LoadVibePlayerControllerSourceInput {
   beginSession: () => void;
   currentState: VibePlayerControllerState;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
+  /** Hears the resume seek before it happens, so it is not a viewer seek. */
+  feed: VibePlayerRawFeed;
   handleAdapterEvent: (event: VibePlayerAdapterEvent) => void;
   isCurrentOperation: (operationGeneration: number) => boolean;
   operationGeneration: number;
@@ -178,6 +181,13 @@ async function restoreControllerResumePosition(
   try {
     await restoreVibePlayerResumePosition({
       adapter,
+      announce: (target) =>
+        input.feed.seek({
+          initiator: "restore",
+          snapshot: adapter.getSnapshot(),
+          source: input.source,
+          target,
+        }),
       isCurrentOperation: input.isCurrentOperation,
       operationGeneration: input.operationGeneration,
       resumeStore: input.resumeStore,

@@ -113,9 +113,11 @@ export class VibePlayerController {
   seek(seconds: number): Promise<void> {
     return this.seekTo(seconds);
   }
-  /** Seeks to `seconds`, clamped to the duration, where `canSeek` allows. */
+  /**
+   * Seeks to `seconds`, clamped to the duration, where `canSeek` allows.
+   * Pending watched ranges are delivered first (reason `seek`).
+   */
   seekTo(seconds: number): Promise<void> {
-    this.watched?.interrupt();
     return this.actions.seekTo(seconds);
   }
   /** Delivers pending watched ranges now, e.g. before the host navigates. */

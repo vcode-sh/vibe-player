@@ -8,6 +8,7 @@ import type {
   VibePlayerSnapshot,
 } from "./vibe-player-runtime-types";
 import type { VibePlayerSource } from "./vibe-player-source-types";
+import { VibePlayerWatchedBatch } from "./vibe-player-watched-batch";
 
 /** A span of media time, in seconds, that played continuously. */
 export interface VibePlayerWatchedRange {
@@ -16,9 +17,11 @@ export interface VibePlayerWatchedRange {
 }
 
 /**
- * Why a batch was delivered: the viewer paused or stopped (`pause`), media
- * ended, the source closed or changed (`close`), the page was hidden, the
- * batch reached its range limit, or a seek boundary or host call flushed it.
+ * Why a batch was delivered: the viewer paused or playback stopped
+ * (`pause`), media `ended`, a seek started (`seek`), retry or renewal
+ * reattached the same source (`reload`), the source closed or changed
+ * (`close`), the page was `hidden`, the batch reached its range `limit`, or
+ * the host called `flushWatchedRanges()` (`flush`).
  */
 export type VibePlayerWatchedRangesReason =
   | "close"
@@ -26,7 +29,9 @@ export type VibePlayerWatchedRangesReason =
   | "flush"
   | "hidden"
   | "limit"
-  | "pause";
+  | "pause"
+  | "reload"
+  | "seek";
 
 /** Watched time since the previous report, for host-owned aggregation. */
 export interface VibePlayerWatchedRangesReport {
@@ -39,8 +44,6 @@ export interface VibePlayerWatchedRangesReport {
   sourceId: string;
 }
 
-/** A batch holds at most this many separate ranges, bounding memory. */
-const VIBE_PLAYER_WATCHED_RANGES_LIMIT = 64;
 /** Timer jitter allowed beyond wall-clock progress before a jump is a seek. */
 const jitterSeconds = 1;
 /** A seek the provider abandons without `seeked` must not block counting. */
@@ -49,6 +52,10 @@ const seekEndingEvents: ReadonlySet<VibePlayerEventName> = new Set([
   "pause",
   "seeked",
 ]);
+/** What a release delivers the pending batch as. */
+const releaseReasons: Readonly<
+  Record<VibePlayerRawReleaseReason, VibePlayerWatchedRangesReason>
+> = { close: "close", reload: "reload", stop: "pause" };
 
 interface Sample {
   at: number;
@@ -58,24 +65,22 @@ interface Sample {
 /**
  * Turns the controller's raw adapter feed into watched ranges. Only progress
  * while `readyState` is `playing` counts, and only when media time advanced
- * no faster than the wall clock allows. Seek boundaries keep jumps out of
- * playback; a seek ends on `seeked`, `pause`, `ended`, a fatal `error`, an
- * acknowledged pause or a release.
+ * no faster than the wall clock allows. Seek boundaries (an announced
+ * controller seek or the media's `seeking`) deliver the batch and keep jumps
+ * out of playback; a seek ends on `seeked`, `pause`, `ended`, a fatal
+ * `error`, an acknowledged pause or a release.
  */
 export class VibePlayerWatchedRangesTracker {
-  private duration = 0;
   private last: Sample | null = null;
-  private ranges: VibePlayerWatchedRange[] = [];
   private seeking = false;
-  private source: VibePlayerSource | null = null;
-  private readonly emit: (report: VibePlayerWatchedRangesReport) => void;
+  private readonly batch: VibePlayerWatchedBatch;
   private readonly now: () => number;
 
   constructor(
     emit: (report: VibePlayerWatchedRangesReport) => void,
     now: () => number = Date.now
   ) {
-    this.emit = emit;
+    this.batch = new VibePlayerWatchedBatch(emit);
     this.now = now;
   }
 
@@ -84,29 +89,15 @@ export class VibePlayerWatchedRangesTracker {
       this.release(entry.reason);
     } else if (entry.kind === "command") {
       this.observePause(entry.source, entry.snapshot);
-    } else {
+    } else if (entry.kind === "seek") {
+      this.boundary(entry.source, entry.snapshot, "seek");
+    } else if (entry.kind === "event") {
       this.observeEvent(entry.source, entry.event);
     }
   }
 
-  /** A host seek: the next progress starts a new range. */
-  interrupt(): void {
-    this.last = null;
-  }
-
   flush(reason: VibePlayerWatchedRangesReason): void {
-    const { ranges, source } = this;
-    if (!(source && ranges.length > 0)) {
-      return;
-    }
-    this.ranges = [];
-    this.emit({
-      duration: this.duration,
-      provider: source.type,
-      ranges,
-      reason,
-      sourceId: source.id,
-    });
+    this.batch.deliver(reason);
   }
 
   private observeEvent(
@@ -114,12 +105,12 @@ export class VibePlayerWatchedRangesTracker {
     event: VibePlayerAdapterEvent
   ): void {
     const { snapshot, type } = event;
-    if (source.id !== this.source?.id) {
+    if (source.id !== this.batch.source?.id) {
       this.release("close");
     }
-    this.source = source;
+    this.batch.source = source;
     if (Number.isFinite(snapshot.duration) && snapshot.duration > 0) {
-      this.duration = snapshot.duration;
+      this.batch.duration = snapshot.duration;
     }
     if (this.observeSeek(event)) {
       return;
@@ -151,33 +142,42 @@ export class VibePlayerWatchedRangesTracker {
     source: VibePlayerSource,
     snapshot: VibePlayerSnapshot
   ): void {
-    if (source.id !== this.source?.id || !snapshot.paused) {
+    if (source.id === this.batch.source?.id && snapshot.paused) {
+      this.seeking = false;
+      this.boundary(source, snapshot, "pause");
+    }
+  }
+
+  /** Counts up to the adapter's own position, then delivers the batch. */
+  private boundary(
+    source: VibePlayerSource,
+    snapshot: VibePlayerSnapshot,
+    reason: VibePlayerWatchedRangesReason
+  ): void {
+    if (source.id !== this.batch.source?.id) {
       return;
     }
-    this.seeking = false;
     if (this.last) {
       this.advance(snapshot.currentTime, snapshot.playbackRate);
     }
     this.last = null;
-    this.flush("pause");
+    this.flush(reason);
   }
 
   /** The adapter or source went away: no seek or sample survives it. */
   private release(reason: VibePlayerRawReleaseReason): void {
     this.last = null;
     this.seeking = false;
-    if (reason === "stop") {
-      this.flush("pause");
-    } else if (reason === "close") {
-      this.flush("close");
-      this.source = null;
-      this.duration = 0;
+    this.flush(releaseReasons[reason]);
+    if (reason === "close") {
+      this.batch.source = null;
+      this.batch.duration = 0;
     }
   }
 
   private observeSeek({ payload, type }: VibePlayerAdapterEvent): boolean {
     if (type === "seeking") {
-      this.flush("flush");
+      this.flush("seek");
       this.seeking = true;
     } else if (
       seekEndingEvents.has(type) ||
@@ -205,30 +205,7 @@ export class VibePlayerWatchedRangesTracker {
     this.last = { at, time };
     const allowed = ((at - last.at) / 1000) * Math.max(1, rate) + jitterSeconds;
     if (delta > 0 && delta <= allowed) {
-      this.add(last.time, time);
+      this.batch.add(last.time, time);
     }
-  }
-
-  private add(start: number, end: number): void {
-    let merged = { end, start };
-    const next: VibePlayerWatchedRange[] = [];
-    for (const range of this.ranges) {
-      if (range.end < merged.start || range.start > merged.end) {
-        next.push(range);
-      } else {
-        merged = {
-          end: Math.max(range.end, merged.end),
-          start: Math.min(range.start, merged.start),
-        };
-      }
-    }
-    if (next.length >= VIBE_PLAYER_WATCHED_RANGES_LIMIT) {
-      // A new separate range would exceed the bound: deliver the full batch.
-      this.flush("limit");
-      this.ranges = [merged];
-      return;
-    }
-    next.push(merged);
-    this.ranges = next.sort((a, b) => a.start - b.start);
   }
 }

@@ -43,21 +43,43 @@ describe("VibePlayerController watched ranges", () => {
       paused: true,
       readyState: "ended",
     });
-    expect(reports.map((report) => report.reason)).toEqual(["ended"]);
-    expect(reports[0]?.ranges).toEqual([
-      { end: 5, start: 0 },
-      { end: 52, start: 50 },
-      { end: 83, start: 82 },
+    expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
+      { ranges: [{ end: 5, start: 0 }], reason: "seek" },
+      {
+        ranges: [
+          { end: 52, start: 50 },
+          { end: 83, start: 82 },
+        ],
+        reason: "ended",
+      },
     ]);
   });
 
-  it("merges a replayed stretch into the range it overlaps", async () => {
+  it("delivers the batch at a controller seek, so a replayed stretch stays separate", async () => {
     const { controller, pause, play, reports } = await createWatchedPlayer();
     play(0, 10);
+    // This provider reports no seeking/seeked for the seek.
     await controller.seekTo(5);
     play(5, 15);
     pause();
-    expect(reports[0]?.ranges).toEqual([{ end: 15, start: 0 }]);
+    expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
+      { ranges: [{ end: 10, start: 0 }], reason: "seek" },
+      { ranges: [{ end: 15, start: 5 }], reason: "pause" },
+    ]);
+  });
+
+  it("sends nothing twice when the media echoes a controller seek", async () => {
+    const { adapter, controller, pause, play, reports } =
+      await createWatchedPlayer();
+    play(0, 3);
+    await controller.seekTo(40);
+    adapter.emit("seeking", { currentTime: 40, readyState: "buffering" });
+    adapter.emit("seeked", { currentTime: 40, readyState: "playing" });
+    pause();
+    await controller.seekTo(60);
+    expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
+      { ranges: [{ end: 3, start: 0 }], reason: "seek" },
+    ]);
   });
 
   it("does not count media time while playback stalls", async () => {
@@ -108,7 +130,7 @@ describe("VibePlayerController watched ranges", () => {
     play(30, 40);
     pause();
     expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
-      { ranges: [{ end: 2, start: 0 }], reason: "flush" },
+      { ranges: [{ end: 2, start: 0 }], reason: "seek" },
       { ranges: [{ end: 40, start: 30 }], reason: "pause" },
     ]);
   });
@@ -167,7 +189,7 @@ describe("VibePlayerController watched ranges", () => {
     play(30, 32);
     pause();
     expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
-      { ranges: [{ end: 2, start: 0 }], reason: "flush" },
+      { ranges: [{ end: 2, start: 0 }], reason: "seek" },
       { ranges: [{ end: 32, start: 30 }], reason: "pause" },
     ]);
   });

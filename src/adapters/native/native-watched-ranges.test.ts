@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { VibePlayerController } from "../../core/vibe-player-controller";
+import type { VibePlayerAnalyticsEvent } from "../../core/vibe-player-types";
 import type { VibePlayerWatchedRangesReport } from "../../core/vibe-player-watched-ranges";
 import { createFileAdapter } from "../file/create-file-adapter";
 
@@ -8,7 +9,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it.each(["native", "controller"] as const)(
+it.each(["media", "controller"] as const)(
   "%s seeks preserve replay time and exclude small forward jumps without duplicate reports",
   async (origin) => {
     vi.useFakeTimers();
@@ -27,10 +28,12 @@ it.each(["native", "controller"] as const)(
       seeking: { configurable: true, get: () => seeking },
     });
     const reports: VibePlayerWatchedRangesReport[] = [];
+    const seeks: VibePlayerAnalyticsEvent[] = [];
     const controller = new VibePlayerController({
       adapterFactory: createFileAdapter,
       onAnalyticsEvent: (event) => {
         if (event.type === "seek") {
+          seeks.push(event);
           controller.flushWatchedRanges();
         }
       },
@@ -81,6 +84,20 @@ it.each(["native", "controller"] as const)(
         [{ end: 1, start: 0 }],
         [{ end: 2.5, start: 1.5 }],
       ]);
+      // One seek each, though the media also reports controller seeks.
+      expect(
+        seeks.map(({ currentTime, from, initiator }) => ({
+          currentTime,
+          from,
+          initiator,
+        }))
+      ).toEqual(
+        [
+          { currentTime: 0, from: 2 },
+          { currentTime: 1.5, from: 1 },
+          { currentTime: 8, from: 2.5 },
+        ].map((seek) => ({ ...seek, initiator: origin }))
+      );
     } finally {
       await controller.teardown();
       video.remove();

@@ -1,15 +1,19 @@
 import { vi } from "vitest";
 import { VibePlayerController } from "./vibe-player-controller";
 import { fileSource, TestAdapter } from "./vibe-player-controller-test-helpers";
+import type { VibePlayerControllerOptions } from "./vibe-player-types";
 import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
 
 export type WatchedPlayer = Awaited<ReturnType<typeof createWatchedPlayer>>;
 
 /** A loaded controller with watched ranges on; tests own fake timers. */
-export async function createWatchedPlayer() {
+export async function createWatchedPlayer(
+  options: Partial<VibePlayerControllerOptions> = {}
+) {
   const adapter = new TestAdapter();
   const reports: VibePlayerWatchedRangesReport[] = [];
   const controller = new VibePlayerController({
+    ...options,
     adapterFactory: () => adapter,
     onWatchedRanges: (report) => {
       reports.push(report);

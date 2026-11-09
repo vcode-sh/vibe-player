@@ -19,6 +19,12 @@ interface ControllerActionsHost {
   /** A current pause the adapter acknowledged, with its own snapshot. */
   acknowledgePause(snapshot: VibePlayerSnapshot): void;
   adapter(): VibePlayerAdapter | null;
+  /** The adapter is about to seek; `snapshot` is its state before. */
+  announceSeek(
+    initiator: "controller" | "restore",
+    snapshot: VibePlayerSnapshot,
+    target: number
+  ): void;
   emitAnalytics(event: VibePlayerAnalyticsEvent): void;
   emitEvent(event: VibePlayerEvent): void;
   generation(): number;
@@ -57,16 +63,23 @@ export class VibePlayerControllerActions {
   async restore(snapshot: VibePlayerSnapshot): Promise<void> {
     const adapter = this.host.adapter();
     const generation = this.host.generation();
+    const isCurrent = () =>
+      generation === this.host.generation() && adapter === this.host.adapter();
     if (!adapter) {
       return;
     }
     if (snapshot.currentTime > 0 || snapshot.readyState === "ended") {
+      this.host.announceSeek(
+        "restore",
+        adapter.getSnapshot(),
+        snapshot.currentTime
+      );
+      if (!isCurrent()) {
+        return;
+      }
       await adapter.seekTo(snapshot.currentTime);
     }
-    if (
-      generation === this.host.generation() &&
-      adapter === this.host.adapter()
-    ) {
+    if (isCurrent()) {
       this.host.sync();
     }
   }
@@ -127,6 +140,8 @@ export class VibePlayerControllerActions {
     return this.run("seekTo", () =>
       handleVibePlayerControllerSeek({
         adapter,
+        announce: (snapshot, target) =>
+          this.host.announceSeek("controller", snapshot, target),
         currentSource: this.host.state().currentSource,
         emitAnalytics: this.host.emitAnalytics,
         isCurrent: () =>
