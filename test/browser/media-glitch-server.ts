@@ -115,10 +115,10 @@ export function mediaGlitchServer(): Plugin {
           return;
         }
         const key = `${mode}/${run}`;
-        const fresh = mode === "once" && served.has(key);
+        const faultAlreadyServed = mode === "once" && served.has(key);
         served.add(key);
         response.setHeader("Content-Type", "video/mp2t");
-        response.end(fresh ? original : scrambled);
+        response.end(faultAlreadyServed ? original : scrambled);
       });
     },
     name: "media-glitch-fixture",
