@@ -1,16 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { VibePlayerController } from "./vibe-player-controller";
-import { fileSource, TestAdapter } from "./vibe-player-controller-test-helpers";
+import {
+  EchoTestAdapter,
+  fileSource,
+  TestAdapter,
+} from "./vibe-player-controller-test-helpers";
 import type { VibePlayerEvent } from "./vibe-player-host-events";
 import type { VibePlayerControllerState } from "./vibe-player-types";
-
-/** Reports a mute change synchronously, as a native video element does. */
-class MuteEchoAdapter extends TestAdapter {
-  override setMuted(value: boolean): Promise<void> {
-    this.emit("volumechange", { muted: value });
-    return Promise.resolve();
-  }
-}
 
 function describeState({ lastEvent, snapshot }: VibePlayerControllerState) {
   return `${lastEvent}:${snapshot.muted ? "muted" : "sound"}`;
@@ -18,7 +14,7 @@ function describeState({ lastEvent, snapshot }: VibePlayerControllerState) {
 
 describe("VibePlayerController state notification order", () => {
   it("delivers every state in order when a subscriber changes state", async () => {
-    const adapter = new MuteEchoAdapter();
+    const adapter = new EchoTestAdapter();
     const controller = new VibePlayerController({
       adapterFactory: () => adapter,
     });

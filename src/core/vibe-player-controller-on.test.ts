@@ -1,6 +1,9 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { VibePlayerController } from "./vibe-player-controller";
-import { fileSource, TestAdapter } from "./vibe-player-controller-test-helpers";
+import {
+  EchoTestAdapter,
+  fileSource,
+} from "./vibe-player-controller-test-helpers";
 import type {
   VibePlayerEvent,
   VibePlayerEventOfType,
@@ -8,16 +11,8 @@ import type {
 } from "./vibe-player-host-events";
 import type { VibePlayerSource } from "./vibe-player-types";
 
-/** Reports a mute change synchronously, as a native video element does. */
-class MuteEchoAdapter extends TestAdapter {
-  override setMuted(value: boolean): Promise<void> {
-    this.emit("volumechange", { muted: value });
-    return Promise.resolve();
-  }
-}
-
 async function createPlayer(onEvent?: (event: VibePlayerEvent) => void) {
-  const adapter = new MuteEchoAdapter();
+  const adapter = new EchoTestAdapter();
   const controller = new VibePlayerController({
     adapterFactory: () => adapter,
     ...(onEvent ? { onEvent } : {}),

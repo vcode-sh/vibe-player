@@ -122,6 +122,19 @@ export class TestAdapter implements VibePlayerAdapter {
   }
 }
 
+/** Reports mute and volume changes synchronously, as a native video element does. */
+export class EchoTestAdapter extends TestAdapter {
+  override setMuted(value: boolean): Promise<void> {
+    this.emit("volumechange", { muted: value });
+    return Promise.resolve();
+  }
+
+  override setVolume(value: number): Promise<void> {
+    this.emit("volumechange", { volume: value });
+    return Promise.resolve();
+  }
+}
+
 export function createBlockedPlaybackError(): Error {
   const error = new Error("Playback blocked");
   error.name = "NotAllowedError";

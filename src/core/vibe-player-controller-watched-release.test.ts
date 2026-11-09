@@ -42,6 +42,29 @@ describe("VibePlayerController watched ranges across media release", () => {
     }
   );
 
+  it("counts the next source's playback after a source change while seeking", async () => {
+    const { adapter, controller, pause, play, reports } =
+      await createWatchedPlayer();
+    play(0, 2);
+    adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
+
+    await controller.load({ ...fileSource, id: "video-2" });
+    play(0, 2);
+    pause();
+
+    expect(
+      reports.map(({ ranges, reason, sourceId }) => ({
+        ranges,
+        reason,
+        sourceId,
+      }))
+    ).toEqual([
+      { ranges: [{ end: 2, start: 0 }], reason: "seek", sourceId: "video-1" },
+      { ranges: [{ end: 2, start: 0 }], reason: "pause", sourceId: "video-2" },
+    ]);
+    await controller.teardown();
+  });
+
   it("delivers the batch before a viewer pause resolves", async () => {
     const { controller, play, reports } = await createWatchedPlayer();
     play(0, 3);

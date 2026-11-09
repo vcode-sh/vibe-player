@@ -128,6 +128,25 @@ describe("controller resume writes", () => {
     await player.controller.teardown();
   });
 
+  it("lets a fatal error end a seek, so later progress saves again", async () => {
+    const player = await createResumePlayer();
+    player.play(0, 1);
+    player.adapter.emit("seeking", {
+      currentTime: 30,
+      readyState: "buffering",
+    });
+    player.adapter.emit("error", { readyState: "error" }, { fatal: true });
+    // The provider plays on, for example after recovering the media.
+    player.play(40, 42.5);
+
+    // Two seconds from the last saved spot (none yet), then two more.
+    expect(player.writes).toEqual([
+      ["video-1", 40.25, "progress"],
+      ["video-1", 42.25, "progress"],
+    ]);
+    await player.controller.teardown();
+  });
+
   it("never saves a live source", async () => {
     const player = await createResumePlayer();
     player.adapter.capabilities.isLive = true;
