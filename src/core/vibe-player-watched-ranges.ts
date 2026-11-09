@@ -134,10 +134,7 @@ export class VibePlayerWatchedRangesTracker {
     if (source.id !== this.batch.source?.id) {
       this.release("close");
     }
-    this.batch.source = source;
-    if (Number.isFinite(snapshot.duration) && snapshot.duration > 0) {
-      this.batch.duration = snapshot.duration;
-    }
+    this.batch.observe(source, snapshot.duration);
     if (this.observeSeek(event)) {
       return;
     }
@@ -196,8 +193,7 @@ export class VibePlayerWatchedRangesTracker {
     this.seeking = false;
     this.flush(releaseReasons[reason]);
     if (reason === "close") {
-      this.batch.source = null;
-      this.batch.duration = 0;
+      this.batch.close();
     }
   }
 

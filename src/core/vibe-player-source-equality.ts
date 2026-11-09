@@ -74,5 +74,6 @@ export function haveEqualVibePlayerSources(
       haveEqualCaptions(left.captions, right.captions)
     );
   }
+  // Only an untyped caller reaches here with an unknown type: never reuse it.
   return false;
 }

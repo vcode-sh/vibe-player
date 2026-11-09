@@ -11,9 +11,8 @@ const VIBE_PLAYER_WATCHED_RANGES_LIMIT = 64;
 
 /** Watched ranges not yet reported, and the playback they belong to. */
 export class VibePlayerWatchedBatch {
-  /** Media duration in seconds once known, else 0. */
-  duration = 0;
-  source: VibePlayerSource | null = null;
+  private currentDuration = 0;
+  private currentSource: VibePlayerSource | null = null;
   private playbackId = "";
   private ranges: VibePlayerWatchedRange[] = [];
   private sequence = 0;
@@ -21,6 +20,30 @@ export class VibePlayerWatchedBatch {
 
   constructor(emit: (report: VibePlayerWatchedRangesReport) => void) {
     this.emit = emit;
+  }
+
+  /** Media duration in seconds once known, else 0. */
+  get duration(): number {
+    return this.currentDuration;
+  }
+
+  /** The source whose ranges the batch collects, or null. */
+  get source(): VibePlayerSource | null {
+    return this.currentSource;
+  }
+
+  /** Ranges added from now on belong to `source`. */
+  observe(source: VibePlayerSource, duration: number): void {
+    this.currentSource = source;
+    if (Number.isFinite(duration) && duration > 0) {
+      this.currentDuration = duration;
+    }
+  }
+
+  /** Forgets the source and duration once the playback closed. */
+  close(): void {
+    this.currentSource = null;
+    this.currentDuration = 0;
   }
 
   /** Later reports belong to `playbackId` and are numbered from 1. */
