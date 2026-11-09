@@ -623,10 +623,10 @@ interface VibePlayerAudioFocusOptions {
 
 interface VibePlayerAudioFocusParticipant {
   claim(): void;
-  readonly controller: VibePlayerController | null;
+  readonly controller?: VibePlayerController | null | undefined;
   dispose(): void;
-  readonly group: string;
-  readonly mediaSession: boolean;
+  readonly group?: string | undefined;
+  readonly mediaSession?: boolean | undefined;
   release(): void;
 }
 

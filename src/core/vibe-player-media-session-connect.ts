@@ -45,7 +45,7 @@ function decideFromFocus(
   if (owner?.controller === controller) {
     return "claim";
   }
-  return owner && !owner.mediaSession ? "release" : "keep";
+  return owner?.mediaSession === false ? "release" : "keep";
 }
 
 function decide(

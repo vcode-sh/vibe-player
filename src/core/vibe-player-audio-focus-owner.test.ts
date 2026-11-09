@@ -5,6 +5,7 @@ import {
   subscribeVibePlayerAudioFocus,
   type VibePlayerAudioFocusParticipant,
 } from "./vibe-player-audio-focus";
+import { countVibePlayerControllerRetireHooks } from "./vibe-player-controller-retirement";
 import { createControllerHarness } from "./vibe-player-controller-test-helpers";
 
 const owned: VibePlayerAudioFocusParticipant[] = [];
@@ -114,5 +115,26 @@ describe("observable audio focus", () => {
     player.claim();
     expect(getVibePlayerAudioFocusOwner("gone")).toBeNull();
     expect(owners).toEqual([player, null]);
+  });
+
+  it("watches a player's retirement only while it holds focus", () => {
+    const { controller } = createControllerHarness();
+    const replaced = Array.from({ length: 4 }, (_, index) =>
+      createVibePlayerAudioFocusParticipant(`churn-${index}`, vi.fn(), {
+        controller,
+      })
+    );
+    owned.push(...replaced);
+    expect(countVibePlayerControllerRetireHooks(controller)).toBe(0);
+
+    const [first, second] = replaced;
+    first?.claim();
+    expect(countVibePlayerControllerRetireHooks(controller)).toBe(1);
+    const rival = join("churn-0");
+    rival.claim();
+    expect(countVibePlayerControllerRetireHooks(controller)).toBe(0);
+    second?.claim();
+    second?.release();
+    expect(countVibePlayerControllerRetireHooks(controller)).toBe(0);
   });
 });

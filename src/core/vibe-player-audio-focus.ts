@@ -5,16 +5,20 @@ import { VibePlayerLatestNotifier } from "./vibe-player-latest-notifier";
 /** A media participant shares exclusive audible playback with its group. */
 export interface VibePlayerAudioFocusParticipant {
   claim(): void;
-  /** The player this participant represents; `null` for host media. */
-  readonly controller: VibePlayerController | null;
+  /**
+   * The player this participant represents; `null` for host media. Always
+   * set on participants the package creates, like `group` and `mediaSession`;
+   * optional so hand-written participants (test doubles) keep compiling.
+   */
+  readonly controller?: VibePlayerController | null | undefined;
   dispose(): void;
-  readonly group: string;
+  readonly group?: string | undefined;
   /**
    * Whether this participant uses the page's Media Session. Taking focus
-   * from a player with `false` releases that player's session, so a lock
-   * screen never shows a paused video while, say, a voice note plays.
+   * with `false` releases a paused player's session, so a lock screen never
+   * shows a video while, say, a voice note plays.
    */
-  readonly mediaSession: boolean;
+  readonly mediaSession?: boolean | undefined;
   release(): void;
 }
 
@@ -34,6 +38,8 @@ type Owner = VibePlayerAudioFocusParticipant | null;
 interface AudioFocusOwner {
   participant: VibePlayerAudioFocusParticipant;
   pause: () => void | Promise<void>;
+  /** Stops watching the owner's controller for retirement. */
+  unwatch: () => void;
 }
 
 const defaultGroup = "default";
@@ -85,6 +91,7 @@ export function subscribeVibePlayerAudioFocus(
 /**
  * Join host audio or video to the same group used by player hooks. Claiming
  * pauses the previous owner (`onPause`); a retired `controller` never claims.
+ * While it holds focus, retiring `controller` releases it.
  */
 export function createVibePlayerAudioFocusParticipant(
   group: string,
@@ -95,7 +102,14 @@ export function createVibePlayerAudioFocusParticipant(
   }: VibePlayerAudioFocusParticipantOptions = {}
 ): VibePlayerAudioFocusParticipant {
   let disposed = false;
-  let stopWatching: () => void = () => undefined;
+  const release = () => {
+    const owner = owners.get(group);
+    if (owner?.participant === participant) {
+      owners.delete(group);
+      owner.unwatch();
+      announce(group);
+    }
+  };
   const participant: VibePlayerAudioFocusParticipant = {
     claim() {
       const previous = owners.get(group);
@@ -106,30 +120,22 @@ export function createVibePlayerAudioFocusParticipant(
       ) {
         return;
       }
-      owners.set(group, { participant, pause: onPause });
+      const unwatch = controller
+        ? onVibePlayerControllerRetire(controller, release)
+        : () => undefined;
+      owners.set(group, { participant, pause: onPause, unwatch });
+      previous?.unwatch();
       pausePrevious(previous);
       announce(group);
     },
     controller,
     dispose() {
-      participant.release();
+      release();
       disposed = true;
-      stopWatching();
     },
     group,
     mediaSession,
-    release() {
-      if (owners.get(group)?.participant === participant) {
-        owners.delete(group);
-        announce(group);
-      }
-    },
+    release,
   };
-  if (controller) {
-    stopWatching = onVibePlayerControllerRetire(
-      controller,
-      participant.dispose
-    );
-  }
   return participant;
 }

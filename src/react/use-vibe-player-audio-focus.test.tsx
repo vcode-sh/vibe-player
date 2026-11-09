@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { countVibePlayerControllerRetireHooks } from "../core/vibe-player-controller-retirement";
 import {
+  createControllerHarness,
   fileSource,
   TestAdapter,
 } from "../core/vibe-player-controller-test-helpers";
@@ -93,5 +95,23 @@ describe("host and player audio focus", () => {
     expect(previous).not.toHaveBeenCalled();
     expect(latest).toHaveBeenCalledTimes(1);
     unmount();
+  });
+
+  it("leaves no retirement hook behind when the participant is replaced", () => {
+    const { controller } = createControllerHarness();
+    const { rerender, result, unmount } = renderHook(
+      ({ group }) =>
+        useVibePlayerAudioFocus({ controller, group, onPause: vi.fn() }),
+      { initialProps: { group: "replaced-0" } }
+    );
+    act(() => result.current.claim());
+    for (const group of ["replaced-1", "replaced-2", "replaced-3"]) {
+      rerender({ group });
+    }
+    expect(countVibePlayerControllerRetireHooks(controller)).toBe(0);
+    act(() => result.current.claim());
+    expect(countVibePlayerControllerRetireHooks(controller)).toBe(1);
+    unmount();
+    expect(countVibePlayerControllerRetireHooks(controller)).toBe(0);
   });
 });

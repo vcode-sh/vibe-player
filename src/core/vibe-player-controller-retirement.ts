@@ -34,3 +34,10 @@ export function runVibePlayerControllerRetireHooks(
     }
   }
 }
+
+/** Internal, for tests: how many hooks wait for `controller` to retire. */
+export function countVibePlayerControllerRetireHooks(
+  controller: VibePlayerController
+): number {
+  return hooks.get(controller)?.size ?? 0;
+}
