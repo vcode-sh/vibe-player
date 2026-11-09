@@ -8,8 +8,6 @@ const BROWSER_COMMAND = "bun run test:browser";
 const GATES_COMMAND = "bun run ci";
 const PUBLISH_COMMAND = "bun run release:publish --no-git-tag";
 
-const findStep = findWorkflowStep;
-
 function collectOrderIssues(command, index, bounds) {
   const issues = [];
   if (bounds.gates !== -1 && index < bounds.gates) {
@@ -50,7 +48,7 @@ function collectPublishIssues(step) {
 }
 
 function collectGateStepIssues(steps, command, bounds) {
-  const index = findStep(steps, command);
+  const index = findWorkflowStep(steps, command);
   if (index === -1) {
     return [];
   }
@@ -76,11 +74,11 @@ export function collectReleaseWorkflowIssues(workflowSource) {
     BROWSER_COMMAND,
   ];
   const missing = commands
-    .filter((command) => findStep(steps, command) === -1)
+    .filter((command) => findWorkflowStep(steps, command) === -1)
     .map((command) => `Release workflow is missing a step "run: ${command}".`);
   const bounds = {
-    gates: findStep(steps, GATES_COMMAND),
-    publish: findStep(steps, PUBLISH_COMMAND),
+    gates: findWorkflowStep(steps, GATES_COMMAND),
+    publish: findWorkflowStep(steps, PUBLISH_COMMAND),
   };
   return [
     ...missing,
