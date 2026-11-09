@@ -10,6 +10,7 @@ import {
   getNativeVideoSnapshot,
   setNativeVideoMetadata,
 } from "../native/native-video-dom";
+import { supportsNativeVolumeControl } from "../native/native-volume-control";
 import { clearElement } from "../shared/clear-element";
 
 type HlsLoadMode = "managed" | "native";
@@ -64,7 +65,7 @@ export function getHlsVideoCapabilities(
     supportsPlayback: true,
     supportsPoster: Boolean(source?.posterUrl),
     supportsQualitySelection,
-    supportsVolumeControl: true,
+    supportsVolumeControl: supportsNativeVolumeControl(video),
   };
 }
 

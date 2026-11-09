@@ -12,6 +12,7 @@ import {
   getNativeVideoSnapshot,
   setNativeVideoMetadata,
 } from "../native/native-video-dom";
+import { supportsNativeVolumeControl } from "../native/native-volume-control";
 import { clearElement } from "../shared/clear-element";
 
 export const createFileVideo = createNativeVideo;
@@ -34,7 +35,7 @@ export function getFileVideoCapabilities(
     supportsMute: true,
     supportsPlayback: true,
     supportsPoster: Boolean(source?.posterUrl),
-    supportsVolumeControl: true,
+    supportsVolumeControl: supportsNativeVolumeControl(video),
   };
 }
 

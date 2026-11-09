@@ -16,6 +16,7 @@ import {
   resetNativeSourceFailure,
 } from "./native-video-errors";
 import { clearPendingNativeSeek } from "./native-video-seek";
+import { observeNativeVolumeControl } from "./native-volume-control";
 
 type NativeVideoEventEmitter = (
   event: VibePlayerEventName,
@@ -101,6 +102,7 @@ export function createNativeVideo(
     "vibe-player-file-adapter-video"
   );
   bindNativeVideoEvents(video, emit);
+  observeNativeVolumeControl(video);
   return video;
 }
 
