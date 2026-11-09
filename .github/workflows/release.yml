@@ -3,9 +3,11 @@ name: Release
 on:
   workflow_dispatch:
 
+# The release job runs dependency code, so it only reads the repository and
+# mints the npm OIDC token. Only the tag job, which runs no dependency code,
+# can write to the repository.
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: npm-release
@@ -15,11 +17,21 @@ jobs:
   release:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 15
+    # bun run ci 20 + browser engines 5 + browser lane 5 + Node 22 check 5
+    # + setup, checks and publish 5 minutes.
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v7.1.0
@@ -39,6 +51,17 @@ jobs:
       - name: Prepare release notes from CHANGELOG
         id: release
         run: node scripts/write-release-notes.mjs --output "$RUNNER_TEMP/release-notes.md"
+
+      - name: Keep release notes for the tag job
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}/release-notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Refuse a version already on npm
+        run: node scripts/assert-unpublished-version.mjs
 
       - name: Refuse an existing release tag
         env:
@@ -93,10 +116,34 @@ jobs:
       - name: Publish committed version to npm
         run: bun run release:publish --no-git-tag
 
+  tag:
+    needs: release
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout released commit
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download release notes
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}/release-notes
+
       - name: Tag the released commit
         env:
-          TAG: ${{ steps.release.outputs.tag }}
+          TAG: ${{ needs.release.outputs.tag }}
         run: |
+          remote="$(git ls-remote --tags origin "refs/tags/$TAG^{}" | cut -f1)"
+          if [ "$remote" = "$GITHUB_SHA" ]; then
+            echo "Tag $TAG already points to the released commit."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"
@@ -105,9 +152,9 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.release.outputs.tag }}
-          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ needs.release.outputs.tag }}
+          VERSION: ${{ needs.release.outputs.version }}
         run: |
           flags=()
           case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
-          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" "${flags[@]}"
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes/release-notes.md" "${flags[@]}"

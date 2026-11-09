@@ -4,11 +4,11 @@ const BLOCK_SCALAR = /^[|>][+-]?$/;
 const KEY_LINE = /^([\w-]+):\s*(.*)$/;
 const LIST_ITEM = "- ";
 
-function indentOf(line) {
+export function indentOf(line) {
   return line.length - line.trimStart().length;
 }
 
-function toCodeLines(workflowSource) {
+export function toCodeLines(workflowSource) {
   return workflowSource
     .split(LINE_BREAK)
     .map((line) => line.replace(TRAILING_COMMENT, "").trimEnd())
@@ -38,7 +38,13 @@ function splitStepBlocks(lines) {
   return blocks;
 }
 
-function readStepFields(blockLines) {
+/**
+ * Groups lines by the keys at the first line's indentation; each key maps to
+ * its inline value followed by its trimmed continuation lines.
+ * @param {string[]} blockLines Comment-free lines of one mapping.
+ * @returns {Map<string, string[]>}
+ */
+export function readKeyedFields(blockLines) {
   const keyIndent = indentOf(blockLines[0]);
   const fields = new Map();
   let currentKey = null;
@@ -55,6 +61,22 @@ function readStepFields(blockLines) {
   return fields;
 }
 
+/**
+ * Reads `key: value` continuation lines of a nested mapping such as `with:`.
+ * @param {string[] | undefined} values A field from {@link readKeyedFields}.
+ * @returns {Map<string, string>}
+ */
+export function readNestedMapping(values) {
+  const mapping = new Map();
+  for (const line of values?.slice(1) ?? []) {
+    const match = KEY_LINE.exec(line);
+    if (match) {
+      mapping.set(match[1], match[2]);
+    }
+  }
+  return mapping;
+}
+
 function toStep(fields) {
   const [head = "", ...body] = fields.get("run") ?? [];
   const commands = BLOCK_SCALAR.test(head) ? body : [head];
@@ -62,6 +84,8 @@ function toStep(fields) {
     commands: commands.filter((command) => command.length > 0),
     condition: fields.get("if")?.[0],
     continueOnError: fields.get("continue-on-error")?.[0],
+    settings: readNestedMapping(fields.get("with")),
+    uses: fields.get("uses")?.[0],
   };
 }
 
@@ -69,12 +93,14 @@ function toStep(fields) {
  * Reads the first job's steps from workflow YAML text without a YAML
  * dependency. Supports `- name:` and `- run:` step openings, trailing
  * comments and `run: |` block scalars, which is what release.yml uses.
+ * Pass one job's text (see `readWorkflowJobs`) to read that job's steps.
  * @param {string} workflowSource Raw workflow text.
- * @returns {{commands: string[], condition?: string, continueOnError?: string}[]}
+ * @returns {{commands: string[], condition?: string, continueOnError?: string,
+ *   settings: Map<string, string>, uses?: string}[]}
  */
 export function readWorkflowSteps(workflowSource) {
   return splitStepBlocks(toCodeLines(workflowSource))
-    .map(readStepFields)
+    .map(readKeyedFields)
     .map(toStep);
 }
 
