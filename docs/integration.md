@@ -481,8 +481,12 @@ fails. Recovered errors arrive as nonfatal `error` events with
 `sdkFatal: true`. The recovery reloads the media element, which pauses it;
 media that was playing resumes once hls.js has reattached it, unless a pause,
 play or load happened meanwhile. A blocked resume reports `playblocked`.
+A decode failure the media element reports itself (`MEDIA_ERR_DECODE`, which
+hls.js does not report) takes the same steps while hls.js is attached and
+arrives as a nonfatal `error` with the element's `code: 3`.
 Network errors are not retried this way. A custom runtime can offer the same
-resume through the session's `onMediaRecovery()`.
+resume through the session's `onMediaRecovery()`, and the element's decode
+recovery through its controller's `recoverMediaError()`.
 
 For direct adapter use, subscribe, mount the target, then load the source and
 await commands. Unsubscribe and unmount when the owner disposes the adapter.

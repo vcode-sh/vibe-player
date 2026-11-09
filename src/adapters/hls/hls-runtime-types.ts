@@ -62,6 +62,12 @@ export interface ManagedHlsController {
    * it every seek the adapter did not make counts as a media seek.
    */
   isInternalSeek?(time: number): boolean;
+  /**
+   * Starts the engine's media recovery for a decode failure the media
+   * element reported itself. Returns false when recovery is exhausted and
+   * the failure is terminal. Optional: without it that failure is terminal.
+   */
+  recoverMediaError?(): boolean;
   setQualityLevel(levelIndex: number): void;
 }
 

@@ -80,6 +80,12 @@ expired signed URL. It checks that a file whose every `<source>` fails
 reports one `source` error and settles its pending `play()`, that a pause the
 media makes during a pending `play()` is not an error, and that an expired
 signed URL is renewed once and plays.
+The HLS recovery page (Chromium) plays managed hls.js media whose fifth
+segment has scrambled H.264 slice data but intact MPEG-TS/PES headers, so it
+appends and then fails in the decoder (`MEDIA_ERR_DECODE` on the element,
+which hls.js does not report). A local route serves it once or every time. A
+one-time fault is recovered and playback continues past it with no host
+error; a persistent one fails with a `decode` error after two recoveries.
 The selector tests own exact-duration frame selection. Browser keyboard checks
 use Home and ArrowRight: during acceptance, Linux WebKit intermittently reported
 zero after an exact-end seek, even after initially reporting the requested end.

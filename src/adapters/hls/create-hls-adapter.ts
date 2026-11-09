@@ -24,7 +24,6 @@ import { clearElement } from "../shared/clear-element";
 import {
   getHlsVideoCapabilities,
   getHlsVideoSnapshot,
-  isNativeHlsVideo,
   readNativeHlsLive,
 } from "./hls-adapter-dom";
 import { loadCurrentHlsAdapterSource } from "./hls-adapter-load-session";
@@ -32,6 +31,7 @@ import { createHlsAdapterQualityState } from "./hls-adapter-quality-state";
 import { HlsAdapterSeekMarks } from "./hls-adapter-seek-marks";
 import { createHlsAdapterSessionState } from "./hls-adapter-session-state";
 import { createHlsAdapterRuntime } from "./hls-managed-runtime";
+import { HlsMediaDecodeRecovery } from "./hls-media-decode-recovery";
 import type { ManagedHlsLevel } from "./hls-quality";
 import { captureHlsRecoveryPlayback } from "./hls-recovery-playback";
 import type {
@@ -62,6 +62,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   private managedHlsController: ManagedHlsController | null = null;
   private readonly quality = createHlsAdapterQualityState();
   private readonly seekMarks = new HlsAdapterSeekMarks();
+  private readonly decodeRecovery = new HlsMediaDecodeRecovery();
   private video: HTMLVideoElement | null = null;
   private ownsVideo = true;
   constructor(runtime: HlsAdapterRuntime) {
@@ -122,7 +123,8 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
       onMediaRecovery: () =>
         captureHlsRecoveryPlayback(
           this.commandInput,
-          () => this.session.failed
+          () => this.session.failed,
+          this.decodeRecovery.playingAtRecovery
         ),
       runtime: this.runtime,
       setLive: (isLive) => this.session.setLive(isLive),
@@ -239,10 +241,15 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
         if (nativeLive !== null) {
           this.session.setNativeLive(nativeLive);
         }
+        this.decodeRecovery.observe(video, event);
         this.emit(
           event,
           event === "error"
-            ? { ...payload, nativeHls: isNativeHlsVideo(video) }
+            ? this.decodeRecovery.errorPayload(
+                video,
+                payload,
+                this.managedHlsController
+              )
             : (this.seekMarks.payload(
                 event,
                 video.currentTime,

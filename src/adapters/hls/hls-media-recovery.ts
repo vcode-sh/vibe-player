@@ -40,9 +40,14 @@ export class ManagedHlsMediaRecovery {
 
   /** Returns whether this error is being recovered rather than reported fatal. */
   recover(data: ErrorData): boolean {
-    if (!isRecoverableMediaError(data)) {
-      return false;
-    }
+    return isRecoverableMediaError(data) && this.attempt();
+  }
+
+  /**
+   * Takes the next step of the ladder for a media failure; returns false
+   * when the failure is terminal.
+   */
+  attempt(): boolean {
     const now = Date.now();
     const last = this.attempts.at(-1) ?? Number.NEGATIVE_INFINITY;
     const step = now - last <= escalationWindowMs ? this.escalation + 1 : 1;

@@ -97,7 +97,8 @@
   so signed artwork renews with it.
 - A custom HLS runtime can call the session's optional `onMediaRecovery()`
   before it resets the media and run the returned function after reattaching,
-  so playing media resumes.
+  so playing media resumes. Its controller can implement
+  `recoverMediaError()` so the element's own decode failures are recovered too.
 
 ### Fixed
 
@@ -155,6 +156,9 @@
   and a third one, or a fifth recovery within a minute, fails. Playing media
   resumes after the recovery (or reports `playblocked`); recovered errors are
   reported as nonfatal with `sdkFatal: true`.
+- A decode failure the browser reports only on the video element during
+  hls.js playback (such as a segment Chromium cannot decode) now goes through
+  the same recovery instead of failing playback at once.
 
 ## [0.7.1] - 2026-11-09
 

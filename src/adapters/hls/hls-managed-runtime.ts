@@ -66,6 +66,7 @@ async function attachManagedHls(
       hls.destroy();
     },
     isInternalSeek: (time) => !destroyed && internalSeeks.matches(time),
+    recoverMediaError: () => !destroyed && binding.recovery.attempt(),
     setQualityLevel: (levelIndex) => {
       hls.nextLevel = levelIndex;
       syncManagedHlsLevels(binding, levelIndex);

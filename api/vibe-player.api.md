@@ -463,6 +463,7 @@ type HlsModuleLoader = () => Promise<{
 interface ManagedHlsController {
   destroy(): void;
   isInternalSeek?(time: number): boolean;
+  recoverMediaError?(): boolean;
   setQualityLevel(levelIndex: number): void;
 }
 
