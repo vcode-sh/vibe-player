@@ -10,6 +10,9 @@
 - Output: readable, unminified ESM with stable chunk names
   (`dist/chunks/[name].js`), readable type declarations and minified
   stylesheets; no sourcemaps. `src/styles` stays the readable CSS source.
+  `bun run package:readable` fails on minified JS, a missing or duplicated
+  `"use client"` directive, or a chunk not named after a source module or
+  code-splitting group.
 - Versioning: hand-written `CHANGELOG.md` and a manual `package.json` bump
 - Publishing: public npm package with Trusted Publishing/provenance
 - Guard: `bun run package:release-state`
@@ -27,10 +30,10 @@ should use the npm package or a real workspace boundary.
 
 ## Semver policy
 
-While the package is `0.x`, a minor bump (`0.x.0`) carries breaking API
-changes, including widening a union in an exported type and adding a required
-member to an exported interface or options object. Fixes and compatible
-additions are patches (`0.x.y`). Every breaking change gets a CHANGELOG bullet
+While the package is `0.x`, breaking API changes are minor bumps (`0.x.0`),
+including widening a union in an exported type and adding a required member to
+an exported interface or options object. New features are minor bumps too;
+fixes are patches (`0.x.y`). Every breaking change gets a CHANGELOG bullet
 with a one-line migration hint.
 
 ## API report
@@ -59,21 +62,36 @@ Playwright version), builds and runs `bun run test:browser`, uploading
 `test-results/` as `browser-acceptance-results` on failure. Only pull request
 runs cancel superseded runs.
 
-Release runs only through `workflow_dispatch` on `main`, in this order:
+Release runs only through `workflow_dispatch` on `main` (timeout 40 minutes:
+`bun run ci` 20, browser engines 5, browser lane 5, Node 22 check 5, setup,
+checks and publish 5). Its `release` job has `contents: read` and
+`id-token: write`, and checks out with `persist-credentials: false`:
 1. Extract the `## [<version>] - <date>` section of `CHANGELOG.md` as release
-   notes (`scripts/write-release-notes.mjs`); fail when it is missing or empty.
-2. Fail when tag `v<version>` already exists on `origin`.
-3. `bun run ci`, then `bun run test:browser` on Chromium and WebKit (uploading
+   notes (`scripts/write-release-notes.mjs`) and keep it as an artifact; fail
+   when it is missing or empty.
+2. Fail when `vibe-player@<version>` is already on npm
+   (`scripts/assert-unpublished-version.mjs`; a registry error also fails),
+   because `changeset publish` would skip it and exit 0.
+3. Fail when tag `v<version>` already exists on `origin` (the repository must
+   be public; a failed query also fails).
+4. `bun run ci`, then `bun run test:browser` on Chromium and WebKit (uploading
    `test-results/` on failure or cancellation), then the exact Node 22.0.0 /
    React 19.2.7 consumer check.
-4. `bun run release:publish --no-git-tag` publishes the committed version.
-5. Push an annotated `v<version>` tag on the released commit and run
-   `gh release create` with the notes file (`contents: write`).
+5. `bun run release:publish --no-git-tag` publishes the committed version.
 
-The release-state guard fails if the browser gate leaves the span between
-`bun run ci` and publishing, if the notes or tag checks move after publishing,
-if tagging or the GitHub release move before it, or if any of these steps gets
-an `if:` condition or `continue-on-error`; see
+The `tag` job (`needs: release`, the only job with `contents: write`, no
+dependency code) checks out the released commit, pushes an annotated
+`v<version>` tag and runs `gh release create` with the notes file.
+
+If publishing succeeded but the `tag` job failed, open that workflow run and
+use **Re-run failed jobs**. Do not dispatch Release again: the version is
+already on npm, so a new run stops at step 2.
+
+The release-state guard enforces these permissions and the checkout setting,
+keeps steps 1-3 before `bun run ci`, keeps the browser gate between
+`bun run ci` and publishing, keeps tagging in a separate `tag` job that needs
+the release job and pushes only `refs/tags/`, and rejects an `if:` condition,
+`continue-on-error` or a swallowed tag-check failure on these steps; see
 [the timing rationale](../research/playwright-release-gate.md).
 `release:publish` calls `changeset publish`, so keep `.changeset/config.json`
 (public access, no commits); no changeset files or version PRs are used.
