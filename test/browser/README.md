@@ -34,6 +34,16 @@ This selects a real engine backend; it does not emulate Safari or patch media
 support detection. Unsupported presentation APIs require their controls to be
 absent and receive an explicit test annotation.
 
+A separate WebKit case removes the element Fullscreen API before the page
+loads, which is the gap iPhone Safari has, and checks that the package
+fullscreen control uses the real engine's video-only `webkitEnterFullscreen`,
+follows its exit from outside the package and leaves through the package
+control. Linux WebKit reports that state through `fullscreenchange` on the
+video; iPhone Safari's `webkitbeginfullscreen`/`webkitendfullscreen`, its
+read-only volume and Safari's infinite duration for live HLS are covered by
+unit tests only. Linux WebKit's native HLS backend reports a finite duration
+for a live playlist, so it cannot prove live detection either.
+
 The lane checks native modal focus containment/restoration, nested popover
 Escape handling, cleanup on close/provider replacement, HLS quality changes,
 captions and package fullscreen controls. Geometry and pointer reachability run

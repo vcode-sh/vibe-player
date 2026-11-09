@@ -105,6 +105,21 @@ describe("native HLS live detection", () => {
     expect(player.controller.getState().snapshot.duration).toBe(24);
   });
 
+  it("returns to on demand when an ended live stream reports a finite duration", async () => {
+    const player = await loadNativeHls({ duration: Number.POSITIVE_INFINITY });
+    controllers.add(player.controller);
+    Object.defineProperty(player.video, "duration", {
+      configurable: true,
+      value: 300,
+    });
+    player.video.dispatchEvent(new Event("durationchange"));
+
+    expect(player.controller.getState().capabilities).toMatchObject({
+      canSeek: true,
+      isLive: false,
+    });
+  });
+
   it("does not call media live before its metadata arrives", async () => {
     const player = await loadNativeHls({ duration: Number.NaN });
     controllers.add(player.controller);

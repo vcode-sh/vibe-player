@@ -137,6 +137,17 @@
 - A detached player whose host leaves the page now waits in a hidden parking
   element with its media alive and moves to the next host, and playback an
   engine paused during a move without `moveBefore` resumes.
+- Full screen works on iPhone: where the player itself cannot go fullscreen,
+  the video's own fullscreen is used, and fullscreen entered from the native
+  controls now shows in `isFullscreen`.
+- Where the browser does not let pages change the volume (iPhone),
+  `supportsVolumeControl` is `false`, so the controls show just the mute
+  button instead of a slider that does nothing.
+- Native HLS (Safari) now recognizes live streams without `live: true`: no
+  seeking, skip buttons, duration or resume saves for them.
+- hls.js media errors are recovered before playback fails: a fatal media
+  error is retried, a second one shortly after also swaps the audio codec,
+  and only a third fails. The recovered errors are reported as nonfatal.
 
 ## [0.7.1] - 2026-11-09
 

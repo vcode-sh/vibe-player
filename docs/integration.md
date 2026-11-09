@@ -471,6 +471,14 @@ use small forward/back buffers, reuse a recent bandwidth estimate for five
 minutes and start conservatively for data saver. Host `hlsConfig` can override
 those defaults.
 
+Native HLS treats an infinite media duration, or an unknown one with a seekable
+window, as live even without `live: true`; a later finite duration returns it
+to on-demand. Managed HLS takes live from the playlist. A fatal hls.js media
+error first calls `recoverMediaError()`; a second one within three seconds
+calls `swapAudioCodec()` and `recoverMediaError()`; a third is terminal.
+Recovered errors arrive as nonfatal `error` events with `sdkFatal: true`.
+Network errors are not retried this way.
+
 For direct adapter use, subscribe, mount the target, then load the source and
 await commands. Unsubscribe and unmount when the owner disposes the adapter.
 Repeating a mount on the same target is idempotent. Unmount releases

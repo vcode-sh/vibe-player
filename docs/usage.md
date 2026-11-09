@@ -1037,6 +1037,11 @@ Changing only that container preserves the current source. Built-in assemblies
 use the stage root. `snapshot.isFullscreen` and `snapshot.isPictureInPicture`
 reflect browser presentation; matching controller enter/exit methods support
 custom toggles. Custom adapters can add these optional fields and methods.
+Where the container cannot go fullscreen but the video can (iPhone Safari),
+the file and HLS adapters use the video's own fullscreen, with the system's
+controls instead of your chrome; it is available once metadata has loaded.
+Read-only volume (also iPhone) reports `supportsVolumeControl: false`, so
+custom controls should offer mute only.
 
 `snapshot.playbackRates` supplies provider-supported rate choices when present.
 Pass it as the second argument to `getNextVibePlayerPlaybackRate`; omitted choices
