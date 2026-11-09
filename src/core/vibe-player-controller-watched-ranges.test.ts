@@ -1,34 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { VibePlayerController } from "./vibe-player-controller";
-import { fileSource, TestAdapter } from "./vibe-player-controller-test-helpers";
-import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
-
-async function createWatchedPlayer() {
-  const adapter = new TestAdapter();
-  const reports: VibePlayerWatchedRangesReport[] = [];
-  const controller = new VibePlayerController({
-    adapterFactory: () => adapter,
-    onWatchedRanges: (report) => {
-      reports.push(report);
-    },
-  });
-  await controller.load(fileSource);
-  /** Plays like a browser: a timeupdate every 250 ms of wall-clock time. */
-  const play = (from: number, to: number) => {
-    adapter.emit("playing", {
-      currentTime: from,
-      paused: false,
-      readyState: "playing",
-    });
-    for (let time = from + 0.25; time <= to + 1e-9; time += 0.25) {
-      vi.advanceTimersByTime(250);
-      adapter.emit("timeupdate", { currentTime: time });
-    }
-  };
-  const pause = () =>
-    adapter.emit("pause", { paused: true, readyState: "ready" });
-  return { adapter, controller, pause, play, reports };
-}
+import { createWatchedPlayer } from "./vibe-player-watched-test-helpers";
 
 describe("VibePlayerController watched ranges", () => {
   beforeEach(() => {
@@ -119,6 +90,46 @@ describe("VibePlayerController watched ranges", () => {
     await controller.teardown();
     expect(reports).toEqual([]);
   });
+
+  it("keeps counting after a seek that finishes while a pause is pending", async () => {
+    const { adapter, controller, pause, play, reports } =
+      await createWatchedPlayer();
+    adapter.pauseLeavesSnapshotStale = true;
+    play(0, 2);
+    adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
+    // The provider finishes the seek before it acknowledges the pause.
+    await controller.pause();
+    adapter.emit("seeked", { currentTime: 30, readyState: "playing" });
+    pause();
+    await controller.play();
+    play(30, 40);
+    pause();
+    expect(reports.map(({ ranges, reason }) => ({ ranges, reason }))).toEqual([
+      { ranges: [{ end: 2, start: 0 }], reason: "flush" },
+      { ranges: [{ end: 40, start: 30 }], reason: "pause" },
+    ]);
+  });
+
+  it.each(["pause", "ended", "retry"] as const)(
+    "a seek the provider never finishes stops blocking watched time after %s",
+    async (finish) => {
+      const { adapter, controller, pause, play, reports } =
+        await createWatchedPlayer();
+      play(0, 2);
+      adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
+      if (finish === "retry") {
+        await controller.retry();
+      } else {
+        adapter.emit(finish, {
+          paused: true,
+          readyState: finish === "ended" ? "ended" : "ready",
+        });
+      }
+      play(40, 42);
+      pause();
+      expect(reports.at(-1)?.ranges).toEqual([{ end: 42, start: 40 }]);
+    }
+  );
 
   it("bounds a batch by flushing early at 64 separate ranges", async () => {
     const { controller, play, reports } = await createWatchedPlayer();

@@ -13,6 +13,20 @@
   capability fields, which only the YouTube adapter used. Controls always draw
   over the media. If a custom adapter set them, simply drop them.
 
+### Added
+
+- `controller.on(type, listener)` listens to one event type, or every event
+  with `"*"`, from the stream `onEvent` receives. Listeners are fully typed
+  (`VibePlayerEventOfType`) and `on()` returns an unsubscribe function.
+
+### Fixed
+
+- Watched time is no longer lost after a seek that overlaps a pause, or a seek
+  the provider never finishes. Watched ranges follow the provider's own events;
+  a direct `controller.unmount()` now reports `close`, as documented.
+- State subscribers and event listeners never miss an update: when one of them
+  changes the player, every listener still receives every state, in order.
+
 ## [0.7.1] - 2026-11-09
 
 ### Fixed

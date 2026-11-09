@@ -224,10 +224,13 @@ Watched ranges are opt-in through `onWatchedRanges`: merged media ranges that
 played since the last report, delivered on pause, end, close, page hide, at 64
 ranges, at native seek boundaries, or on `controller.flushWatchedRanges()`.
 Native `seeking` and `seeked` events keep seek jumps out of watched time and
-separate replayed ranges. The host owns transport,
-identity, sampling and aggregation (for example into the normalized values that
-`VibePlayerHeatmap` draws on hover and scrub). Callback failures report as nonfatal
-`integrationerror` events with `operation: "watched-ranges"`.
+separate replayed ranges. Watched time follows the provider's own events, so a
+seek that finishes during a pending pause still ends, and a seek the provider
+never finishes ends at the next pause, end, error or reload. The host owns
+transport, identity, sampling and aggregation (for example into the normalized
+values that `VibePlayerHeatmap` draws on hover and scrub). Callback failures
+report as nonfatal `integrationerror` events with
+`operation: "watched-ranges"`.
 
 Offscreen and hidden-tab release never stops a player that is in
 Picture-in-Picture; the policy applies again after the window closes.
@@ -247,21 +250,27 @@ state, avoiding a reporting feedback loop. Hosts choose where to report errors.
 Rejected control commands include their name in `details.command`. Failures in
 auxiliary actions such as fullscreen or PiP preserve ongoing playback. Browser
 policy blocking `play()` uses the `playbackBlocked` notice instead of `onError`.
-Resume-store, analytics and controller-subscriber failures report as nonfatal
-`integrationerror` events with `error.details.operation`; they cannot block media cleanup
-or remaining state listeners. Rejected asynchronous observer/write callbacks
-are contained too. Failure of `onError` itself is contained without recursively
-reporting another error. A failed resume read skips restoration; a provider's
-failed position-restore command still reports in the `load` phase. The
-`state.error` is reserved for terminal playback failures. Integration diagnostics
-are emitted as `onEvent` events with `type: "integrationerror"`; healthy playback
-does not enter the error state.
+Resume-store, analytics, controller-subscriber and `controller.on()` listener
+failures report as nonfatal `integrationerror` events with
+`error.details.operation`; they cannot block media cleanup or remaining
+listeners. Every state subscriber and event listener receives every update in
+order: a change made while listeners run waits until all of them received the
+current one. Listeners that keep changing the player during notification are
+cut off after a bounded number of updates and reported once. Rejected
+asynchronous observer/write callbacks are contained too. Failure of `onError`
+itself is contained without recursively reporting another error. A failed
+resume read skips restoration; a provider's failed position-restore command
+still reports in the `load` phase. The `state.error` is reserved for terminal
+playback failures. Integration diagnostics are emitted as `onEvent` events with
+`type: "integrationerror"`; healthy playback does not enter the error state.
 
 The package normalizes seek requests to the adapter's duration and `canSeek`
 capability before dispatch. Resume and seek analytics use that accepted target;
 provider getters can lag immediately after an asynchronous seek. Pending pause
 intent suppresses stale active events until a provider pause acknowledgment;
-a later provider-initiated play can then update normalized state.
+a later provider-initiated play can then update normalized state. That intent
+shapes `state.lastEvent`; `onEvent`, `controller.on()` and watched ranges see
+provider events as reported.
 
 For custom/headless surfaces, use `useVibePlayer`. It owns mounting, source
 loading, autoplay, closing, and cleanup. See the complete example in

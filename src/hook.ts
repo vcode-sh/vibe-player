@@ -16,6 +16,8 @@ export {
   type VibePlayerControllerState,
   type VibePlayerError,
   type VibePlayerEvent,
+  type VibePlayerEventOfType,
+  type VibePlayerEventType,
   type VibePlayerHlsManifestSource,
   type VibePlayerHlsSource,
   type VibePlayerHlsUrlSource,

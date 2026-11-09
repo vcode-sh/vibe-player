@@ -842,6 +842,25 @@ renews then plays, and `seek()` is an alias for `seekTo()`. `subscribe()` and
 `getState()` work outside React. Close/unmount a player as well as stopping it
 when a host session ends; the package does not own application authorization.
 
+`controller.on(type, listener)` listens to the same event stream as `onEvent`,
+narrowed and typed to one event type, or every event with `"*"`. It returns an
+unsubscribe function. Events and `subscribe()` states arrive in order and none
+are skipped, even when a listener changes the player meanwhile; a throwing
+listener becomes a nonfatal `integrationerror`. `state.lastEvent` names only
+the latest event, so use `on()` or `onEvent` when every event matters.
+
+```ts
+import type { VibePlayerController } from "vibe-player";
+
+declare const controller: VibePlayerController;
+
+const stopListening = controller.on("seeked", (event) => {
+  console.info(event.source.id, event.snapshot.currentTime);
+});
+// Later, when the owner unmounts:
+stopListening();
+```
+
 For fullscreen that includes custom chrome, pass its container element as
 `presentationTarget` to `useVibePlayer`; it defaults to the media mount.
 Changing only that container preserves the current source. Built-in assemblies

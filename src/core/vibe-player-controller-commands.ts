@@ -15,6 +15,8 @@ export interface HandleVibePlayerControllerPlayInput {
 }
 
 export interface HandleVibePlayerControllerPauseInput {
+  /** Receives the adapter's own snapshot once it acknowledged the pause. */
+  acknowledge: (snapshot: VibePlayerSnapshot) => void;
   adapter: VibePlayerAdapter | null;
   updateState: (next: Partial<VibePlayerControllerState>) => void;
 }
@@ -48,6 +50,7 @@ export async function handleVibePlayerControllerPlay({
 }
 
 export async function handleVibePlayerControllerPause({
+  acknowledge,
   adapter,
   updateState,
 }: HandleVibePlayerControllerPauseInput): Promise<void> {
@@ -55,9 +58,11 @@ export async function handleVibePlayerControllerPause({
     return;
   }
   await adapter.pause();
+  const snapshot = adapter.getSnapshot();
+  acknowledge(snapshot);
   updateState({
     lastEvent: "pause",
-    snapshot: createPauseIntentSnapshot(adapter.getSnapshot()),
+    snapshot: createPauseIntentSnapshot(snapshot),
   });
 }
 

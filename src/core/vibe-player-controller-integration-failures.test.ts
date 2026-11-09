@@ -130,7 +130,7 @@ describe("controller host integration isolation", () => {
     await controller.teardown();
   });
 
-  it("does not deliver old provider state after a subscriber starts playback", async () => {
+  it("delivers old provider state before, never after, playback a subscriber starts", async () => {
     const adapter = new TestAdapter();
     const controller = new VibePlayerController({
       adapterFactory: () => adapter,
@@ -152,16 +152,27 @@ describe("controller host integration isolation", () => {
     });
     await play;
 
-    expect(observer).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({
+    expect(
+      observer.mock.calls.map(([{ lastEvent, snapshot }]) => ({
+        currentTime: snapshot.currentTime,
+        lastEvent,
+        paused: snapshot.paused,
+        readyState: snapshot.readyState,
+      }))
+    ).toEqual([
+      {
+        currentTime: 10,
+        lastEvent: "timeupdate",
+        paused: true,
+        readyState: "ready",
+      },
+      {
+        currentTime: 10,
         lastEvent: "play",
-        snapshot: expect.objectContaining({
-          currentTime: 10,
-          paused: false,
-          readyState: "buffering",
-        }),
-      })
-    );
+        paused: false,
+        readyState: "buffering",
+      },
+    ]);
     expect(controller.getState().snapshot.paused).toBe(false);
     await controller.teardown();
   });

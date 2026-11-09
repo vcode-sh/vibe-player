@@ -1,6 +1,7 @@
 import type { VibePlayerError } from "./vibe-player-controller-types";
 import type {
   VibePlayerAdapterEvent,
+  VibePlayerEventName,
   VibePlayerSnapshot,
 } from "./vibe-player-runtime-types";
 import type { VibePlayerSource } from "./vibe-player-source-types";
@@ -43,3 +44,18 @@ export type VibePlayerEvent =
   | VibePlayerIntegrationEvent
   | VibePlayerCommandErrorEvent
   | VibePlayerStopEvent;
+
+/** Every `type` the controller event stream can carry. */
+export type VibePlayerEventType = VibePlayerEvent["type"];
+
+/**
+ * The event `controller.on(type, listener)` delivers: a playback event
+ * narrowed to that `type`, the matching controller event, or every event
+ * for `"*"`.
+ */
+export type VibePlayerEventOfType<K extends VibePlayerEventType | "*"> =
+  K extends "*"
+    ? VibePlayerEvent
+    : K extends VibePlayerEventName
+      ? VibePlayerPlaybackEvent & { type: K }
+      : Extract<VibePlayerEvent, { type: K }>;

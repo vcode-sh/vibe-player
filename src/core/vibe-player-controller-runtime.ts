@@ -3,6 +3,11 @@ import { loadVibePlayerControllerSource } from "./vibe-player-controller-load";
 import { handleVibePlayerLoadError } from "./vibe-player-controller-load-error";
 import { mountVibePlayerControllerAdapter } from "./vibe-player-controller-mount";
 import type { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
+import {
+  getVibePlayerReleaseReason,
+  type VibePlayerRawFeed,
+  type VibePlayerRawReleaseReason,
+} from "./vibe-player-raw-feed";
 import { createIdleSnapshot } from "./vibe-player-time";
 import type {
   VibePlayerAdapter,
@@ -16,6 +21,7 @@ interface ControllerRuntimeOptions {
   applyPreferences(): Promise<void>;
   clearIntent(): void;
   event(event: VibePlayerAdapterEvent): void;
+  feed: VibePlayerRawFeed;
   isPlayRequested(): boolean;
   observers: VibePlayerControllerObservers;
   options: VibePlayerControllerOptions;
@@ -76,7 +82,7 @@ export class VibePlayerControllerRuntime {
     const { operationGeneration } = this;
     this.target = null;
     this.presentationTarget = null;
-    await this.teardownAdapter();
+    await this.teardownAdapter("close");
     if (this.isCurrentOperation(operationGeneration) && this.target === null) {
       this.observers.updateState({
         capabilities: null,
@@ -95,7 +101,7 @@ export class VibePlayerControllerRuntime {
     this.hooks.clearIntent();
     const { operationGeneration } = this;
     this.analyticsSession.close(this.observers.state);
-    await this.teardownAdapter();
+    await this.teardownAdapter("close");
     if (this.isCurrentOperation(operationGeneration)) {
       this.analyticsSession.clear();
       this.observers.reset(this.observers.state.isMounted);
@@ -107,7 +113,7 @@ export class VibePlayerControllerRuntime {
     this.hooks.clearIntent();
     const { operationGeneration } = this;
     this.analyticsSession.close(this.observers.state);
-    await this.teardownAdapter();
+    await this.teardownAdapter("close");
     if (this.isCurrentOperation(operationGeneration)) {
       this.analyticsSession.clear();
       this.target = null;
@@ -120,6 +126,10 @@ export class VibePlayerControllerRuntime {
     this.operationGeneration += 1;
     this.hooks.clearIntent();
     const { operationGeneration } = this;
+    const reason = getVibePlayerReleaseReason(
+      this.observers.state.currentSource,
+      source
+    );
     await loadVibePlayerControllerSource({
       adapterFactory: this.adapterFactory,
       analyticsSession: this.analyticsSession,
@@ -140,7 +150,7 @@ export class VibePlayerControllerRuntime {
       source,
       syncFromAdapter: () => this.syncFromAdapter(),
       target: this.target,
-      teardownAdapter: () => this.teardownAdapter(),
+      teardownAdapter: () => this.teardownAdapter(reason),
       updateState: (next) => this.updateState(next),
     });
     if (this.isCurrentOperation(operationGeneration)) {
@@ -153,7 +163,9 @@ export class VibePlayerControllerRuntime {
     this.hooks.clearIntent();
     const { operationGeneration } = this;
     this.analyticsSession.close(this.observers.state);
-    await this.teardownAdapter();
+    await this.teardownAdapter(
+      getVibePlayerReleaseReason(this.observers.state.currentSource, source)
+    );
     if (!this.isCurrentOperation(operationGeneration)) {
       return;
     }
@@ -177,7 +189,7 @@ export class VibePlayerControllerRuntime {
     this.hooks.clearIntent();
     const { operationGeneration } = this;
     const { snapshot, currentSource } = this.observers.state;
-    await this.teardownAdapter();
+    await this.teardownAdapter(loading ? "reload" : "stop");
     if (!this.isCurrentOperation(operationGeneration)) {
       return;
     }
@@ -236,11 +248,14 @@ export class VibePlayerControllerRuntime {
     }
     return this.observers.updateState(next, isCurrent);
   }
-  private async teardownAdapter(): Promise<void> {
+  private async teardownAdapter(
+    reason: VibePlayerRawReleaseReason
+  ): Promise<void> {
     this.adapterUnsubscribe?.();
     this.adapterUnsubscribe = null;
     const { adapter } = this;
     this.adapter = null;
+    this.hooks.feed.release(reason);
     await adapter?.unmount();
   }
   isCurrentOperation(generation: number): boolean {

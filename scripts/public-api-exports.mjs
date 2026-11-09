@@ -60,6 +60,8 @@ export const publicApiExports = [
   "VibePlayerError",
   "VibePlayerEvent",
   "VibePlayerEventName",
+  "VibePlayerEventOfType",
+  "VibePlayerEventType",
   "VibePlayerFileSource",
   "VibePlayerGestures",
   "VibePlayerHeadless",

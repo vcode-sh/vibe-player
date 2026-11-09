@@ -16,6 +16,8 @@ import type {
 } from "./vibe-player-types";
 
 interface ControllerActionsHost {
+  /** A current pause the adapter acknowledged, with its own snapshot. */
+  acknowledgePause(snapshot: VibePlayerSnapshot): void;
   adapter(): VibePlayerAdapter | null;
   emitAnalytics(event: VibePlayerAnalyticsEvent): void;
   emitEvent(event: VibePlayerEvent): void;
@@ -101,13 +103,20 @@ export class VibePlayerControllerActions {
       });
     }
     this.pauseIntent.begin(command, adapter);
-    const execute =
-      command === "play"
-        ? handleVibePlayerControllerPlay
-        : handleVibePlayerControllerPause;
     return this.run(
       command,
-      (updateState) => execute({ adapter, updateState }),
+      (updateState, isCurrent) =>
+        command === "play"
+          ? handleVibePlayerControllerPlay({ adapter, updateState })
+          : handleVibePlayerControllerPause({
+              acknowledge: (snapshot) => {
+                if (isCurrent()) {
+                  this.host.acknowledgePause(snapshot);
+                }
+              },
+              adapter,
+              updateState,
+            }),
       this.playbackGeneration
     );
   }
@@ -183,7 +192,8 @@ export class VibePlayerControllerActions {
   private run(
     command: string,
     execute: (
-      update: (next: Partial<VibePlayerControllerState>) => void
+      update: (next: Partial<VibePlayerControllerState>) => void,
+      isCurrent: () => boolean
     ) => Promise<void> | undefined,
     playbackGeneration?: number
   ): Promise<void> {
@@ -205,7 +215,7 @@ export class VibePlayerControllerActions {
       command,
       emitAnalytics: this.host.emitAnalytics,
       emitEvent: this.host.emitEvent,
-      execute: () => execute(updateState),
+      execute: () => execute(updateState, isCurrent),
       getState: this.host.state,
       isCurrent,
       updateState,

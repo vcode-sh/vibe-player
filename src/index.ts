@@ -49,6 +49,8 @@ export {
   type VibePlayerError,
   type VibePlayerEvent,
   type VibePlayerEventName,
+  type VibePlayerEventOfType,
+  type VibePlayerEventType,
   type VibePlayerFileSource,
   type VibePlayerHlsManifestSource,
   type VibePlayerHlsSource,

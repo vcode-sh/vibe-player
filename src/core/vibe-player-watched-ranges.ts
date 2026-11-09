@@ -1,4 +1,12 @@
-import type { VibePlayerControllerState } from "./vibe-player-controller-types";
+import type {
+  VibePlayerRawFeedEntry,
+  VibePlayerRawReleaseReason,
+} from "./vibe-player-raw-feed";
+import type {
+  VibePlayerAdapterEvent,
+  VibePlayerEventName,
+  VibePlayerSnapshot,
+} from "./vibe-player-runtime-types";
 import type { VibePlayerSource } from "./vibe-player-source-types";
 
 /** A span of media time, in seconds, that played continuously. */
@@ -35,6 +43,13 @@ export interface VibePlayerWatchedRangesReport {
 const VIBE_PLAYER_WATCHED_RANGES_LIMIT = 64;
 /** Timer jitter allowed beyond wall-clock progress before a jump is a seek. */
 const jitterSeconds = 1;
+/** A seek the provider abandons without `seeked` must not block counting. */
+const seekEndingEvents: ReadonlySet<VibePlayerEventName> = new Set([
+  "ended",
+  "error",
+  "pause",
+  "seeked",
+]);
 
 interface Sample {
   at: number;
@@ -42,9 +57,10 @@ interface Sample {
 }
 
 /**
- * Turns normalized controller state into watched ranges. Only progress while
- * `readyState` is `playing` counts, and only when media time advanced no
- * faster than the wall clock allows. Seek boundaries keep jumps out of playback.
+ * Turns the controller's raw adapter feed into watched ranges. Only progress
+ * while `readyState` is `playing` counts, and only when media time advanced
+ * no faster than the wall clock allows. Seek boundaries keep jumps out of
+ * playback; a seek ends on `seeked`, `pause`, `ended`, `error` or a release.
  */
 export class VibePlayerWatchedRangesTracker {
   private duration = 0;
@@ -63,41 +79,13 @@ export class VibePlayerWatchedRangesTracker {
     this.now = now;
   }
 
-  update({
-    currentSource,
-    lastEvent,
-    snapshot,
-  }: VibePlayerControllerState): void {
-    if (currentSource?.id !== this.source?.id) {
-      this.flush("close");
-      this.last = null;
-      this.duration = 0;
-    }
-    if (currentSource !== this.source) {
-      this.seeking = false;
-    }
-    this.source = currentSource;
-    if (Number.isFinite(snapshot.duration) && snapshot.duration > 0) {
-      this.duration = snapshot.duration;
-    }
-    if (this.observeSeek(lastEvent)) {
-      return;
-    }
-    if (this.last) {
-      this.advance(snapshot.currentTime, snapshot.playbackRate);
-    }
-    const startsAfterSeek =
-      lastEvent === "seeked" && snapshot.readyState === "buffering";
-    if (
-      !snapshot.paused &&
-      (snapshot.readyState === "playing" || startsAfterSeek)
-    ) {
-      this.last ??= { at: this.now(), time: snapshot.currentTime };
-      return;
-    }
-    this.last = null;
-    if (snapshot.paused) {
-      this.flush(snapshot.readyState === "ended" ? "ended" : "pause");
+  observe(entry: VibePlayerRawFeedEntry): void {
+    if (entry.kind === "release") {
+      this.release(entry.reason);
+    } else if (entry.kind === "command") {
+      this.observePause(entry.source, entry.snapshot);
+    } else {
+      this.observeEvent(entry.source, entry.event);
     }
   }
 
@@ -121,13 +109,75 @@ export class VibePlayerWatchedRangesTracker {
     });
   }
 
-  private observeSeek(
-    lastEvent: VibePlayerControllerState["lastEvent"]
-  ): boolean {
-    if (lastEvent === "seeking") {
+  private observeEvent(
+    source: VibePlayerSource,
+    { snapshot, type }: VibePlayerAdapterEvent
+  ): void {
+    if (source.id !== this.source?.id) {
+      this.release("close");
+    }
+    this.source = source;
+    if (Number.isFinite(snapshot.duration) && snapshot.duration > 0) {
+      this.duration = snapshot.duration;
+    }
+    if (this.observeSeek(type)) {
+      return;
+    }
+    if (this.last) {
+      this.advance(snapshot.currentTime, snapshot.playbackRate);
+    }
+    const startsAfterSeek =
+      type === "seeked" && snapshot.readyState === "buffering";
+    if (
+      !snapshot.paused &&
+      (snapshot.readyState === "playing" || startsAfterSeek)
+    ) {
+      this.last ??= { at: this.now(), time: snapshot.currentTime };
+      return;
+    }
+    this.last = null;
+    if (snapshot.paused) {
+      this.flush(snapshot.readyState === "ended" ? "ended" : "pause");
+    }
+  }
+
+  /**
+   * A viewer pause the adapter acknowledged: count up to where it stopped and
+   * deliver the batch before the command resolves. A provider still playing
+   * ends the range with its own `pause` event instead.
+   */
+  private observePause(
+    source: VibePlayerSource,
+    snapshot: VibePlayerSnapshot
+  ): void {
+    if (source.id !== this.source?.id || !snapshot.paused) {
+      return;
+    }
+    if (this.last) {
+      this.advance(snapshot.currentTime, snapshot.playbackRate);
+    }
+    this.last = null;
+    this.flush("pause");
+  }
+
+  /** The adapter or source went away: no seek or sample survives it. */
+  private release(reason: VibePlayerRawReleaseReason): void {
+    this.last = null;
+    this.seeking = false;
+    if (reason === "stop") {
+      this.flush("pause");
+    } else if (reason === "close") {
+      this.flush("close");
+      this.source = null;
+      this.duration = 0;
+    }
+  }
+
+  private observeSeek(type: VibePlayerEventName): boolean {
+    if (type === "seeking") {
       this.flush("flush");
       this.seeking = true;
-    } else if (lastEvent === "seeked") {
+    } else if (seekEndingEvents.has(type)) {
       this.seeking = false;
     }
     if (this.seeking) {

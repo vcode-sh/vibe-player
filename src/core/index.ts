@@ -11,6 +11,8 @@ export {
 export type {
   VibePlayerCommandErrorEvent,
   VibePlayerEvent,
+  VibePlayerEventOfType,
+  VibePlayerEventType,
   VibePlayerIntegrationEvent,
   VibePlayerPlaybackEvent,
   VibePlayerRenewEvent,

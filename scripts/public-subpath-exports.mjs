@@ -81,6 +81,8 @@ export const publicSubpathExports = {
       "VibePlayerMediaSessionOptions",
       "VibePlayerVisibilityOptions",
       "VibePlayerControllerOptions",
+      "VibePlayerEventOfType",
+      "VibePlayerEventType",
       "VibePlayerSourceMetadata",
       "VibePlayerHlsUrlSource",
       "VibePlayerHlsManifestSource",

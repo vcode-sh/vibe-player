@@ -1,6 +1,15 @@
 import { createInitialControllerState } from "./vibe-player-controller-state";
-import { createVibePlayerError } from "./vibe-player-errors";
-import type { VibePlayerEvent } from "./vibe-player-host-events";
+import { VibePlayerEventListeners } from "./vibe-player-event-listeners";
+import type {
+  VibePlayerEvent,
+  VibePlayerEventOfType,
+  VibePlayerEventType,
+} from "./vibe-player-host-events";
+import {
+  observeHostRejection,
+  VibePlayerIntegrationReporter,
+} from "./vibe-player-integration-reporter";
+import { VibePlayerOrderedDelivery } from "./vibe-player-ordered-delivery";
 import type {
   VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
@@ -14,14 +23,28 @@ import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges
 
 type StateListener = (state: VibePlayerControllerState) => void;
 
+const runawayMessage =
+  "Observers kept changing the player while being notified; the remaining notifications were dropped.";
+
 /** Keeps optional host integrations outside playback and disposal control flow. */
 export class VibePlayerControllerObservers {
   private readonly listeners = new Set<StateListener>();
-  private reporting = false;
-  private session = 0;
+  private readonly eventListeners = new VibePlayerEventListeners();
   private lastProgressAt = Number.NEGATIVE_INFINITY;
   private readonly options: VibePlayerControllerOptions;
   private currentState = createInitialControllerState();
+  private readonly reporter = new VibePlayerIntegrationReporter({
+    emit: (event) => this.emitEvent(event),
+    source: () => this.currentState.currentSource,
+  });
+  private readonly states = new VibePlayerOrderedDelivery(
+    (state: VibePlayerControllerState) => this.deliverState(state),
+    () => this.reporter.report("state-listener", new Error(runawayMessage))
+  );
+  private readonly events = new VibePlayerOrderedDelivery(
+    (event: VibePlayerEvent) => this.deliverEvent(event),
+    () => this.reporter.report("event", new Error(runawayMessage))
+  );
 
   constructor(options: VibePlayerControllerOptions) {
     this.options = options;
@@ -32,12 +55,20 @@ export class VibePlayerControllerObservers {
   }
 
   beginSession(): void {
-    this.session += 1;
+    this.reporter.beginSession();
     this.lastProgressAt = Number.NEGATIVE_INFINITY;
   }
 
+  /** Events published while observers run are queued, never reordered. */
   emitEvent(event: VibePlayerEvent): void {
-    this.run("event", () => this.options.onEvent?.(event));
+    this.events.publish(event);
+  }
+
+  on<K extends VibePlayerEventType | "*">(
+    type: K,
+    listener: (event: VibePlayerEventOfType<K>) => void
+  ): () => void {
+    return this.eventListeners.add(type, listener);
   }
 
   emitAdapterEvent(
@@ -110,31 +141,12 @@ export class VibePlayerControllerObservers {
     return () => this.listeners.delete(listener);
   }
 
+  /**
+   * Every subscriber receives every state in order. A state set while
+   * subscribers run waits until all of them received the current one.
+   */
   notify(state: VibePlayerControllerState): void {
-    const failures: unknown[] = [];
-    const { reporting, session } = this;
-    for (const listener of this.listeners) {
-      if (state !== this.currentState) {
-        break;
-      }
-      try {
-        observeHostRejection(listener(state), (cause) => {
-          if (!reporting) {
-            this.reportFailure(
-              "state-listener",
-              cause,
-              state.currentSource,
-              session
-            );
-          }
-        });
-      } catch (cause) {
-        failures.push(cause);
-      }
-    }
-    for (const cause of failures) {
-      this.reportFailure("state-listener", cause, state.currentSource, session);
-    }
+    this.states.publish(state);
   }
 
   emitError(error: VibePlayerError): void {
@@ -180,63 +192,29 @@ export class VibePlayerControllerObservers {
     fallback?: T,
     source = this.currentState.currentSource
   ): T | undefined {
-    const { reporting, session } = this;
-    try {
-      const result = execute();
-      observeHostRejection(result, (cause) => {
-        if (!reporting) {
-          this.reportFailure(operation, cause, source, session);
-        }
-      });
-      return result;
-    } catch (cause) {
-      this.reportFailure(operation, cause, source, session);
-      return fallback;
-    }
+    return this.reporter.run(operation, execute, fallback, source);
   }
 
-  private reportFailure(
-    operation: string,
-    cause: unknown,
-    source: VibePlayerSource | null,
-    session: number
-  ): void {
-    if (
-      this.reporting ||
-      session !== this.session ||
-      !source ||
-      this.currentState.currentSource !== source
-    ) {
-      return;
-    }
-    this.reporting = true;
-    try {
-      const error = createVibePlayerError({
-        cause,
-        details: { operation },
-        phase: "integration",
-        source,
-      });
-      if (
-        session === this.session &&
-        this.currentState.currentSource === source
-      ) {
-        this.emitEvent({ error, source, type: "integrationerror" });
+  private deliverState(state: VibePlayerControllerState): void {
+    this.reporter.runAll(
+      "state-listener",
+      this.listeners,
+      state,
+      state.currentSource
+    );
+  }
+
+  private deliverEvent(event: VibePlayerEvent): void {
+    const deliver = () => {
+      this.run("event", () => this.options.onEvent?.(event));
+      for (const listener of this.eventListeners.matching(event)) {
+        this.run("event-listener", listener);
       }
-    } finally {
-      this.reporting = false;
+    };
+    if (event.type === "integrationerror") {
+      this.reporter.whileReporting(deliver);
+    } else {
+      deliver();
     }
-  }
-}
-
-function observeHostRejection(
-  result: unknown,
-  onRejected: (cause: unknown) => void
-): void {
-  if (
-    (typeof result === "object" && result !== null) ||
-    typeof result === "function"
-  ) {
-    Promise.resolve(result).catch(onRejected);
   }
 }

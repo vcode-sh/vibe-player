@@ -1,0 +1,92 @@
+import { VibePlayerOrderedDelivery } from "./vibe-player-ordered-delivery";
+import type {
+  VibePlayerAdapterEvent,
+  VibePlayerSnapshot,
+} from "./vibe-player-runtime-types";
+import type { VibePlayerSource } from "./vibe-player-source-types";
+
+/**
+ * Why the controller stopped listening to its adapter: the source closed or
+ * changed, the media unmounted or the controller tore down (`close`);
+ * playback stopped and keeps its source and position (`stop`); or the same
+ * source attaches a fresh adapter, as on renewal or retry (`reload`).
+ */
+export type VibePlayerRawReleaseReason = "close" | "reload" | "stop";
+
+/** One adapter event exactly as the provider reported it. */
+export interface VibePlayerRawEventEntry {
+  /** Never rewritten by pending command intent, unlike `state.lastEvent`. */
+  event: VibePlayerAdapterEvent;
+  kind: "event";
+  /** The source the reporting adapter plays. */
+  source: VibePlayerSource;
+}
+
+/**
+ * The adapter acknowledged a controller command; `snapshot` is the adapter's
+ * own state at that moment, not the controller's intent.
+ */
+export interface VibePlayerRawCommandEntry {
+  command: "pause";
+  kind: "command";
+  snapshot: VibePlayerSnapshot;
+  source: VibePlayerSource;
+}
+
+/** The controller released its adapter; its later events are ignored. */
+export interface VibePlayerRawReleaseEntry {
+  kind: "release";
+  reason: VibePlayerRawReleaseReason;
+}
+
+export type VibePlayerRawFeedEntry =
+  | VibePlayerRawCommandEntry
+  | VibePlayerRawEventEntry
+  | VibePlayerRawReleaseEntry;
+
+type RawFeedConsumer = (entry: VibePlayerRawFeedEntry) => void;
+
+/** Attaching the same source id again is a reload; another id closes it. */
+export function getVibePlayerReleaseReason(
+  current: VibePlayerSource | null,
+  next: VibePlayerSource
+): VibePlayerRawReleaseReason {
+  return current?.id === next.id ? "reload" : "close";
+}
+
+/**
+ * Internal, ordered feed of provider activity for controller-owned trackers.
+ * Consumers see every adapter event of the current adapter, acknowledged
+ * commands and every release, in order, before controller state applies
+ * pending command intent.
+ */
+export class VibePlayerRawFeed {
+  private readonly consumers = new Set<RawFeedConsumer>();
+  private readonly delivery =
+    new VibePlayerOrderedDelivery<VibePlayerRawFeedEntry>((entry) => {
+      for (const consumer of this.consumers) {
+        consumer(entry);
+      }
+    });
+
+  subscribe(consumer: RawFeedConsumer): () => void {
+    this.consumers.add(consumer);
+    return () => this.consumers.delete(consumer);
+  }
+
+  command(
+    command: VibePlayerRawCommandEntry["command"],
+    snapshot: VibePlayerSnapshot,
+    source: VibePlayerSource
+  ): void {
+    this.delivery.publish({ command, kind: "command", snapshot, source });
+  }
+
+  event(event: VibePlayerAdapterEvent, source: VibePlayerSource): void {
+    this.delivery.publish({ event, kind: "event", source });
+  }
+
+  release(reason: VibePlayerRawReleaseReason): void {
+    this.delivery.publish({ kind: "release", reason });
+  }
+}

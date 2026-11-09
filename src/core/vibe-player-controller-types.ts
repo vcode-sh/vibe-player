@@ -56,6 +56,11 @@ export interface VibePlayerControllerState {
   currentSource: VibePlayerSource | null;
   error: VibePlayerError | null;
   isMounted: boolean;
+  /**
+   * The event behind the latest state change, after pending command intent
+   * (a pending pause reports `pause`). Latest event only; use
+   * `controller.on()` or `onEvent` for a lossless stream.
+   */
   lastEvent: VibePlayerEventName | null;
   playbackBlocked: boolean;
   /** An expired or failed media delivery is being renewed and reattached. */
@@ -71,6 +76,7 @@ export interface VibePlayerControllerOptions {
   onAnalyticsEvent?: (event: VibePlayerAnalyticsEvent) => void;
   onEnded?: (state: VibePlayerControllerState) => void;
   onError?: (error: VibePlayerError) => void;
+  /** Every controller event in order; `controller.on()` filters the same stream. */
   onEvent?: (event: VibePlayerEvent) => void;
   onPause?: (state: VibePlayerControllerState) => void;
   onPlay?: (state: VibePlayerControllerState) => void;
