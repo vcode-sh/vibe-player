@@ -20,19 +20,25 @@ export async function createWatchedPlayer(
     },
   });
   await controller.load(fileSource);
-  /** Plays like a browser: a timeupdate every 250 ms of wall-clock time. */
-  const play = (from: number, to: number) => {
-    adapter.emit("playing", {
-      currentTime: from,
-      paused: false,
-      readyState: "playing",
-    });
-    for (let time = from + 0.25; time <= to + 1e-9; time += 0.25) {
-      vi.advanceTimersByTime(250);
-      adapter.emit("timeupdate", { currentTime: time });
-    }
-  };
+  const play = (from: number, to: number) => playTestAdapter(adapter, from, to);
   const pause = () =>
     adapter.emit("pause", { paused: true, readyState: "ready" });
   return { adapter, controller, pause, play, reports };
+}
+
+/** Plays like a browser: a timeupdate every 250 ms of fake wall-clock time. */
+export function playTestAdapter(
+  adapter: TestAdapter,
+  from: number,
+  to: number
+): void {
+  adapter.emit("playing", {
+    currentTime: from,
+    paused: false,
+    readyState: "playing",
+  });
+  for (let time = from + 0.25; time <= to + 1e-9; time += 0.25) {
+    vi.advanceTimersByTime(250);
+    adapter.emit("timeupdate", { currentTime: time });
+  }
 }

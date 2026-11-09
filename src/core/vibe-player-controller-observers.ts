@@ -181,8 +181,8 @@ export class VibePlayerControllerObservers {
         this.run("resume-clear", () => store.clear(sourceId)),
       get: (sourceId) =>
         this.run("resume-get", () => store.get(sourceId), null) ?? null,
-      set: (sourceId, seconds) =>
-        this.run("resume-set", () => store.set(sourceId, seconds)),
+      set: (sourceId, seconds, context) =>
+        this.run("resume-set", () => store.set(sourceId, seconds, context)),
     };
   }
 

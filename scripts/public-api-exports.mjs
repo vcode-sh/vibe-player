@@ -100,6 +100,7 @@ export const publicApiExports = [
   "VibePlayerQualityControlProps",
   "VibePlayerQualityOption",
   "VibePlayerRenewEvent",
+  "VibePlayerResumeContext",
   "VibePlayerResumeStorage",
   "VibePlayerResumeStore",
   "VibePlayerScrubber",

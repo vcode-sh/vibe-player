@@ -8,6 +8,7 @@ import type {
 } from "./vibe-player-host-events";
 import type { VibePlayerPlaybackLifecycle } from "./vibe-player-playback";
 import type { VibePlayerPosterRenewal } from "./vibe-player-poster-renewal";
+import type { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
 import type { VibePlayerSourceSession } from "./vibe-player-source-session";
 import type {
   VibePlayerControllerOptions,
@@ -25,6 +26,7 @@ export class VibePlayerController {
   private readonly runtime: VibePlayerControllerRuntime;
   private readonly playback: VibePlayerPlaybackLifecycle;
   private readonly poster: VibePlayerPosterRenewal;
+  private readonly resume: VibePlayerResumeWriter | null;
   private readonly watched: VibePlayerWatchedRangesTracker | null;
 
   /** Creates an idle controller; nothing loads until `load()`. */
@@ -36,6 +38,7 @@ export class VibePlayerController {
     this.runtime = parts.runtime;
     this.playback = parts.playback;
     this.poster = parts.poster;
+    this.resume = parts.resume;
     this.watched = parts.watched;
   }
 
@@ -127,9 +130,15 @@ export class VibePlayerController {
   seekTo(seconds: number): Promise<void> {
     return this.actions.seekTo(seconds);
   }
-  /** Delivers pending watched ranges now, e.g. before the host navigates. */
+  /**
+   * Delivers pending watched ranges now, e.g. before the host navigates.
+   * `hidden` (the page was hidden) also saves the resume position.
+   */
   flushWatchedRanges(reason: "flush" | "hidden" = "flush"): void {
     this.watched?.flush(reason);
+    if (reason === "hidden") {
+      this.resume?.hidden();
+    }
   }
   /** Mutes or unmutes; the choice carries over to later sources. */
   setMuted(value: boolean): Promise<void> {

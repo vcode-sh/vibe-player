@@ -25,6 +25,7 @@ interface ControllerRuntimeOptions {
   isPlayRequested(): boolean;
   observers: VibePlayerControllerObservers;
   options: VibePlayerControllerOptions;
+  resumeStore: VibePlayerControllerOptions["resumeStore"];
 }
 
 /** Adapter attachment, mounting and release share one operation generation. */
@@ -44,7 +45,7 @@ export class VibePlayerControllerRuntime {
     this.hooks = hooks;
     this.observers = hooks.observers;
     this.adapterFactory = hooks.options.adapterFactory;
-    this.resumeStore = this.observers.wrapResumeStore();
+    this.resumeStore = hooks.resumeStore;
     this.analyticsSession = new VibePlayerAnalyticsSession(
       this.observers.emitAnalytics
     );

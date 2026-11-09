@@ -27,7 +27,10 @@ describe("controller seek outcomes", () => {
     expect(adapter.calls).toContain("seek:100");
     expect(adapter.calls).not.toContain("seek:250");
     expect(controller.getState().snapshot.currentTime).toBe(100);
-    expect(store.set).toHaveBeenLastCalledWith("video-1", 100);
+    expect(store.set).toHaveBeenLastCalledWith("video-1", 100, {
+      duration: 100,
+      reason: "seek",
+    });
     expect(onAnalyticsEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({ currentTime: 100, duration: 100, type: "seek" })
     );
@@ -50,7 +53,10 @@ describe("controller seek outcomes", () => {
 
       expect(seekTo).toHaveBeenCalledExactlyOnceWith(37);
       expect(controller.getState().snapshot.currentTime).toBe(0);
-      expect(store.set).toHaveBeenCalledExactlyOnceWith("video-1", 37);
+      expect(store.set).toHaveBeenCalledExactlyOnceWith("video-1", 37, {
+        duration: 100,
+        reason: "seek",
+      });
       expect(onAnalyticsEvent).toHaveBeenLastCalledWith({
         currentTime: 37,
         duration: 100,
@@ -146,7 +152,16 @@ describe("controller seek outcomes", () => {
       await controller.seekTo(37);
       await replacement;
 
-      expect(store.set).toHaveBeenCalledTimes(boundary === "state" ? 0 : 1);
+      // A state listener sees the seek before it settled, so nothing saves;
+      // a store that replaces the source then hears the old source close.
+      expect(store.set.mock.calls).toEqual(
+        boundary === "state"
+          ? []
+          : [
+              ["video-1", 37, { duration: 100, reason: "seek" }],
+              ["video-1", 37, { duration: 100, reason: "close" }],
+            ]
+      );
       expect(onAnalyticsEvent).not.toHaveBeenCalledWith(
         expect.objectContaining({ sourceId: "video-1", type: "seek" })
       );

@@ -6,7 +6,6 @@ import type {
   VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
   VibePlayerControllerState,
-  VibePlayerResumeStore,
   VibePlayerSource,
 } from "./vibe-player-types";
 
@@ -19,7 +18,6 @@ export interface HandleVibePlayerAdapterEventInput {
   isCurrent: () => boolean;
   playbackBlocked: boolean;
   preservePausedIntent: boolean;
-  resumeStore?: VibePlayerResumeStore | undefined;
   updateState: (next: Partial<VibePlayerControllerState>) => void;
 }
 
@@ -32,7 +30,6 @@ export function handleVibePlayerAdapterEvent({
   isCurrent,
   playbackBlocked,
   preservePausedIntent,
-  resumeStore,
   updateState,
 }: HandleVibePlayerAdapterEventInput): void {
   const stateEvent = getControllerStateEvent(event, preservePausedIntent);
@@ -55,10 +52,7 @@ export function handleVibePlayerAdapterEvent({
     return;
   }
   if (event.type === "timeupdate") {
-    resumeStore?.set(currentSource.id, event.snapshot.currentTime);
-    if (isCurrent()) {
-      analyticsSession.recordProgress(currentSource, event.snapshot);
-    }
+    analyticsSession.recordProgress(currentSource, event.snapshot);
     return;
   }
   if (event.type === "play") {
@@ -72,10 +66,6 @@ export function handleVibePlayerAdapterEvent({
     return;
   }
   if (event.type === "ended") {
-    resumeStore?.clear(currentSource.id);
-    if (!isCurrent()) {
-      return;
-    }
     analyticsSession.emitOnce({
       currentTime: event.snapshot.currentTime,
       duration: event.snapshot.duration,

@@ -98,3 +98,64 @@ describe("vibe-player-resume-store", () => {
     expect(store.get("missing")).toBeNull();
   });
 });
+
+const minimums = { minDurationSeconds: 120, minPositionSeconds: 10 };
+const minimumStores = [
+  ["memory", () => createMemoryVibePlayerResumeStore(minimums)],
+  [
+    "localStorage",
+    () =>
+      createLocalStorageVibePlayerResumeStore({
+        ...minimums,
+        storage: createTestStorage().storage,
+      }),
+  ],
+] as const;
+const progress = (duration: number) =>
+  ({ duration, reason: "progress" }) as const;
+
+describe("resume store minimums", () => {
+  it.each(minimumStores)(
+    "%s store clears positions before minPositionSeconds",
+    (_name, create) => {
+      const store = create();
+      store.set("video", 30, progress(600));
+      store.set("video", 9.5, progress(600));
+      expect(store.get("video")).toBeNull();
+      store.set("video", 10, progress(600));
+      expect(store.get("video")).toBe(10);
+    }
+  );
+
+  it.each(minimumStores)(
+    "%s store clears sources shorter than minDurationSeconds",
+    (_name, create) => {
+      const store = create();
+      store.set("clip", 30, progress(600));
+      store.set("clip", 30, progress(119));
+      expect(store.get("clip")).toBeNull();
+      store.set("clip", 30, progress(120));
+      expect(store.get("clip")).toBe(30);
+      // An unknown duration, or a write without context, cannot be judged.
+      store.set("other", 30, progress(0));
+      store.set("plain", 30);
+      expect(store.get("other")).toBe(30);
+      expect(store.get("plain")).toBe(30);
+    }
+  );
+
+  it("keeps every positive position when no minimum is set", () => {
+    const store = createMemoryVibePlayerResumeStore();
+    store.set("clip", 0.5, progress(3));
+    expect(store.get("clip")).toBe(0.5);
+  });
+
+  it("drops seeded memory entries before minPositionSeconds", () => {
+    const store = createMemoryVibePlayerResumeStore({
+      entries: { early: 4, late: 40 },
+      minPositionSeconds: 5,
+    });
+    expect(store.get("early")).toBeNull();
+    expect(store.get("late")).toBe(40);
+  });
+});

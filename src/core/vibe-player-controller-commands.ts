@@ -1,10 +1,10 @@
 import { isVibePlayerPlaybackBlockedError } from "./vibe-player-errors";
+import type { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
 import { clampVibePlayerTime } from "./vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAnalyticsEvent,
   VibePlayerControllerState,
-  VibePlayerResumeStore,
   VibePlayerSnapshot,
   VibePlayerSource,
 } from "./vibe-player-types";
@@ -94,7 +94,8 @@ export interface HandleVibePlayerControllerSeekInput {
   currentSource: VibePlayerSource | null;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
   isCurrent: () => boolean;
-  resumeStore: VibePlayerResumeStore | undefined;
+  /** Saves the settled position. */
+  resume: VibePlayerResumeWriter | null;
   seconds: number;
   syncFromAdapter: () => void;
 }
@@ -105,7 +106,7 @@ export async function handleVibePlayerControllerSeek({
   currentSource,
   emitAnalytics,
   isCurrent,
-  resumeStore,
+  resume,
   seconds,
   syncFromAdapter,
 }: HandleVibePlayerControllerSeekInput): Promise<void> {
@@ -128,7 +129,7 @@ export async function handleVibePlayerControllerSeek({
   if (!isCurrent()) {
     return;
   }
-  resumeStore?.set(currentSource.id, acceptedTime);
+  resume?.seeked(currentSource, acceptedTime, duration);
   if (!isCurrent()) {
     return;
   }

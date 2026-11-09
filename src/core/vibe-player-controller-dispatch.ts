@@ -69,7 +69,6 @@ function applyAdapterEvent(
     isCurrent,
     playbackBlocked: observers.state.playbackBlocked,
     preservePausedIntent,
-    resumeStore: runtime.resumeStore,
     updateState: (next) => runtime.updateState(next, isCurrent),
   });
   if (!isCurrent()) {

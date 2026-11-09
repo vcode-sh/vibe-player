@@ -1,5 +1,6 @@
 import { VibePlayerControllerActions } from "./vibe-player-controller-actions";
 import { dispatchVibePlayerAdapterEvent } from "./vibe-player-controller-dispatch";
+import { createVibePlayerControllerIntegrations } from "./vibe-player-controller-integrations";
 import { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
 import { VibePlayerControllerRuntime } from "./vibe-player-controller-runtime";
 import { VibePlayerPlaybackLifecycle } from "./vibe-player-playback";
@@ -8,10 +9,13 @@ import {
   type VibePlayerPosterRenewal,
 } from "./vibe-player-poster-renewal";
 import { VibePlayerRawFeed } from "./vibe-player-raw-feed";
-import { VibePlayerSeekAnalytics } from "./vibe-player-seek-analytics";
+import type { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
 import { VibePlayerSourceSession } from "./vibe-player-source-session";
-import type { VibePlayerControllerOptions } from "./vibe-player-types";
-import { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
+import type {
+  VibePlayerControllerOptions,
+  VibePlayerResumeStore,
+} from "./vibe-player-types";
+import type { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
 
 /** The collaborators one controller owns, wired to each other. */
 export interface VibePlayerControllerParts {
@@ -21,6 +25,8 @@ export interface VibePlayerControllerParts {
   /** Publishes every playback start on the raw feed. */
   playback: VibePlayerPlaybackLifecycle;
   poster: VibePlayerPosterRenewal;
+  /** Saves resume positions when the host passed a store. */
+  resume: VibePlayerResumeWriter | null;
   runtime: VibePlayerControllerRuntime;
   session: VibePlayerSourceSession;
   watched: VibePlayerWatchedRangesTracker | null;
@@ -31,9 +37,19 @@ export function createVibePlayerControllerParts(
 ): VibePlayerControllerParts {
   const observers = new VibePlayerControllerObservers(options);
   const feed = new VibePlayerRawFeed();
-  // The runtime calls back into parts created after it, never during setup.
-  const runtime = createRuntime(options, observers, feed, () => parts);
-  const actions = createActions(observers, feed, runtime);
+  // Callbacks reach parts created later, never during setup.
+  const { resume, resumeStore, watched } =
+    createVibePlayerControllerIntegrations(options, observers, feed, () =>
+      isLive(parts)
+    );
+  const runtime = createRuntime(
+    options,
+    observers,
+    feed,
+    resumeStore,
+    () => parts
+  );
+  const actions = createActions(observers, feed, runtime, resume);
   const session = createSession(options, observers, runtime, actions);
   const parts: VibePlayerControllerParts = {
     actions,
@@ -43,22 +59,26 @@ export function createVibePlayerControllerParts(
       feed.playback(playback)
     ),
     poster: createPoster(options, observers, runtime, session),
+    resume,
     runtime,
     session,
-    watched: createWatchedRanges(options, observers, feed),
+    watched,
   };
-  if (options.onAnalyticsEvent) {
-    const seeks = new VibePlayerSeekAnalytics(observers.emitAnalytics);
-    // After watched ranges, so a seek's report precedes its analytics.
-    feed.subscribe((entry) => seeks.observe(entry));
-  }
   return parts;
+}
+
+/** The adapter's own flag; after release, the last state it published. */
+function isLive({ observers, runtime }: VibePlayerControllerParts): boolean {
+  const capabilities =
+    runtime.adapter?.capabilities ?? observers.state.capabilities;
+  return capabilities?.isLive === true;
 }
 
 function createRuntime(
   options: VibePlayerControllerOptions,
   observers: VibePlayerControllerObservers,
   feed: VibePlayerRawFeed,
+  resumeStore: VibePlayerResumeStore | undefined,
   parts: () => VibePlayerControllerParts
 ): VibePlayerControllerRuntime {
   return new VibePlayerControllerRuntime({
@@ -69,13 +89,15 @@ function createRuntime(
     isPlayRequested: () => parts().session.playbackRequested,
     observers,
     options,
+    resumeStore,
   });
 }
 
 function createActions(
   observers: VibePlayerControllerObservers,
   feed: VibePlayerRawFeed,
-  runtime: VibePlayerControllerRuntime
+  runtime: VibePlayerControllerRuntime,
+  resume: VibePlayerResumeWriter | null
 ): VibePlayerControllerActions {
   return new VibePlayerControllerActions(
     {
@@ -99,7 +121,7 @@ function createActions(
       sync: () => runtime.syncFromAdapter(),
       update: (next) => runtime.updateState(next),
     },
-    runtime.resumeStore
+    resume
   );
 }
 
@@ -151,20 +173,4 @@ function createPoster(
       }
     },
   });
-}
-
-/** Opt-in: the tracker reads the raw feed, never rewritten controller state. */
-function createWatchedRanges(
-  options: VibePlayerControllerOptions,
-  observers: VibePlayerControllerObservers,
-  feed: VibePlayerRawFeed
-): VibePlayerWatchedRangesTracker | null {
-  if (!options.onWatchedRanges) {
-    return null;
-  }
-  const watched = new VibePlayerWatchedRangesTracker(
-    observers.emitWatchedRanges
-  );
-  feed.subscribe((entry) => watched.observe(entry));
-  return watched;
 }

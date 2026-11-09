@@ -71,6 +71,7 @@ export type {
   VibePlayerMediaSource,
   VibePlayerMp4Source,
   VibePlayerQualityOption,
+  VibePlayerResumeContext,
   VibePlayerResumeStore,
   VibePlayerSnapshot,
   VibePlayerSource,

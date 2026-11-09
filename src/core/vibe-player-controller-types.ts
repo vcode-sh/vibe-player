@@ -12,11 +12,36 @@ import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges
 /** When a bound source is allowed to create and attach its playback engine. */
 export type VibePlayerLoadMode = "onPlay" | "eager" | "visible";
 
-/** Host-owned resume persistence adapter. */
+/** What the controller knows when it saves a resume position. */
+export interface VibePlayerResumeContext {
+  /** Media duration in seconds when known, else 0. */
+  duration: number;
+  /**
+   * Why it saves: `progress` while playing (at most once per 2 seconds of
+   * movement), `seek` once a seek settled, `pause` on pause or stop,
+   * `hidden` when the page is hidden, `close` when the source closes,
+   * changes or unmounts.
+   */
+  reason: "close" | "hidden" | "pause" | "progress" | "seek";
+}
+
+/**
+ * Host-owned resume persistence. Every player writes its own position, so
+ * players or tabs sharing a source id overwrite each other: the last write
+ * wins.
+ */
 export interface VibePlayerResumeStore {
   clear(sourceId: string): void;
   get(sourceId: string): number | null;
-  set(sourceId: string, seconds: number): void;
+  /**
+   * Saves `seconds` for `sourceId`. The controller always passes `context`;
+   * it is optional so stores written for earlier versions still type-check.
+   */
+  set(
+    sourceId: string,
+    seconds: number,
+    context?: VibePlayerResumeContext
+  ): void;
 }
 
 /** Normalized analytics event names emitted by the package controller. */

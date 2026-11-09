@@ -6,12 +6,12 @@ import {
 } from "./vibe-player-controller-commands";
 import type { VibePlayerEvent } from "./vibe-player-host-events";
 import { VibePlayerPauseIntent } from "./vibe-player-pause-intent";
+import type { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
   VibePlayerControllerState,
-  VibePlayerResumeStore,
   VibePlayerSnapshot,
 } from "./vibe-player-types";
 
@@ -41,14 +41,14 @@ export class VibePlayerControllerActions {
     Pick<VibePlayerSnapshot, "muted" | "volume" | "playbackRate">
   > = {};
   private readonly host: ControllerActionsHost;
-  private readonly resumeStore: VibePlayerResumeStore | undefined;
+  private readonly resume: VibePlayerResumeWriter | null;
 
   constructor(
     host: ControllerActionsHost,
-    resumeStore: VibePlayerResumeStore | undefined
+    resume: VibePlayerResumeWriter | null
   ) {
     this.host = host;
-    this.resumeStore = resumeStore;
+    this.resume = resume;
   }
 
   clear(): void {
@@ -147,7 +147,7 @@ export class VibePlayerControllerActions {
         isCurrent: () =>
           generation === this.host.generation() &&
           adapter === this.host.adapter(),
-        resumeStore: this.resumeStore,
+        resume: this.resume,
         seconds,
         syncFromAdapter: () => this.host.sync(),
       })

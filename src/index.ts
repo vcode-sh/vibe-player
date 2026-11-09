@@ -66,6 +66,7 @@ export {
   type VibePlayerProgressMilestone,
   type VibePlayerQualityOption,
   type VibePlayerRenewEvent,
+  type VibePlayerResumeContext,
   type VibePlayerResumeStorage,
   type VibePlayerResumeStore,
   type VibePlayerShortcutAction,
