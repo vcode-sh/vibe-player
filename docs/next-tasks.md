@@ -4,7 +4,9 @@ Historical checkpoint: **0.2.0**, released 2026-10-22. Counts, lanes and
 providers below describe that checkpoint, not the current tree; YouTube support
 and its live lane were removed later. Current behavior is in
 [usage.md](./usage.md), [integration.md](./integration.md) and the
-[changelog](../CHANGELOG.md). The original T01–T17 backlog and the N01–N04
+[changelog](../CHANGELOG.md).
+
+The original T01–T17 backlog and the N01–N04
 implementation and available acceptance lanes are complete. Physical-platform limits remain explicit below. This checkpoint extends the modular-provider work in `ca6882f`;
 it does not prepare a release or change package ownership.
 

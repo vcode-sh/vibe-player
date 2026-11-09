@@ -74,6 +74,10 @@
   `minPositionSeconds`; a save below them clears the entry.
 - Each published version gets a `v<version>` git tag and a GitHub release
   with its changelog notes.
+- `vibe-player/stage` and `vibe-player/compact` export the
+  `VibePlayerEventType` and `VibePlayerEventOfType` types too.
+- A custom `ManagedHlsController` can implement `isInternalSeek(time)` so the
+  seeks its engine makes itself are not counted as viewer seeks.
 
 ### Fixed
 
@@ -91,6 +95,24 @@
 - An expired or forbidden file URL now triggers `renewSource`, like HLS.
 - A network stall no longer shows buffering while the media keeps playing
   from its buffer.
+- Seeks hls.js makes itself (stall nudges, gap skips, live-edge catch-up, the
+  start position) no longer send a `seek` event, split the watched batch,
+  count the skipped stretch as watched or save a resume position. Their
+  `seeking`/`seeked` events carry `payload.internal: true`.
+- A managed HLS media failure no longer calls `renewSource`; only files (or a
+  custom adapter's error with `concealedStatus: true`) renew on it.
+- Pausing a source that has no playback engine yet notifies subscribers once.
+- When every `<source>` of a file fails, hosts no longer get `onPause` (and
+  `lastEvent: "pause"`) after the error.
+- A media seek near a controller seek the provider rejected or never reached
+  is reported again.
+- When listeners keep changing the player, the cutoff now counts the whole
+  cascade once, every subscriber still ends on the latest state, and a
+  runaway in provider event handling is reported too
+  (`operation: "provider-events"`).
+- A listener added while an update is delivered starts with the next one.
+- A position captured before a stream turned out to be live is no longer
+  saved for resume.
 
 ## [0.7.1] - 2026-11-09
 
