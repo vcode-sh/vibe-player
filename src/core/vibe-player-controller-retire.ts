@@ -6,7 +6,9 @@ import { runVibePlayerControllerRetireHooks } from "./vibe-player-controller-ret
 /**
  * Silences the host first, so releasing media reports nothing: no pending
  * watched batch, no `closed` analytics, no resume save, no listener or
- * callback. Then unregisters, releases page-wide claims and the media.
+ * callback. The state turns idle at once (unregistering the controller),
+ * then retire hooks run (page-wide claims, a mounted React binding's last
+ * render) and the media is released.
  */
 export function retireVibePlayerControllerParts(
   controller: VibePlayerController,
@@ -16,6 +18,7 @@ export function retireVibePlayerControllerParts(
   >
 ): Promise<void> {
   parts.observers.retire();
+  parts.observers.reset();
   trackVibePlayerController(controller, null);
   runVibePlayerControllerRetireHooks(controller);
   parts.poster.reset();

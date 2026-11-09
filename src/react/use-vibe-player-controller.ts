@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { VibePlayerAdapterOptions } from "../adapters/create-vibe-player-adapter";
 import { VibePlayerController } from "../core/vibe-player-controller";
+import { onVibePlayerControllerRetire } from "../core/vibe-player-controller-retirement";
 import { createInitialControllerState } from "../core/vibe-player-controller-state";
 import type {
   VibePlayerControllerOptions,
@@ -117,8 +118,16 @@ export function useVibePlayerController(
     };
   }, [controller]);
 
+  // Retiring silences subscribers; the binding still renders the idle state once.
   const subscribe = useCallback(
-    (listener: () => void) => controller.subscribe(listener),
+    (listener: () => void) => {
+      const unsubscribe = controller.subscribe(listener);
+      const unwatch = onVibePlayerControllerRetire(controller, listener);
+      return () => {
+        unsubscribe();
+        unwatch();
+      };
+    },
     [controller]
   );
   const getSnapshot = useCallback(() => controller.getState(), [controller]);

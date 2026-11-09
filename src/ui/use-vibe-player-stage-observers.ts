@@ -49,6 +49,7 @@ export function useVibePlayerStageObservers({
     ) => {
       if (
         !owner ||
+        controller.retired ||
         owner !== activeOwner.current ||
         controller !== expectedController ||
         controller.getState().currentSource !== expectedSource
@@ -73,6 +74,10 @@ export function useVibePlayerStageObservers({
   );
   const notify = useEffectEvent(
     (operation: string, callback: () => unknown) => {
+      // A retired player reports nothing more, not even its last render.
+      if (controller.retired) {
+        return;
+      }
       const expectedSource = controller.getState().currentSource;
       const owner = activeOwner.current;
       const report = (cause: unknown) =>
