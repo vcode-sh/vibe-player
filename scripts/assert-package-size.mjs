@@ -6,10 +6,12 @@ import {
 } from "./package-consumer-size.mjs";
 import {
   collectPackageSizeFailures,
+  collectPackageSizeWarnings,
   createPackageSizeRow,
   formatPackageSizeBytes,
   measurePackageSize,
   packageSizeBudgets,
+  packageSizeWarningHeadroomPercent,
 } from "./package-size-rules.mjs";
 
 const rootPath = resolve(import.meta.dirname, "..");
@@ -111,6 +113,13 @@ console.log(
 
 const failures = collectPackageSizeFailures(rows);
 reportRows(rows);
+
+for (const warning of collectPackageSizeWarnings(rows)) {
+  const headroom = warning.limit - warning.byteCount;
+  console.warn(
+    `warning ${warning.label}: only ${formatPackageSizeBytes(headroom)} headroom left (below ${packageSizeWarningHeadroomPercent} % of ${formatPackageSizeBytes(warning.limit)}); re-base this budget before it fails.`
+  );
+}
 
 if (failures.length > 0) {
   console.error("Package size audit failed:");

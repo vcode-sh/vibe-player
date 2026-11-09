@@ -9,7 +9,9 @@ export const packageSizeBudgets = [
     extension: ".js",
     label: "runtime ESM raw",
     // 2026-11-09: 170 -> 184 KiB (measured 159,163 B) to restore ~15 % headroom.
-    limit: 184 * kib,
+    // 2026-11-09: 184 -> 343 KiB (measured 304,696 B, was 154,405 B minified)
+    // for readable, unminified ESM; consumer bundlers minify it.
+    limit: 343 * kib,
     mode: "raw",
   },
   {
@@ -21,7 +23,9 @@ export const packageSizeBudgets = [
     // preview, seek thumbnails and the lazy Media Session chunk.
     // 2026-11-09: 47 -> 55 KiB (measured 48,349 B) for native seek boundaries
     // and observed-progress buffering; 0.7.0 had left only 16 B of headroom.
-    limit: 55 * kib,
+    // 2026-11-09: 55 -> 85 KiB (measured 75,269 B, was 47,729 B minified) for
+    // readable, unminified ESM.
+    limit: 85 * kib,
     mode: "gzip",
   },
   {
@@ -89,4 +93,22 @@ export function createPackageSizeRow(budget, source) {
 
 export function collectPackageSizeFailures(rows) {
   return rows.filter((row) => !row.passed);
+}
+
+/** Percent of a limit that must stay free before the audit warns. */
+export const packageSizeWarningHeadroomPercent = 5;
+
+/**
+ * Passing budgets whose free space is below the warning percent of their
+ * limit. They do not fail the audit; they signal that a re-base is due soon.
+ */
+export function collectPackageSizeWarnings(
+  rows,
+  headroomPercent = packageSizeWarningHeadroomPercent
+) {
+  return rows.filter(
+    (row) =>
+      row.passed &&
+      (row.limit - row.byteCount) * 100 < row.limit * headroomPercent
+  );
 }

@@ -24,10 +24,12 @@ export default defineConfig({
   },
   format: "esm",
   inputOptions: { preserveEntrySignatures: "allow-extension" },
-  minify: true,
+  // Readable ESM: consumers can review, patch and debug the shipped code.
+  // Application bundlers minify it; stable chunk names keep diffs reviewable.
+  minify: false,
   outDir: "dist",
   outputOptions: {
-    chunkFileNames: "chunks/[name]-[hash].js",
+    chunkFileNames: "chunks/[name].js",
     codeSplitting: {
       groups: [
         {

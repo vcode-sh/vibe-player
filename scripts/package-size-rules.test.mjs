@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   collectPackageSizeFailures,
+  collectPackageSizeWarnings,
   createPackageSizeRow,
   formatPackageSizeBytes,
   measurePackageSize,
@@ -35,5 +36,27 @@ describe("package size rules", () => {
     expect(passing).toMatchObject({ byteCount: 6, passed: true });
     expect(failing).toMatchObject({ byteCount: 7, passed: false });
     expect(collectPackageSizeFailures([passing, failing])).toEqual([failing]);
+  });
+
+  it("warns below 5 % headroom without failing, and never warns for failures", () => {
+    const budget = { filePath: "asset.js", label: "asset", mode: "raw" };
+    const row = (limit, size) =>
+      createPackageSizeRow({ ...budget, limit }, "x".repeat(size));
+    const exactlyFivePercent = row(100, 95);
+    const belowFivePercent = row(100, 96);
+    const atLimit = row(100, 100);
+    const overLimit = row(100, 101);
+    const roomy = row(1000, 900);
+
+    expect(
+      collectPackageSizeWarnings([
+        exactlyFivePercent,
+        belowFivePercent,
+        atLimit,
+        overLimit,
+        roomy,
+      ])
+    ).toEqual([belowFivePercent, atLimit]);
+    expect(collectPackageSizeFailures([belowFivePercent, atLimit])).toEqual([]);
   });
 });
