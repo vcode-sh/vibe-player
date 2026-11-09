@@ -115,15 +115,6 @@
   margin: 0;
 }
 
-.vibe-player-surface__status {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  white-space: nowrap;
-  clip-path: inset(50%);
-}
-
 /* Reveal: fade with a short rise; exit is faster than entry. */
 .vibe-player-surface__reveal {
   visibility: hidden;

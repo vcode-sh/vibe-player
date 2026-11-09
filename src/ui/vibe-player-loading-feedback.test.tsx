@@ -27,26 +27,28 @@ describe("initial playback loading feedback", () => {
     });
     const adapterFactory = () => pendingAdapter;
     const adapter = new TestStageAdapter();
-    render(
+    const { container } = render(
       <VibePlayerCompact
         adapterFactory={adapterFactory}
         source={stageFileSource}
       />
     );
+    const root = container.querySelector(".vibe-player-compact");
+    const status = screen.getByRole("status");
     try {
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Play" }));
       });
       act(() => vi.advanceTimersByTime(319));
-      expect(screen.queryByRole("status")).toBeNull();
+      expect(root).toHaveAttribute("data-busy", "false");
+      expect(status.textContent).toBe("");
       act(() => vi.advanceTimersByTime(1));
-      expect(
-        screen.getByRole("status", { name: "Loading video" })
-      ).toBeVisible();
+      expect(root).toHaveAttribute("data-busy", "true");
+      expect(status).toHaveTextContent("Loading video");
       await act(async () => {
         resolveAdapter?.(adapter);
       });
-      expect(screen.queryByRole("status")).toBeNull();
+      expect(root).toHaveAttribute("data-busy", "false");
       expect(screen.getByRole("button", { name: "Pause" })).toBeVisible();
     } finally {
       await act(async () => {

@@ -46,9 +46,9 @@ describe("stage caption availability", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Captions unavailable"
-      )
+      expect(
+        screen.getByText("Captions unavailable").closest('[role="status"]')
+      ).not.toBeNull()
     );
     // The status observer runs in a passive effect after the commit that
     // rendered the status, so it is awaited rather than read synchronously.

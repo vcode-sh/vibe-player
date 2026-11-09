@@ -1,14 +1,19 @@
 import { useMemo } from "react";
 import { useVibePlayerCaptions } from "../react/use-vibe-player-captions";
+import { useVibePlayerStatusAnnouncement } from "./use-vibe-player-announcer";
 import { useVibePlayerStageGestures } from "./use-vibe-player-stage-gestures";
 import { useVibePlayerStageObservers } from "./use-vibe-player-stage-observers";
 import { useVibePlayerStagePlayback } from "./use-vibe-player-stage-playback";
+import { VibePlayerAnnouncer } from "./vibe-player-announcer";
 import { VibePlayerCaptionOverlay } from "./vibe-player-caption-overlay";
 import { VibePlayerCaptionStatusNotice } from "./vibe-player-caption-status";
 import { VibePlayerControls } from "./vibe-player-controls";
 import { getVibePlayerFrameStyle } from "./vibe-player-frame-style";
 import { VibePlayerMediaSlot } from "./vibe-player-media-slot";
-import { VibePlayerStageStatus } from "./vibe-player-stage-status";
+import {
+  useVibePlayerStageStatusView,
+  VibePlayerStageStatus,
+} from "./vibe-player-stage-status";
 import type { VibePlayerStageProps } from "./vibe-player-stage-types";
 import { VibePlayerStartSurface } from "./vibe-player-start-surface";
 import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
@@ -56,6 +61,14 @@ export function VibePlayerFullStage(props: VibePlayerStageProps) {
     source: activeSource,
     state,
   });
+  const statusView = useVibePlayerStageStatusView({
+    playbackBlocked: state.playbackBlocked,
+    snapshot: state.snapshot,
+  });
+  useVibePlayerStatusAnnouncement(
+    playback.announcer.announce,
+    statusView?.label ?? null
+  );
   return (
     <section
       aria-label={
@@ -92,7 +105,9 @@ export function VibePlayerFullStage(props: VibePlayerStageProps) {
         snapshot={state.snapshot}
         source={activeSource}
       />
+      <VibePlayerAnnouncer message={playback.announcer.message} />
       <VibePlayerStageStatus
+        live={false}
         onRetry={() => {
           controller.retry().catch(() => undefined);
         }}

@@ -14,6 +14,8 @@ import {
   VIBE_PLAYER_CHROME_IDLE_DELAY_MS,
 } from "../react/use-vibe-player-chrome";
 import { useVibePlayerShortcuts } from "../react/use-vibe-player-shortcuts";
+import { useVibePlayerAnnouncer } from "./use-vibe-player-announcer";
+import { useVibePlayerKeyboardAnnouncements } from "./use-vibe-player-keyboard-announcements";
 import { useVibePlayerStageActions } from "./use-vibe-player-stage-actions";
 import { useVibePlayerStageRootEvents } from "./use-vibe-player-stage-root-events";
 import type { VibePlayerStageProps } from "./vibe-player-stage-types";
@@ -93,12 +95,21 @@ export function useVibePlayerStagePlayback(
       rootElement.focus({ preventScroll: true });
     }
   }, [chrome.chromeHidden, rootElement]);
+  const announcer = useVibePlayerAnnouncer();
+  const noteShortcut = useVibePlayerKeyboardAnnouncements(
+    announcer.announce,
+    controller
+  );
+  const runShortcut = policy.onShortcut ?? actions.handleShortcut;
   useVibePlayerShortcuts({
     canFullscreen: capabilities.canFullscreen,
     canSeek: capabilities.canSeek,
     canShowCaptions: capabilities.canShowCaptions,
     enabled: open && rootElement !== null,
-    onShortcut: policy.onShortcut ?? actions.handleShortcut,
+    onShortcut: (action) => {
+      runShortcut(action);
+      noteShortcut(action);
+    },
     supportsMute: capabilities.supportsMute,
     target: rootElement,
   });
@@ -113,6 +124,7 @@ export function useVibePlayerStagePlayback(
     ...playback,
     actions,
     activeSource,
+    announcer,
     capabilities,
     captionsEnabled,
     chrome,

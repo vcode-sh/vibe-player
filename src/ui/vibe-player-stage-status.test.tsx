@@ -74,8 +74,11 @@ describe("VibePlayerStageStatus", () => {
       vi.advanceTimersByTime(1);
     });
 
-    const status = screen.getByRole("status", { name: "Buffering video" });
+    const status = screen.getByRole("status");
     expect(status).toHaveAttribute("aria-live", "polite");
+    // Live regions announce text content; an aria-label alone is not read.
+    expect(status).not.toHaveAttribute("aria-label");
+    expect(status).toHaveTextContent("Buffering video");
   });
 
   it("gives a restarted buffer its full delay instead of reusing a cancelled timer", () => {
@@ -115,9 +118,7 @@ describe("VibePlayerStageStatus", () => {
     act(() => vi.advanceTimersByTime(319));
     expect(screen.queryByRole("status")).toBeNull();
     act(() => vi.advanceTimersByTime(1));
-    expect(
-      screen.getByRole("status", { name: "Buffering video" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Buffering video");
   });
 
   it("clears visible busy chrome as soon as playback pauses", () => {
@@ -135,9 +136,7 @@ describe("VibePlayerStageStatus", () => {
     act(() => {
       vi.advanceTimersByTime(320);
     });
-    expect(
-      screen.getByRole("status", { name: "Buffering video" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Buffering video");
 
     rerender(
       <VibePlayerStageStatus

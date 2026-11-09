@@ -1,9 +1,11 @@
 import { type CSSProperties, lazy, type ReactNode, Suspense } from "react";
+import { useVibePlayerStatusAnnouncement } from "./use-vibe-player-announcer";
 import { useVibePlayerStageObservers } from "./use-vibe-player-stage-observers";
 import {
   type UseVibePlayerSurfaceOptions,
   useVibePlayerSurface,
 } from "./use-vibe-player-surface";
+import { VibePlayerAnnouncer } from "./vibe-player-announcer";
 import { getVibePlayerFrameStyle } from "./vibe-player-frame-style";
 import { VibePlayerGlassSkin } from "./vibe-player-glass-skin";
 import { VibePlayerHostFrame } from "./vibe-player-host-frame";
@@ -72,6 +74,7 @@ function VibePlayerCompactContent({
   } else if (view.phase === "error") {
     status = labels.unavailable;
   }
+  useVibePlayerStatusAnnouncement(playback.announcer.announce, status);
   let overlay: ReactNode = null;
   if (renderOverlay) {
     overlay = renderOverlay(surface);
@@ -137,16 +140,7 @@ function VibePlayerCompactContent({
         }
       />
       <span aria-hidden className="vibe-player-surface__dim" />
-      {status ? (
-        <span
-          aria-label={status}
-          aria-live="polite"
-          className="vibe-player-surface__status"
-          role="status"
-        >
-          {status}
-        </span>
-      ) : null}
+      <VibePlayerAnnouncer message={playback.announcer.message} />
       {indicator}
       {overlay}
     </section>

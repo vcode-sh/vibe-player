@@ -79,7 +79,8 @@ describe("expired poster grant", () => {
     await waitFor(() => expect(renewSource).toHaveBeenCalledOnce());
     expect(poster(container)).toHaveAttribute("src", expired.posterUrl);
     expect(screen.getByRole("button", { name: "Play" })).toBeVisible();
-    expect(screen.queryByRole("status")).toBeNull();
+    // Nothing busy or failed was announced for the poster.
+    expect(screen.getByRole("status").textContent).toBe("");
     expect(adapters).toHaveLength(0);
   });
 });

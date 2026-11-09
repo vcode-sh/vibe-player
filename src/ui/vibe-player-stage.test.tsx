@@ -76,7 +76,7 @@ describe("VibePlayerStage", () => {
       },
     });
 
-    render(
+    const { container } = render(
       <VibePlayerStage
         adapterFactory={adapterFactory}
         autoPlay={true}
@@ -84,14 +84,20 @@ describe("VibePlayerStage", () => {
         source={stageFileSource}
       />
     );
+    const visibleStatus = () =>
+      container.querySelector(".vibe-player-stage__status");
 
+    await waitFor(() =>
+      expect(visibleStatus()).toHaveTextContent("Play to start")
+    );
+    // The announcer speaks it once the status has committed.
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent("Play to start")
     );
     getStageAdapter(adapters).playError = null;
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
 
-    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    await waitFor(() => expect(visibleStatus()).toBeNull());
     expect(screen.getByRole("button", { name: "Pause" })).toBeVisible();
   });
 

@@ -58,10 +58,14 @@ export interface VibePlayerLabels {
   mute: string;
   muteShortcut: string;
   pause: string;
+  /** Announced after a keyboard pause, e.g. "Paused". */
+  paused?: string;
   pictureInPicture: string;
   play: string;
   playbackSpeed: string;
   playbackSpeedValue: (rate: string) => string;
+  /** Announced after keyboard play, e.g. "Playing". */
+  playing?: string;
   playShortcut: string;
   playToStart: string;
   quality: string;
@@ -80,6 +84,7 @@ export interface VibePlayerLabels {
   /** Double-tap indicator total, e.g. "20 seconds". */
   seekOffset?: (seconds: number) => string;
   seekShortcut: string;
+  /** Timeline value text, also announced after keyboard seeks. */
   seekValue: (time: string, duration: string) => string;
   showCaptions: string;
   unavailable: string;

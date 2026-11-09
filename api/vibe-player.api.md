@@ -992,10 +992,12 @@ interface VibePlayerLabels {
   mute: string;
   muteShortcut: string;
   pause: string;
+  paused?: string;
   pictureInPicture: string;
   play: string;
   playbackSpeed: string;
   playbackSpeedValue: (rate: string) => string;
+  playing?: string;
   playShortcut: string;
   playToStart: string;
   quality: string;
@@ -1291,9 +1293,10 @@ interface VibePlayerStageProps extends VibePlayerPlaybackOptions {
   title?: string | undefined;
 }
 
-declare function VibePlayerStageStatus({ onRetry, playbackBlocked, snapshot }: VibePlayerStageStatusProps): import("react").JSX.Element | null;
+declare function VibePlayerStageStatus({ live, onRetry, playbackBlocked, snapshot }: VibePlayerStageStatusProps): import("react").JSX.Element | null;
 
 interface VibePlayerStageStatusProps {
+  live?: boolean | undefined;
   onRetry?: (() => void) | undefined;
   playbackBlocked: boolean;
   snapshot: VibePlayerSnapshot;
