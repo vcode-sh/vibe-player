@@ -10,6 +10,7 @@ import type { VibePlayerFileSource } from "../core";
 import { VibePlayerCompact } from "./vibe-player-compact";
 import {
   createStageAdapterFactory,
+  getPlayerAnnouncer,
   stageFileSource,
 } from "./vibe-player-stage-test-helpers";
 
@@ -80,7 +81,7 @@ describe("expired poster grant", () => {
     expect(poster(container)).toHaveAttribute("src", expired.posterUrl);
     expect(screen.getByRole("button", { name: "Play" })).toBeVisible();
     // Nothing busy or failed was announced for the poster.
-    expect(screen.getByRole("status").textContent).toBe("");
+    expect(getPlayerAnnouncer().textContent).toBe("");
     expect(adapters).toHaveLength(0);
   });
 });

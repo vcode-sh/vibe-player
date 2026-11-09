@@ -4,6 +4,7 @@ import { VibePlayerStage } from "./vibe-player-stage";
 import {
   createBlockedPlaybackError,
   createStageAdapterFactory,
+  getPlayerAnnouncer,
   getStageAdapter,
   getStageMediaElement,
   stageFileSource,
@@ -91,7 +92,7 @@ describe("VibePlayerStage", () => {
       expect(visibleStatus()).toHaveTextContent("Play to start")
     );
     // The announcer speaks in the same commit that shows the status.
-    expect(screen.getByRole("status")).toHaveTextContent("Play to start");
+    expect(getPlayerAnnouncer()).toHaveTextContent("Play to start");
     getStageAdapter(adapters).playError = null;
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
 
@@ -115,9 +116,7 @@ describe("VibePlayerStage", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Playback unavailable"
-      )
+      expect(getPlayerAnnouncer()).toHaveTextContent("Playback unavailable")
     );
   });
 

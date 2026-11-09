@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerAdapter } from "../core/vibe-player-runtime-types";
 import { VibePlayerCompact } from "./vibe-player-compact";
 import {
+  getPlayerAnnouncer,
   stageFileSource,
   TestStageAdapter,
 } from "./vibe-player-stage-test-helpers";
@@ -34,7 +35,7 @@ describe("initial playback loading feedback", () => {
       />
     );
     const root = container.querySelector(".vibe-player-compact");
-    const status = screen.getByRole("status");
+    const status = getPlayerAnnouncer();
     try {
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Play" }));

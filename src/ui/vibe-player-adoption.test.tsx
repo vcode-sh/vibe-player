@@ -15,6 +15,7 @@ import { VibePlayerHeadless } from "./vibe-player-headless";
 import { VibePlayerInline } from "./vibe-player-inline";
 import {
   createStageAdapterFactory,
+  getPlayerAnnouncer,
   getStageAdapter,
   getStageMediaElement,
   stageFileSource,
@@ -202,9 +203,7 @@ describe("inline adoption", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Retry" })).toBeVisible()
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Playback unavailable"
-    );
+    expect(getPlayerAnnouncer()).toHaveTextContent("Playback unavailable");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Pause" })).toBeVisible()

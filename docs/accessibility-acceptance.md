@@ -42,13 +42,16 @@ Volume 100%
 
 That transcript predates 0.8.0, when the full stage toggle still switched to
 "Exit full screen"; it now keeps "Full screen" and reports its pressed state.
-On 2026-11-09, with Google Chrome 157.0.8103.38 and Orca 50.3, the native
-probe's fullscreen and popover steps pass: on focus Orca says "Full screen,
-toggle button not pressed", and after Enter only "pressed". Its caption step
-fails on the 0.8.0 branch and on the commit it started from alike. Orca
-receives the caption notice's text but does not speak it, so the caption
-utterance above is not reproduced with these versions; that needs separate
-investigation.
+On 2026-11-09 the whole native probe passes with Google Chrome
+157.0.8103.38 and Orca 50.3. Orca says "Captions unavailable" and
+"Retry captions", and for fullscreen "Full screen, toggle button not
+pressed" on focus and only "pressed" after Enter. Before 0.8.0 the caption
+step failed with these versions: the caption notice was its own
+`role="status"`, and Orca 50 drops a status bar's insertion that arrives
+within 100 ms of other page changes (its event spam filter), which is
+exactly when the notice appeared. The failure is now spoken by the player's
+announcer, a plain `aria-live` section, whose text insertions Orca always
+presents.
 
 Caption failure was included in Orca's initial content utterance. This alone
 does not prove the timing or uniqueness of a later live-region announcement.
@@ -61,10 +64,11 @@ this fix and pass afterward.
 
 ## Announcements, reachable controls and fullscreen state
 
-Added for 0.8.0 and covered by the Chromium lane; of the native checks, only
-the fullscreen pressed state was re-run (see above).
+Added for 0.8.0 and covered by the Chromium lane. The native probe (see
+above) also covers the caption failure announcement and the fullscreen
+pressed state.
 - Each player speaks every status message through one always-mounted,
-  visually hidden polite live region (`role="status"`, `aria-atomic="true"`,
+  visually hidden polite live region (`aria-live="polite"`, `aria-atomic="true"`,
   `data-part="announcer"`): delayed loading/buffering, a playback failure once,
   a caption failure, and the settled result of keyboard play, pause and seeks
   (not for a focused seek slider, which speaks its own value). A message

@@ -83,6 +83,11 @@ describe("player announcements", () => {
     const regions = getLiveRegions(container);
     expect(regions).toHaveLength(1);
     expect(regions[0]).toHaveAttribute("aria-live", "polite");
+    expect(regions[0]).toHaveAttribute("aria-atomic", "true");
+    // A plain live section, not role="status": Orca 50 spam-filters a
+    // status bar's insertions that land within 100 ms of other DOM changes,
+    // which silenced announcements made as the player opened.
+    expect(regions[0]).not.toHaveAttribute("role");
     expect(regions[0]).toHaveTextContent("");
   });
 

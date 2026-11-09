@@ -210,3 +210,12 @@ export function getStageMediaElement(container: HTMLElement): HTMLElement {
   }
   return media;
 }
+
+/** The rendered player's polite live region for status messages. */
+export function getPlayerAnnouncer(): HTMLElement {
+  const announcer = document.querySelector('[data-part="announcer"]');
+  if (!(announcer instanceof HTMLElement)) {
+    throw new Error("Missing player announcer.");
+  }
+  return announcer;
+}

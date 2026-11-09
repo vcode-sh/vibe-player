@@ -109,8 +109,9 @@ test("caption failure is spoken by the player's status region and retries", asyn
   ).toHaveLength(1);
   expect(errorTree).toContainEqual(
     expect.objectContaining({
+      // A plain live section (role generic), not a status bar; see the
+      // announcer's TSDoc for the Orca filter this avoids.
       properties: expect.objectContaining({ atomic: "true", live: "polite" }),
-      role: "status",
     })
   );
   const retry = dialog.getByRole("button", { name: "Retry captions" });
@@ -209,8 +210,9 @@ test("keyboard results are spoken through the player's polite announcer", async 
   const tree = await readAccessibilityTree(page);
   expect(tree).toContainEqual(
     expect.objectContaining({
+      // A plain live section (role generic), not a status bar; see the
+      // announcer's TSDoc for the Orca filter this avoids.
       properties: expect.objectContaining({ atomic: "true", live: "polite" }),
-      role: "status",
     })
   );
 });

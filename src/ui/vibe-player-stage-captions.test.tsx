@@ -4,6 +4,7 @@ import type { VibePlayerFileSource } from "../core";
 import { VibePlayerStage } from "./vibe-player-stage";
 import {
   createStageAdapterFactory,
+  getPlayerAnnouncer,
   stageFileSource,
 } from "./vibe-player-stage-test-helpers";
 
@@ -47,9 +48,7 @@ describe("stage caption availability", () => {
 
     // The visible notice; the player's announcer speaks it (one status).
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Captions unavailable"
-      )
+      expect(getPlayerAnnouncer()).toHaveTextContent("Captions unavailable")
     );
     expect(
       screen.getByText("Captions unavailable", {
@@ -77,7 +76,7 @@ describe("stage caption availability", () => {
       expect(screen.getByText("Recovered caption")).toBeVisible()
     );
     expect(screen.queryByText("Captions unavailable")).toBeNull();
-    expect(screen.getByRole("status").textContent).toBe("");
+    expect(getPlayerAnnouncer().textContent).toBe("");
     await waitFor(() =>
       expect(onCaptionStatusChange).toHaveBeenLastCalledWith(
         expect.objectContaining({ error: null, loading: false })
