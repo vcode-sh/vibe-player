@@ -31,10 +31,16 @@ test("WebKit falls back to video fullscreen without the element Fullscreen API",
   });
   await page.goto("/webkit.html");
   await startPlayback(page);
-  const enter = page.getByRole("button", { exact: true, name: "Full screen" });
+  // One toggle with a stable name; aria-pressed tells entry from exit.
+  const enter = page.getByRole("button", {
+    exact: true,
+    name: "Full screen",
+    pressed: false,
+  });
   const exit = page.getByRole("button", {
     exact: true,
-    name: "Exit full screen",
+    name: "Full screen",
+    pressed: true,
   });
   await expect(enter).toHaveCount(1);
 
