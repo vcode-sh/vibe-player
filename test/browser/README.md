@@ -54,6 +54,12 @@ The media session page (Chromium) records what the real
 the audible file player, every registered action including
 `enterpictureinpicture`, system seek and pause driving the media, a second
 (HLS) player taking the session over, and stop releasing it.
+The native media page (Chromium and WebKit) drives a headless controller on
+the file adapter. A local route answers 404 for missing media and 403 for an
+expired signed URL. It checks that a file whose every `<source>` fails
+reports one `source` error and settles its pending `play()`, that a pause the
+media makes during a pending `play()` is not an error, and that an expired
+signed URL is renewed once and plays.
 The selector tests own exact-duration frame selection. Browser keyboard checks
 use Home and ArrowRight: during acceptance, Linux WebKit intermittently reported
 zero after an exact-end seek, even after initially reporting the requested end.

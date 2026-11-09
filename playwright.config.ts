@@ -14,6 +14,7 @@ export default defineConfig({
       testMatch: [
         "**/webkit*.browser.ts",
         "**/host-frame.browser.ts",
+        "**/native-media.browser.ts",
         "**/selection.browser.ts",
         "**/seek-thumbnails.browser.ts",
         "**/scrub-frame.browser.ts",
