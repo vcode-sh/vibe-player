@@ -1,11 +1,15 @@
+import type Hls from "hls.js";
+import type { ErrorData } from "hls.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { VibePlayerController } from "../../core/vibe-player-controller";
 import { createHlsAdapter } from "./create-hls-adapter";
 import {
+  createProbeHlsSession,
   getLatestHlsEngine,
   HlsEngineProbe,
   loadProbeHls,
 } from "./hls-engine-test-helpers";
+import { ManagedHlsMediaRecovery } from "./hls-media-recovery";
 
 const controllers = new Set<VibePlayerController>();
 
@@ -134,5 +138,29 @@ describe("managed HLS media error recovery", () => {
 
     expect(engine.recoveries).toEqual([]);
     expect(controller.getState().error).toMatchObject({ kind: "network" });
+  });
+
+  it("drops a pending resume when a later error is terminal", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const resume = vi.fn();
+    const engine = new HlsEngineProbe({});
+    const recovery = new ManagedHlsMediaRecovery(engine as unknown as Hls, {
+      ...createProbeHlsSession(),
+      onMediaRecovery: () => resume,
+    });
+    const failure = {
+      details: "bufferAppendError",
+      fatal: true,
+      type: "mediaError",
+    } as ErrorData;
+
+    expect([1, 2, 3].map(() => recovery.recover(failure))).toEqual([
+      true,
+      true,
+      false,
+    ]);
+    // hls.js still reports the pending reattach; it must not reload the source.
+    expect(recovery.mediaAttached()).toBe(true);
+    expect(resume).not.toHaveBeenCalled();
   });
 });

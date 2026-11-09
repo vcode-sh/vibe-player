@@ -8,12 +8,14 @@ import {
  * Captures playback before hls.js resets the media to recover it. The reset
  * pauses the element without a `pause` event, so the returned function plays
  * it again under the same playback intent: a pause, play or load in between
- * changes the generation and cancels the resume. A blocked `play()` reports
- * `playblocked`, as a blocked play command does; other rejections (a newer
- * pause or load interrupted it) are explained by the media's own events.
+ * changes the generation and cancels the resume, and so does a session that
+ * failed meanwhile. A blocked `play()` reports `playblocked`, as a blocked
+ * play command does; other rejections (a newer pause or load interrupted it)
+ * are explained by the media's own events.
  */
 export function captureHlsRecoveryPlayback(
-  input: NativeVideoCommandInput
+  input: NativeVideoCommandInput,
+  hasFailed: () => boolean
 ): (() => void) | undefined {
   const video = input.getVideo();
   if (!video || video.paused) {
@@ -22,6 +24,7 @@ export function captureHlsRecoveryPlayback(
   const generation = input.getPlaybackGeneration();
   return () => {
     if (
+      hasFailed() ||
       input.getVideo() !== video ||
       input.getPlaybackGeneration() !== generation
     ) {

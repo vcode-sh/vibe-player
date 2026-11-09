@@ -109,6 +109,37 @@ describe("playback across hls.js media recovery", () => {
     expect(player.controller.getState().error).toBeNull();
   });
 
+  it("does not resume media whose recovery ended in a terminal error", async () => {
+    const player = await loadPlayingManagedHls();
+    player.failMedia();
+    player.failMedia();
+    player.failMedia();
+    expect(player.controller.getState().error).toMatchObject({
+      kind: "decode",
+    });
+
+    player.engine.emit(HlsEngineProbe.Events.MEDIA_ATTACHED);
+    await Promise.resolve();
+
+    expect(player.play).not.toHaveBeenCalled();
+  });
+
+  it("does not resume media after another fatal error failed the session", async () => {
+    const player = await loadPlayingManagedHls();
+    player.failMedia();
+    player.engine.emit(HlsEngineProbe.Events.ERROR, {
+      details: "fragLoadError",
+      error: new Error("Segment unavailable."),
+      fatal: true,
+      type: "networkError",
+    });
+
+    player.engine.emit(HlsEngineProbe.Events.MEDIA_ATTACHED);
+    await Promise.resolve();
+
+    expect(player.play).not.toHaveBeenCalled();
+  });
+
   it("keeps a pause the viewer made while the media was being recovered", async () => {
     const player = await loadPlayingManagedHls();
     player.failMedia();

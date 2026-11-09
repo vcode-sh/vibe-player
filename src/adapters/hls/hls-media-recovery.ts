@@ -48,6 +48,9 @@ export class ManagedHlsMediaRecovery {
     const step = now - last <= escalationWindowMs ? this.escalation + 1 : 1;
     const recent = this.attempts.filter((at) => now - at < budgetWindowMs);
     if (step > 2 || recent.length >= recoveryBudget) {
+      // Terminal: a pending reattach must not resume the failed media. It
+      // stays a reattach, so the failed source is not loaded again.
+      this.resume = null;
       return false;
     }
     this.attempts = [...recent, now];

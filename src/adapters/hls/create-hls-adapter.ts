@@ -119,7 +119,11 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
       isCurrentLoadSession: (session) =>
         this.session.isCurrentLoadSession(session),
       loadSession,
-      onMediaRecovery: () => captureHlsRecoveryPlayback(this.commandInput),
+      onMediaRecovery: () =>
+        captureHlsRecoveryPlayback(
+          this.commandInput,
+          () => this.session.failed
+        ),
       runtime: this.runtime,
       setLive: (isLive) => this.session.setLive(isLive),
       source,
