@@ -79,9 +79,12 @@ export interface VibePlayerAdapterEvent {
    * Optional event details. On an `error` event, `kind` (`"network"`, `"decode"`
    * or `"source"`) becomes `error.kind`; without it the error is `"unknown"`.
    * `fatal: false` marks a recoverable error: the controller reports it but
-   * does not fail playback or renew the source. `mediaReadyState` (the media
-   * element's numeric `readyState`) lets a `"source"` error at `0` (nothing
-   * loaded) trigger a source renewal. `message` becomes the error message.
+   * does not fail playback or renew the source. `concealedStatus: true` marks
+   * media that fetched the URL itself and hid its HTTP status, as the file
+   * adapter's element does; with it, a `"source"` error at `mediaReadyState`
+   * `0` (the element's numeric `readyState`: nothing loaded) triggers a source
+   * renewal, because an expired URL fails exactly like that. `message`
+   * becomes the error message.
    */
   payload?: Record<string, string | number | boolean | null | undefined>;
   snapshot: VibePlayerSnapshot;

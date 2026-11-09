@@ -377,7 +377,10 @@ SDK initially considers the request recoverable. Native HLS conceals HTTP status
 behind media errors, so a fatal native HLS error gets the same bounded credential
 recheck. A file conceals it too: an expired or forbidden file URL fails as an
 unsupported source before media data loads, so that failure is rechecked the
-same way. A second failure before `playing` becomes terminal.
+same way. Managed HLS reports HTTP failures itself, so its media element
+failures are not rechecked. A custom adapter whose media hides the HTTP status
+sets `concealedStatus: true` on the error payload to get the same recheck. A
+second failure before `playing` becomes terminal.
 
 `onEvent` exposes a typed union of playback, renewal, stop, command-error and
 integration-error events. Optional command failures emit `commanderror` with the

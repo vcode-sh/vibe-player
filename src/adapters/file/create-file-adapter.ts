@@ -196,7 +196,11 @@ class FileVibePlayerAdapter implements VibePlayerAdapter {
     this.ownsVideo = !externalVideo;
     const video = createFileVideo((event, payload) => {
       if (this.video === video) {
-        this.emit(event, payload);
+        // The element fetches the file URL itself and hides its HTTP status.
+        this.emit(
+          event,
+          event === "error" ? { ...payload, concealedStatus: true } : payload
+        );
       }
     }, externalVideo);
     this.video = video;

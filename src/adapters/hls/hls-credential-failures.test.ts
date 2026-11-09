@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { VibePlayerController } from "../../core/vibe-player-controller";
 import type { VibePlayerSource } from "../../core/vibe-player-types";
+import {
+  defineNativeVideoNumberProperty,
+  getMountedNativeVideo,
+} from "../native/native-video-test-helpers";
 import { createHlsAdapter } from "./create-hls-adapter";
 import {
   getLatestHlsEngine,
@@ -30,9 +34,10 @@ async function loadController(renewSource?: () => Promise<VibePlayerSource>) {
     renewSource,
   });
   controllers.add(controller);
-  await controller.mount(document.createElement("div"));
+  const target = document.createElement("div");
+  await controller.mount(target);
   await controller.load(source);
-  return { controller, onError, onEvent };
+  return { controller, onError, onEvent, target };
 }
 
 function httpFailure(status: number) {
@@ -82,6 +87,28 @@ describe("expired HLS credentials", () => {
       });
     }
   );
+
+  it("does not renew on a media element source error under managed HLS", async () => {
+    const renewSource = vi.fn(async () => renewed);
+    const { controller, onError, target } = await loadController(renewSource);
+    const video = getMountedNativeVideo(target);
+    // Before media data, as an expired file URL would fail; hls.js reports
+    // its own HTTP failures, so this is a media pipeline failure.
+    defineNativeVideoNumberProperty(video, "readyState", 0);
+    Object.defineProperty(video, "error", {
+      configurable: true,
+      value: { code: 4, message: "MEDIA_ELEMENT_ERROR: Format error" },
+    });
+    video.dispatchEvent(new Event("error"));
+
+    await vi.waitFor(() =>
+      expect(onError).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ kind: "source", phase: "playback" })
+      )
+    );
+    expect(renewSource).not.toHaveBeenCalled();
+    expect(controller.getState().currentSource).toEqual(source);
+  });
 
   it("keeps recoverable non-auth HTTP errors out of state.error", async () => {
     const { controller, onError, onEvent } = await loadController();
