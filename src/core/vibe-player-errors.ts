@@ -1,8 +1,12 @@
 import type {
   VibePlayerAdapterEvent,
   VibePlayerError,
+  VibePlayerErrorKind,
+  VibePlayerSnapshot,
   VibePlayerSource,
 } from "./vibe-player-types";
+
+const errorKinds: readonly unknown[] = ["network", "decode", "source"];
 
 interface CreateVibePlayerErrorInput {
   cause?: unknown;
@@ -26,11 +30,40 @@ export function createVibePlayerError({
   return {
     ...(cause === undefined ? {} : { cause }),
     ...(details ? { details: { ...details } } : {}),
+    kind: getErrorKind(cause, details),
     message,
     phase,
     provider: source.type,
     sourceId: source.id,
   };
+}
+
+/** Adapters report a kind in their payload; a rejected play() only by name. */
+function getErrorKind(
+  cause: unknown,
+  details: VibePlayerAdapterEvent["payload"]
+): VibePlayerErrorKind {
+  const kind = details?.kind;
+  if (errorKinds.includes(kind)) {
+    return kind as VibePlayerErrorKind;
+  }
+  return cause instanceof Error && cause.name === "NotSupportedError"
+    ? "source"
+    : "unknown";
+}
+
+/**
+ * The media's own events explain a play() it rejected because it paused
+ * itself (native controls, PiP, OS) or failed (its error event reports that).
+ */
+export function isVibePlayerMediaInterruption(
+  error: unknown,
+  { paused, readyState }: VibePlayerSnapshot
+): boolean {
+  return (
+    readyState === "error" ||
+    (paused && error instanceof Error && error.name === "AbortError")
+  );
 }
 
 export function isVibePlayerPlaybackBlockedError(error: unknown): boolean {

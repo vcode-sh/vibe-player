@@ -164,6 +164,7 @@ describe("managed HLS runtime translation", () => {
     expect(session.onError).toHaveBeenCalledExactlyOnceWith({
       details: "fragLoadError",
       fatal: false,
+      kind: "network",
       message: "Segment unavailable",
       network: true,
       type: "networkError",

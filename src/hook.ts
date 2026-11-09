@@ -15,6 +15,7 @@ export {
   type VibePlayerControllerOptions,
   type VibePlayerControllerState,
   type VibePlayerError,
+  type VibePlayerErrorKind,
   type VibePlayerEvent,
   type VibePlayerEventOfType,
   type VibePlayerEventType,

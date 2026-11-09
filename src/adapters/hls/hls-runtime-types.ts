@@ -1,5 +1,6 @@
 import type Hls from "hls.js";
 import type { HlsConfig } from "hls.js";
+import type { VibePlayerErrorKind } from "../../core/vibe-player-types";
 import type { ManagedHlsLevel } from "./hls-quality";
 
 export interface HlsAdapterErrorPayload
@@ -8,6 +9,8 @@ export interface HlsAdapterErrorPayload
   credentialFailure?: boolean;
   details: string;
   fatal: boolean;
+  /** HTTP 4xx and incompatible codecs are `source`; other failures by type. */
+  kind?: VibePlayerErrorKind;
   message: string;
   network?: boolean;
   sdkFatal?: boolean;

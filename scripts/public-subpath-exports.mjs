@@ -3,6 +3,7 @@ const playerTypes = [
   "VibePlayerController",
   "VibePlayerControllerState",
   "VibePlayerError",
+  "VibePlayerErrorKind",
   "VibePlayerEvent",
   "VibePlayerHlsSource",
   "VibePlayerLoadMode",

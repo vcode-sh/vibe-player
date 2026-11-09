@@ -48,7 +48,10 @@ export function canRenew(event: VibePlayerAdapterEvent): boolean {
     return false;
   }
   const { payload } = event;
+  // Media elements conceal HTTP status: an expired or forbidden file URL is a
+  // source error before media data loaded.
   return (
+    (payload?.kind === "source" && payload.mediaReadyState === 0) ||
     payload?.status === 401 ||
     payload?.status === 403 ||
     payload?.network === true ||

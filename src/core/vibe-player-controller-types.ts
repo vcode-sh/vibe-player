@@ -74,10 +74,23 @@ export interface VibePlayerAnalyticsEvent {
   type: VibePlayerAnalyticsEventName;
 }
 
+/**
+ * What kind of failure stopped playback.
+ *
+ * - `"network"`: the connection failed while loading or playing the media.
+ * - `"decode"`: the media loaded but could not be decoded or played.
+ * - `"source"`: the media could not be loaded or is not supported; it may be
+ *   unreachable, forbidden or an unsupported format.
+ * - `"unknown"`: anything else, including host and adapter failures.
+ */
+export type VibePlayerErrorKind = "network" | "decode" | "source" | "unknown";
+
 /** Normalized failure with its original cause or provider diagnostics intact. */
 export interface VibePlayerError {
   cause?: unknown;
   details?: Readonly<VibePlayerAdapterEvent["payload"]>;
+  /** The failure category, for choosing a message or a recovery. */
+  kind: VibePlayerErrorKind;
   message: string;
   phase: "create" | "mount" | "load" | "playback" | "integration";
   provider: VibePlayerSource["type"];

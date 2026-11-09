@@ -1,5 +1,6 @@
 import type Hls from "hls.js";
 import type { ErrorData } from "hls.js";
+import type { VibePlayerErrorKind } from "../../core/vibe-player-types";
 import type {
   HlsAdapterErrorPayload,
   ManagedHlsSession,
@@ -37,6 +38,7 @@ function normalizeHlsError(data: ErrorData): HlsAdapterErrorPayload {
   return {
     details: data.details,
     fatal: data.fatal || credentialFailure,
+    kind: getHlsErrorKind(data, status),
     message: data.error.message,
     network: data.type === "networkError",
     ...(typeof status === "number" ? { status } : {}),
@@ -45,4 +47,19 @@ function normalizeHlsError(data: ErrorData): HlsAdapterErrorPayload {
       : {}),
     type: data.type,
   };
+}
+
+function getHlsErrorKind(
+  { details, type }: ErrorData,
+  status: number | undefined
+): VibePlayerErrorKind {
+  if (type === "networkError") {
+    return status !== undefined && status >= 400 && status < 500
+      ? "source"
+      : "network";
+  }
+  if (details === "manifestIncompatibleCodecsError") {
+    return "source";
+  }
+  return type === "mediaError" || type === "muxError" ? "decode" : "unknown";
 }

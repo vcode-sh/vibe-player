@@ -62,6 +62,7 @@ export type {
   VibePlayerControllerOptions,
   VibePlayerControllerState,
   VibePlayerError,
+  VibePlayerErrorKind,
   VibePlayerEventName,
   VibePlayerFileSource,
   VibePlayerHlsManifestSource,

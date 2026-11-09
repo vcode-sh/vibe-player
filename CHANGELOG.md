@@ -47,6 +47,9 @@
   `duration` and the `reason` for the save, as an optional third argument.
 - The built-in resume stores accept `minDurationSeconds` and
   `minPositionSeconds`; a save below them clears the entry.
+- Errors carry a `kind`: `"network"`, `"decode"`, `"source"` (could not be
+  loaded or is not supported) or `"unknown"`, so you can show a friendly
+  message without reading provider details.
 
 ### Fixed
 
@@ -58,6 +61,13 @@
 - Retry, renewal, stop and remounting the same source no longer repeat the
   `closed`, `opened`, `started` and progress analytics, and `closed` is only
   reported after an `opened`.
+- A file whose every `<source>` fails now reports an error instead of
+  buffering forever, and its pending `play()` settles.
+- Pausing from native controls, Picture-in-Picture or the system while
+  `play()` is pending is a pause, no longer an error.
+- An expired or forbidden file URL now triggers `renewSource`, like HLS.
+- A network stall no longer shows buffering while media plays from its buffer,
+  and the buffered amount and video size stay up to date.
 
 ## [0.7.1] - 2026-11-09
 

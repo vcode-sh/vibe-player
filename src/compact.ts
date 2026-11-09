@@ -5,6 +5,7 @@ export type {
   VibePlayerController,
   VibePlayerControllerState,
   VibePlayerError,
+  VibePlayerErrorKind,
   VibePlayerEvent,
   VibePlayerHlsSource,
   VibePlayerLoadMode,

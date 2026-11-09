@@ -8,6 +8,12 @@ import type {
   VibePlayerEventName,
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
+import {
+  bindNativeSourceFailure,
+  createNativeErrorPayload,
+  hasNativeSourceFailure,
+  resetNativeSourceFailure,
+} from "./native-video-errors";
 import { clearPendingNativeSeek } from "./native-video-seek";
 
 type NativeVideoEventEmitter = (
@@ -41,10 +47,13 @@ const nativeEventBindings: NativeEventBinding[] = [
   { nativeEvent: "pause", playerEvent: "pause" },
   { nativeEvent: "play", playerEvent: "play" },
   { nativeEvent: "playing", playerEvent: "playing" },
+  // Buffer, size and network hints only refresh the snapshot.
+  { nativeEvent: "progress", playerEvent: "timeupdate" },
   { nativeEvent: "ratechange", playerEvent: "ratechange" },
+  { nativeEvent: "resize", playerEvent: "timeupdate" },
   { nativeEvent: "seeked", playerEvent: "seeked" },
   { nativeEvent: "seeking", playerEvent: "seeking" },
-  { nativeEvent: "stalled", playerEvent: "buffering" },
+  { nativeEvent: "stalled", playerEvent: "timeupdate" },
   { nativeEvent: "timeupdate", playerEvent: "timeupdate" },
   { nativeEvent: "volumechange", playerEvent: "volumechange" },
   { nativeEvent: "waiting", playerEvent: "buffering" },
@@ -102,7 +111,8 @@ function bindNativeVideoEvents(
     buffering: null,
     time: video.currentTime,
   });
-  const cleanups: (() => void)[] = [];
+  resetNativeSourceFailure(video);
+  const cleanups = [bindNativeSourceFailure(video, emit)];
   for (const binding of nativeEventBindings) {
     const listener = () => {
       if (binding.playerEvent === "buffering" && video.paused) {
@@ -113,12 +123,11 @@ function bindNativeVideoEvents(
       emit(
         binding.playerEvent,
         error
-          ? {
-              code: error.code,
-              fatal: true,
-              message: error.message || "Native video playback failed.",
-              network: error.code === 2,
-            }
+          ? createNativeErrorPayload(
+              video,
+              error.code,
+              error.message || "Native video playback failed."
+            )
           : undefined
       );
     };
@@ -148,7 +157,7 @@ function observeNativePlayback(
   if (!progress) {
     return;
   }
-  if (event === "waiting" || event === "stalled" || event === "seeking") {
+  if (event === "waiting" || event === "seeking") {
     progress.buffering = true;
   } else if (
     event === "playing" ||
@@ -191,6 +200,7 @@ export function setNativeVideoMetadata(
   source: NativeVideoSourceMetadata
 ): void {
   clearPendingNativeSeek(video);
+  resetNativeSourceFailure(video);
   video.poster = source.posterUrl ?? "";
   video.preload = "none";
   if (source.crossOrigin) {
@@ -230,7 +240,7 @@ function isNativeVideoStalled(video: HTMLVideoElement): boolean {
 function getReadyState(
   video: HTMLVideoElement
 ): VibePlayerSnapshot["readyState"] {
-  if (video.error) {
+  if (video.error || hasNativeSourceFailure(video)) {
     return "error";
   }
   if (video.ended) {

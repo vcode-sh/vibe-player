@@ -1,4 +1,7 @@
-import { isVibePlayerPlaybackBlockedError } from "./vibe-player-errors";
+import {
+  isVibePlayerMediaInterruption,
+  isVibePlayerPlaybackBlockedError,
+} from "./vibe-player-errors";
 import type { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
 import { clampVibePlayerTime } from "./vibe-player-time";
 import type {
@@ -28,6 +31,7 @@ export async function handleVibePlayerControllerPlay({
   if (!adapter?.capabilities.supportsPlayback) {
     return;
   }
+  const failed = adapter.getSnapshot().readyState === "error";
   updateState({
     error: null,
     lastEvent: "play",
@@ -45,7 +49,13 @@ export async function handleVibePlayerControllerPlay({
       });
       return;
     }
-    throw error;
+    // Playing media that had already failed is still a command failure.
+    if (
+      failed ||
+      !isVibePlayerMediaInterruption(error, adapter.getSnapshot())
+    ) {
+      throw error;
+    }
   }
 }
 

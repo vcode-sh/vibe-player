@@ -260,7 +260,9 @@ package.
 
 `onStateChange` observes the current normalized state. `onError` receives the
 source ID, provider, phase (`create`, `mount`, `load`, `playback`, or
-`integration`), message, and available cause or provider details. Controller
+`integration`), `kind` (`network`, `decode`, `source` or `unknown`), message,
+and available cause or provider details. Use `kind` to pick a friendly
+message, such as "check your connection" for `network`. Controller
 errors are also available as `state.error`; starting a new source clears the
 previous source's error. Failures of UI observers (`onStateChange` and
 `onCaptionStatusChange`) go directly to `onError` without mutating controller
@@ -269,6 +271,8 @@ state, avoiding a reporting feedback loop. Hosts choose where to report errors.
 Rejected control commands include their name in `details.command`. Failures in
 auxiliary actions such as fullscreen or PiP preserve ongoing playback. Browser
 policy blocking `play()` uses the `playbackBlocked` notice instead of `onError`.
+A pause the media makes itself while `play()` is pending (native controls,
+Picture-in-Picture or the system) is a pause, not an error.
 Resume-store, analytics, controller-subscriber and `controller.on()` listener
 failures report as nonfatal `integrationerror` events with
 `error.details.operation`; they cannot block media cleanup or remaining

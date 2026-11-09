@@ -375,7 +375,9 @@ late completions. Retry explicitly renews and plays again.
 An HLS HTTP 401/403 terminates the rejected delivery immediately, even when the
 SDK initially considers the request recoverable. Native HLS conceals HTTP status
 behind media errors, so a fatal native HLS error gets the same bounded credential
-recheck. A second failure before `playing` becomes terminal.
+recheck. A file conceals it too: an expired or forbidden file URL fails as an
+unsupported source before media data loads, so that failure is rechecked the
+same way. A second failure before `playing` becomes terminal.
 
 `onEvent` exposes a typed union of playback, renewal, stop, command-error and
 integration-error events. Optional command failures emit `commanderror` with the
@@ -391,8 +393,11 @@ state. Progress callbacks are limited to one leading event per 250 ms.
 Use `onAnalyticsEvent` to map normalized package events into your telemetry.
 Use `resumeStore` when your app wants resume persistence. The package does not
 write localStorage by default. `onStateChange` observes normalized player state;
-`onError` receives a source-aware error with its lifecycle phase and available
-provider details. Updating these callbacks does not restart the player.
+`onError` receives a source-aware error with its lifecycle phase, a `kind` and
+available provider details. `kind` is `"network"` (the connection failed),
+`"decode"` (the media cannot be decoded), `"source"` (the media could not be
+loaded or is not supported: unreachable, forbidden or an unsupported format)
+or `"unknown"`. Updating these callbacks does not restart the player.
 
 ```tsx
 <VibePlayerStage

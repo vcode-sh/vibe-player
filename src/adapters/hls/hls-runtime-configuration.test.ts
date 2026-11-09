@@ -117,6 +117,7 @@ describe("injectable managed HLS runtime", () => {
       credentialFailure: true,
       details: "fragLoadError",
       fatal: true,
+      kind: "source",
       message: "Expired token",
       network: true,
       sdkFatal: true,
