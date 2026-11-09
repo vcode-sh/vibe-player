@@ -6,22 +6,26 @@
 
 - YouTube support. The `youtube` source type, `createYouTubeAdapter`,
   `createYouTubeExternalAdapter`, `createVibePlayerYouTubeWatchUrl`,
-  `getVibePlayerYouTubePresentation` and the related YouTube types are gone, so
-  the package now plays files and HLS. To show a YouTube video, render your own
-  iframe or the official embed next to the player.
-- The `controlsPresentation`, `keepsControlsVisible` and `hasNativeCaptionsMenu`
-  capability fields, which only the YouTube adapter used. Controls always draw
-  over the media. If a custom adapter set them, simply drop them.
+  `getVibePlayerYouTubePresentation` and the YouTube types are gone; the
+  package plays files and HLS. To show a YouTube video, render the official
+  embed next to the player.
+- The YouTube-only capability fields `controlsPresentation`,
+  `keepsControlsVisible` and `hasNativeCaptionsMenu`, and the
+  `data-controls-presentation` attribute. Controls always draw over the media
+  and hide while playing unless `autoHideControls={false}`. A custom adapter
+  that sets these fields can simply drop them.
 
 ### Changed
 
-- Watched-range reports use the new reason `"seek"` when a seek starts
-  (instead of `"flush"`, which now only means `flushWatchedRanges()`) and
-  `"reload"` when retry or renewal reattaches the source (instead of
-  `"pause"`). If you filter by reason, handle `"seek"` where you handled
-  `"flush"`, and `"reload"` where you handled `"pause"` for recovery.
-- `controller.seekTo()` delivers the pending watched ranges before it seeks,
-  for every provider, so a rewatched stretch is reported on its own.
+- Every seek sends one analytics `seek` event, including seeks from native
+  controls and Picture-in-Picture, with `from` (where it left) and
+  `initiator` (`"controller"` or `"media"`). To count only your own seeks,
+  keep the events whose `initiator` is `"controller"`.
+- Watched ranges are delivered with the new reason `"seek"` when a seek
+  starts (instead of `"flush"`, which now only means `flushWatchedRanges()`)
+  and `"reload"` when retry or renewal reattaches the source (instead of
+  `"pause"`). `seekTo()` does this for every provider, so a rewatched stretch
+  is reported on its own. If you filter by reason, handle the two new values.
 - Progress milestones measure watched coverage (unique watched seconds over
   the duration) instead of the position, so skipping ahead no longer reports
   them. For position-based milestones, derive them from `onProgress` state.
@@ -30,29 +34,41 @@
   count `completed` once between `opened` and `closed`.
 - Resume saves are throttled to one per 2 seconds of playback; seeks, pause,
   stop, page hide and close always save, and live sources never save. For a
-  save per `timeupdate`, write from `onProgress` instead.
+  save on every `timeupdate`, write from `onProgress` instead.
+- A pause from native controls, Picture-in-Picture or the system while
+  `play()` is pending is a pause, no longer an error: `controller.play()`
+  resolves instead of rejecting when that, or your own `pause()` or `load()`,
+  interrupts it. A media failure that interrupts it still reaches
+  `state.error` and `onError`. If you relied on the rejection, watch the
+  state instead.
+- `timeupdate` also fires on the media's `progress`, `resize` and `stalled`
+  events, so the buffered amount and video size stay current; the time may
+  not have moved. Compare `currentTime` if you treat it as elapsed time.
 - The published JavaScript is readable, unminified ESM with stable chunk names
   (`dist/chunks/player.js` and friends), so you can read, debug and patch it.
-  Your bundler still minifies it; nothing changes in how you import it.
+  Your bundler still minifies it; imports are unchanged.
 
 ### Added
 
 - `controller.on(type, listener)` listens to one event type, or every event
-  with `"*"`, from the stream `onEvent` receives. Listeners are fully typed
-  (`VibePlayerEventOfType`) and `on()` returns an unsubscribe function.
+  with `"*"`, from the same stream as `onEvent`. Listeners are fully typed
+  (`VibePlayerEventType`, `VibePlayerEventOfType`) and `on()` returns an
+  unsubscribe function.
 - Watched-range reports carry a `playbackId` and a 1-based `sequence`, so you
   can drop duplicates and add up each viewing. Loading a source or replaying
   after the end starts a new playback; retry and renewal keep it.
-- The analytics `seek` event now fires once for every seek, including native
-  controls and Picture-in-Picture, with `from` (where it left) and
-  `initiator` (`"controller"` or `"media"`).
+- Errors carry a required `kind` (`VibePlayerErrorKind`): `"network"`,
+  `"decode"`, `"source"` (could not be loaded or is not supported) or
+  `"unknown"`, so you can show a friendly message without reading provider
+  details. Error objects you build yourself, such as test fixtures, need a
+  `kind` now; `"unknown"` is a safe default.
 - The resume store's `set()` receives a `VibePlayerResumeContext` with the
-  `duration` and the `reason` for the save, as an optional third argument.
+  `duration` and the `reason` for the save, as an optional third argument;
+  stores written as `set(sourceId, seconds)` keep working.
 - The built-in resume stores accept `minDurationSeconds` and
   `minPositionSeconds`; a save below them clears the entry.
-- Errors carry a `kind`: `"network"`, `"decode"`, `"source"` (could not be
-  loaded or is not supported) or `"unknown"`, so you can show a friendly
-  message without reading provider details.
+- Each published version gets a `v<version>` git tag and a GitHub release
+  with its changelog notes.
 
 ### Fixed
 
@@ -60,17 +76,16 @@
   the provider never finishes. Watched ranges follow the provider's own events;
   a direct `controller.unmount()` now reports `close`, as documented.
 - State subscribers and event listeners never miss an update: when one of them
-  changes the player, every listener still receives every state, in order.
+  changes the player, every listener still receives every state and event, in
+  order.
 - Retry, renewal, stop and remounting the same source no longer repeat the
   `closed`, `opened`, `started` and progress analytics, and `closed` is only
   reported after an `opened`.
 - A file whose every `<source>` fails now reports an error instead of
   buffering forever, and its pending `play()` settles.
-- Pausing from native controls, Picture-in-Picture or the system while
-  `play()` is pending is a pause, no longer an error.
 - An expired or forbidden file URL now triggers `renewSource`, like HLS.
-- A network stall no longer shows buffering while media plays from its buffer,
-  and the buffered amount and video size stay up to date.
+- A network stall no longer shows buffering while the media keeps playing
+  from its buffer.
 
 ## [0.7.1] - 2026-11-09
 
