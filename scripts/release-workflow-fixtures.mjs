@@ -55,6 +55,7 @@ export const tagJobKeys = [
 ];
 export const tagStep = [
   "run: |",
+  '  if [ -z "$TAG" ]; then exit 1; fi',
   '  git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"',
   '  git push origin "refs/tags/$TAG"',
 ];

@@ -142,6 +142,11 @@ jobs:
         env:
           TAG: ${{ needs.release.outputs.tag }}
         run: |
+          set -o pipefail
+          if [ -z "$TAG" ]; then
+            echo "::error::The release job reported no tag; nothing to tag."
+            exit 1
+          fi
           remote="$(git ls-remote --tags origin "refs/tags/$TAG^{}" | cut -f1)"
           if [ "$remote" = "$GITHUB_SHA" ]; then
             echo "Tag $TAG already points to the released commit."

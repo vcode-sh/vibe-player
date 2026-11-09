@@ -12,7 +12,11 @@ import {
 } from "./release-workflow-fixtures.mjs";
 
 const checkout = ["uses: actions/checkout@v7.0.1"];
-const createTag = ['run: git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"'];
+const createTag = [
+  "run: |",
+  '  if [ -z "$TAG" ]; then exit 1; fi',
+  '  git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"',
+];
 const pushTag = ['run: git push origin "refs/tags/$TAG"'];
 
 function issuesFor(tag, permissions) {
@@ -143,6 +147,8 @@ describe("collectReleaseTagWorkflowIssues", () => {
     ["a forced tag push", 'run: git push --force origin "refs/tags/$TAG"'],
     ["a forced tag push with -f", 'run: git push origin -f "refs/tags/$TAG"'],
     ["a tag deletion", 'run: git push origin --delete "refs/tags/$TAG"'],
+    ["a forced refspec", 'run: git push origin "+refs/tags/$TAG"'],
+    ["an unquoted forced refspec", "run: git push origin +refs/tags/v1"],
   ])("reports %s", (_case, line) => {
     const issues = issuesFor(
       withSteps([createTag, pushTag, [line], githubReleaseStep])
@@ -163,5 +169,68 @@ describe("collectReleaseTagWorkflowIssues", () => {
 
     expect(issues).toHaveLength(1);
     expect(issues[0]).toContain("--notes-file");
+  });
+
+  it("reports a tag created without checking for an empty TAG", () => {
+    const issues = issuesFor(
+      withSteps([
+        ['run: git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"'],
+        pushTag,
+        githubReleaseStep,
+      ])
+    );
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("empty TAG");
+  });
+
+  it("reports an empty-TAG check that runs only after tagging", () => {
+    const issues = issuesFor(
+      withSteps([
+        [
+          "run: |",
+          '  git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"',
+          '  if [ -z "$TAG" ]; then exit 1; fi',
+        ],
+        pushTag,
+        githubReleaseStep,
+      ])
+    );
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("empty TAG");
+  });
+
+  it.each([
+    ["no pipefail", []],
+    ["pipefail set after the pipe", null],
+  ])("reports a piped tag lookup with %s", (_case, before) => {
+    const lookup = '  remote="$(git ls-remote --tags origin "$TAG" | cut -f1)"';
+    const lines =
+      before === null ? [lookup, "  set -o pipefail"] : [...before, lookup];
+    const issues = issuesFor(
+      withSteps([["run: |", ...lines], createTag, pushTag, githubReleaseStep])
+    );
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("pipefail");
+  });
+
+  it("accepts a piped tag lookup after set -euo pipefail", () => {
+    const issues = issuesFor(
+      withSteps([
+        [
+          "run: |",
+          "  set -euo pipefail",
+          '  remote="$(git ls-remote --tags origin "$TAG" | cut -f1)"',
+          '  [ "$remote" = "x" ] || true',
+        ],
+        createTag,
+        pushTag,
+        githubReleaseStep,
+      ])
+    );
+
+    expect(issues).toEqual([]);
   });
 });

@@ -84,8 +84,10 @@ checks and publish 5). Its `release` job has `contents: read` and
 6. `bun run release:publish --no-git-tag` publishes the committed version.
 
 The `tag` job (`needs: release`, the only job with `contents: write`, no
-dependency code) checks out the released commit, pushes an annotated
-`v<version>` tag and runs `gh release create` with the notes file.
+dependency code) checks out the released commit, fails when the release job
+reported no tag, pushes an annotated `v<version>` tag (its tag lookup runs with
+`pipefail`, so an unreachable origin fails instead of looking untagged) and
+runs `gh release create` with the notes file.
 
 If publishing succeeded but the `tag` job failed, open that workflow run and
 use **Re-run failed jobs**. Do not dispatch Release again: the version is
@@ -94,7 +96,8 @@ already on npm, so a new run stops at step 3.
 The release-state guard enforces these permissions and the checkout setting,
 keeps steps 1-4 before `bun run ci`, keeps the browser gate between
 `bun run ci` and publishing, keeps tagging in a separate `tag` job that needs
-the release job and pushes only `refs/tags/`, and rejects an `if:` condition,
+the release job, checks for an empty tag, uses `pipefail` for piped commands
+and pushes only `refs/tags/` without a forcing `+` refspec, and rejects an `if:` condition,
 `continue-on-error` or a swallowed tag-check failure on these steps; see
 [the timing rationale](../research/playwright-release-gate.md).
 `release:publish` calls `changeset publish`, so keep `.changeset/config.json`

@@ -12,7 +12,13 @@ const TAG_PUSH_COMMAND = "git push origin";
 const RELEASE_COMMAND = "gh release create";
 const TAG_COMMANDS = [TAG_CREATE_COMMAND, TAG_PUSH_COMMAND, RELEASE_COMMAND];
 const DEPENDENCY_RUNNERS = /^(?:bun|bunx|node|npm|npx|pnpm|yarn)\b/;
-const UNSAFE_PUSH = /\s(?:--force\b|-f\b|--delete\b|-d\b|--mirror\b|--all\b)/;
+const UNSAFE_PUSH =
+  /\s(?:--force\b|-f\b|--delete\b|-d\b|--mirror\b|--all\b|["']?\+)/;
+/** `[ -z "$TAG" ]` or `test -z "$TAG"`: an empty tag stops the job. */
+const EMPTY_TAG_CHECK = /(?:\[|\btest)\s+-z\s+"?\$\{?TAG\}?"?/;
+/** A single pipe, not `||`. */
+const PIPE = /(?<!\|)\|(?!\|)/;
+const PIPEFAIL = /^set\s+-[a-z]*o\s+pipefail\b/;
 
 function collectJobIssues(tagJob, releaseJob) {
   const issues = [];
@@ -75,6 +81,7 @@ function collectCommandIssues(tagJob) {
       );
     }
   }
+  issues.push(...collectEmptyTagIssues(lines), ...collectPipeIssues(tagJob));
   const release = tagJob.steps[findWorkflowStep(tagJob.steps, RELEASE_COMMAND)];
   if (release && !release.commands.join(" ").includes("--notes-file")) {
     issues.push(
@@ -82,6 +89,38 @@ function collectCommandIssues(tagJob) {
     );
   }
   return issues;
+}
+
+/** The tag comes from the release job's output; an empty one must stop. */
+function collectEmptyTagIssues(lines) {
+  const create = lines.findIndex((line) => line.startsWith(TAG_CREATE_COMMAND));
+  // A missing tag step is reported on its own.
+  const checked =
+    create === -1 ||
+    lines.slice(0, create).some((line) => EMPTY_TAG_CHECK.test(line));
+  return checked
+    ? []
+    : [
+        `Tag job must fail on an empty TAG (for example [ -z "$TAG" ]) before "${TAG_CREATE_COMMAND}"; needs.release.outputs.tag can be empty.`,
+      ];
+}
+
+/** Without pipefail, a failed `git ls-remote | cut` looks like "no tag". */
+function collectPipeIssues(tagJob) {
+  return tagJob.steps.flatMap((step) => {
+    const pipe = step.commands.findIndex((line) => PIPE.test(line));
+    if (pipe === -1) {
+      return [];
+    }
+    const guarded = step.commands
+      .slice(0, pipe)
+      .some((line) => PIPEFAIL.test(line));
+    return guarded
+      ? []
+      : [
+          `Tag job step with a pipe ("${step.commands[pipe]}") must run "set -o pipefail" first, so a failed command is not hidden.`,
+        ];
+  });
 }
 
 /**
