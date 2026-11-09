@@ -60,7 +60,6 @@ function getServerState(): VibePlayerControllerState {
   return serverState;
 }
 
-/** Low-level binding; use `useVibePlayer` for package-managed source lifecycle. */
 /** A hidden page may never come back; deliver watched ranges while it can. */
 function useVibePlayerHiddenPageFlush(controller: VibePlayerController): void {
   useEffect(() => {
@@ -79,6 +78,7 @@ function useVibePlayerHiddenPageFlush(controller: VibePlayerController): void {
   }, [controller]);
 }
 
+/** Low-level binding; use `useVibePlayer` for package-managed source lifecycle. */
 export function useVibePlayerController(
   options: UseVibePlayerControllerOptions = {}
 ) {

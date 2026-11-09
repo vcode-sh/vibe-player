@@ -134,6 +134,8 @@ export async function handleVibePlayerControllerSeek({
   if (!isCurrent()) {
     return;
   }
+  // Keep this await directly here: state syncs in the microtask after the
+  // adapter seek settles, so a back-to-back system seek starts from it.
   try {
     await adapter.seekTo(acceptedTime);
   } catch (error) {
@@ -156,6 +158,7 @@ export async function handleVibePlayerControllerSeek({
   emitAnalytics(createSeekEvent(currentSource, from, acceptedTime, duration));
 }
 
+/** The analytics `seek` event for a controller seek. */
 function createSeekEvent(
   source: VibePlayerSource,
   from: number,

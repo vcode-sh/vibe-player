@@ -75,14 +75,7 @@ function decide(
   return audible ? "claim" : "keep";
 }
 
-/**
- * Claims when the player becomes audible (or the host marks it `active`) and
- * releases when it stops, closes, fails or the host clears `active`. A
- * player in an audio focus group (`focusGroup`) claims when it takes focus
- * instead and releases when media without a Media Session takes it. Acting
- * only on changes lets another player keep a session it took over. Retiring
- * the controller disconnects for good.
- */
+/** The audio focus owner of `focusGroup`, or none outside a group. */
 function getFocusOwner(focusGroup: string | false) {
   return focusGroup === false
     ? undefined
@@ -112,6 +105,14 @@ function createSessionEvaluator(
   };
 }
 
+/**
+ * Claims when the player becomes audible (or the host marks it `active`) and
+ * releases when it stops, closes, fails or the host clears `active`. A
+ * player in an audio focus group (`focusGroup`) claims when it takes focus
+ * instead and releases when media without a Media Session takes it. Acting
+ * only on changes lets another player keep a session it took over. Retiring
+ * the controller disconnects for good.
+ */
 export function connectVibePlayerMediaSession(
   controller: VibePlayerController,
   setting: VibePlayerMediaSessionSetting,
