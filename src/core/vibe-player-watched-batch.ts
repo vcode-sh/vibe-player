@@ -8,16 +8,24 @@ import type {
 /** A batch holds at most this many separate ranges, bounding memory. */
 const VIBE_PLAYER_WATCHED_RANGES_LIMIT = 64;
 
-/** Watched ranges not yet reported, with the source they played from. */
+/** Watched ranges not yet reported, and the playback they belong to. */
 export class VibePlayerWatchedBatch {
   /** Media duration in seconds once known, else 0. */
   duration = 0;
   source: VibePlayerSource | null = null;
+  private playbackId = "";
   private ranges: VibePlayerWatchedRange[] = [];
+  private sequence = 0;
   private readonly emit: (report: VibePlayerWatchedRangesReport) => void;
 
   constructor(emit: (report: VibePlayerWatchedRangesReport) => void) {
     this.emit = emit;
+  }
+
+  /** Later reports belong to `playbackId` and are numbered from 1. */
+  begin(playbackId: string): void {
+    this.playbackId = playbackId;
+    this.sequence = 0;
   }
 
   /** Reports the pending ranges, if any, and starts an empty batch. */
@@ -27,11 +35,14 @@ export class VibePlayerWatchedBatch {
       return;
     }
     this.ranges = [];
+    this.sequence += 1;
     this.emit({
       duration: this.duration,
+      playbackId: this.playbackId,
       provider: source.type,
       ranges,
       reason,
+      sequence: this.sequence,
       sourceId: source.id,
     });
   }

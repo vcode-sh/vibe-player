@@ -1,4 +1,5 @@
 import { VibePlayerOrderedDelivery } from "./vibe-player-ordered-delivery";
+import type { VibePlayerPlayback } from "./vibe-player-playback";
 import type {
   VibePlayerAdapterEvent,
   VibePlayerSnapshot,
@@ -9,7 +10,8 @@ import type { VibePlayerSource } from "./vibe-player-source-types";
  * Why the controller stopped listening to its adapter: the source closed or
  * changed, the media unmounted or the controller tore down (`close`);
  * playback stopped and keeps its source and position (`stop`); or the same
- * source attaches a fresh adapter, as on renewal or retry (`reload`).
+ * source attaches a fresh adapter, as on renewal or retry (`reload`). A host
+ * load of the same source also reloads, after its `playback` entry.
  */
 export type VibePlayerRawReleaseReason = "close" | "reload" | "stop";
 
@@ -47,6 +49,12 @@ export interface VibePlayerRawSeekEntry {
   target: number;
 }
 
+/** A new playback began; entries after it belong to `playback`. */
+export interface VibePlayerRawPlaybackEntry {
+  kind: "playback";
+  playback: VibePlayerPlayback;
+}
+
 /** The controller released its adapter; its later events are ignored. */
 export interface VibePlayerRawReleaseEntry {
   kind: "release";
@@ -56,6 +64,7 @@ export interface VibePlayerRawReleaseEntry {
 export type VibePlayerRawFeedEntry =
   | VibePlayerRawCommandEntry
   | VibePlayerRawEventEntry
+  | VibePlayerRawPlaybackEntry
   | VibePlayerRawReleaseEntry
   | VibePlayerRawSeekEntry;
 
@@ -72,7 +81,7 @@ export function getVibePlayerReleaseReason(
 /**
  * Internal, ordered feed of provider activity for controller-owned trackers.
  * Consumers see every adapter event of the current adapter, acknowledged
- * commands, announced seeks and every release, in order,
+ * commands, announced seeks, playback starts and every release, in order,
  * before controller state applies pending command intent.
  */
 export class VibePlayerRawFeed {
@@ -99,6 +108,10 @@ export class VibePlayerRawFeed {
 
   event(event: VibePlayerAdapterEvent, source: VibePlayerSource): void {
     this.delivery.publish({ event, kind: "event", source });
+  }
+
+  playback(playback: VibePlayerPlayback): void {
+    this.delivery.publish({ kind: "playback", playback });
   }
 
   release(reason: VibePlayerRawReleaseReason): void {

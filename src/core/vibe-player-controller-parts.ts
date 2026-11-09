@@ -2,6 +2,7 @@ import { VibePlayerControllerActions } from "./vibe-player-controller-actions";
 import { dispatchVibePlayerAdapterEvent } from "./vibe-player-controller-dispatch";
 import { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
 import { VibePlayerControllerRuntime } from "./vibe-player-controller-runtime";
+import { VibePlayerPlaybackLifecycle } from "./vibe-player-playback";
 import {
   createVibePlayerPosterRenewal,
   type VibePlayerPosterRenewal,
@@ -17,6 +18,8 @@ export interface VibePlayerControllerParts {
   actions: VibePlayerControllerActions;
   feed: VibePlayerRawFeed;
   observers: VibePlayerControllerObservers;
+  /** Publishes every playback start on the raw feed. */
+  playback: VibePlayerPlaybackLifecycle;
   poster: VibePlayerPosterRenewal;
   runtime: VibePlayerControllerRuntime;
   session: VibePlayerSourceSession;
@@ -36,6 +39,9 @@ export function createVibePlayerControllerParts(
     actions,
     feed,
     observers,
+    playback: new VibePlayerPlaybackLifecycle((playback) =>
+      feed.playback(playback)
+    ),
     poster: createPoster(options, observers, runtime, session),
     runtime,
     session,

@@ -37,10 +37,21 @@ export type VibePlayerWatchedRangesReason =
 export interface VibePlayerWatchedRangesReport {
   /** Media duration in seconds when known, else 0. */
   duration: number;
+  /**
+   * Identifies one playback, unique within the page. Loading a source (even
+   * the same one again) and playing again after `ended` start a new
+   * playback; pause, seek, stop, retry and renewal keep it.
+   */
+  playbackId: string;
   provider: VibePlayerSource["type"];
   /** Sorted, merged and non-overlapping; never empty. */
   ranges: readonly VibePlayerWatchedRange[];
   reason: VibePlayerWatchedRangesReason;
+  /**
+   * 1-based and increasing per report within a playback, so a host can drop
+   * a duplicate `playbackId` + `sequence` and order what it received.
+   */
+  sequence: number;
   sourceId: string;
 }
 
@@ -91,6 +102,11 @@ export class VibePlayerWatchedRangesTracker {
       this.observePause(entry.source, entry.snapshot);
     } else if (entry.kind === "seek") {
       this.boundary(entry.source, entry.snapshot, "seek");
+    } else if (entry.kind === "playback") {
+      // Ranges never span playbacks: the old one closes with its batch.
+      this.last = null;
+      this.flush("close");
+      this.batch.begin(entry.playback.id);
     } else if (entry.kind === "event") {
       this.observeEvent(entry.source, entry.event);
     }

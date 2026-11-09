@@ -6,6 +6,7 @@ import type {
   VibePlayerEventOfType,
   VibePlayerEventType,
 } from "./vibe-player-host-events";
+import type { VibePlayerPlaybackLifecycle } from "./vibe-player-playback";
 import type { VibePlayerPosterRenewal } from "./vibe-player-poster-renewal";
 import type { VibePlayerSourceSession } from "./vibe-player-source-session";
 import type {
@@ -22,6 +23,7 @@ export class VibePlayerController {
   private readonly actions: VibePlayerControllerActions;
   private readonly session: VibePlayerSourceSession;
   private readonly runtime: VibePlayerControllerRuntime;
+  private readonly playback: VibePlayerPlaybackLifecycle;
   private readonly poster: VibePlayerPosterRenewal;
   private readonly watched: VibePlayerWatchedRangesTracker | null;
 
@@ -32,6 +34,7 @@ export class VibePlayerController {
     this.actions = parts.actions;
     this.session = parts.session;
     this.runtime = parts.runtime;
+    this.playback = parts.playback;
     this.poster = parts.poster;
     this.watched = parts.watched;
   }
@@ -71,12 +74,16 @@ export class VibePlayerController {
     return this.runtime.unmount();
   }
 
-  /** Loads `source`. Manual controllers stay eager; inline assemblies select onPlay. */
+  /**
+   * Loads `source` and starts a new playback, even for the same source.
+   * Manual controllers stay eager; inline assemblies select onPlay.
+   */
   load(
     source: VibePlayerSource,
     mode: VibePlayerLoadMode = "eager"
   ): Promise<void> {
     this.poster.reset();
+    this.playback.load(source);
     return this.session.load(source, mode);
   }
   /** Creates and attaches the playback engine of a lazily loaded source. */

@@ -19,9 +19,11 @@ describe("VibePlayerController watched ranges", () => {
     expect(reports).toEqual([
       {
         duration: 100,
+        playbackId: expect.any(String),
         provider: "file",
         ranges: [{ end: 20, start: 10 }],
         reason: "pause",
+        sequence: 1,
         sourceId: "video-1",
       },
     ]);
