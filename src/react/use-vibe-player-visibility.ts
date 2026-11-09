@@ -5,6 +5,10 @@ import type {
   VibePlayerSource,
 } from "../core/vibe-player-types";
 import { startVibePlayerAutoplay } from "./vibe-player-autoplay";
+import {
+  isVibePlayerParked,
+  onVibePlayerUnparked,
+} from "./vibe-player-parking";
 import { observeVibePlayerIntersection } from "./vibe-player-shared-intersection";
 
 /** Optional lifecycle policies for surfaces containing many players. */
@@ -46,6 +50,47 @@ function releaseActivePlayer(controller: VibePlayerController): void {
   ) {
     controller.stop().catch(() => undefined);
   }
+}
+
+/**
+ * Reports whether `target` is visible. A detached player parked by its host
+ * frame is undecided (`null`), never offscreen, so parking does not stop
+ * it; once a host shows it again, observation restarts with a fresh entry.
+ */
+function observeVisibility(
+  target: HTMLElement,
+  threshold: number,
+  onChange: (visible: boolean | null) => void
+): () => void {
+  let unobserve: () => void = () => undefined;
+  let unwatch: (() => void) | null = null;
+  const onUnparked = () => {
+    if (!isVibePlayerParked(target)) {
+      unwatch?.();
+      unwatch = null;
+      observe();
+    }
+  };
+  const observe = () => {
+    unobserve();
+    unobserve = observeVibePlayerIntersection(target, threshold, (entry) => {
+      const visible =
+        entry.isIntersecting &&
+        entry.intersectionRatio > 0 &&
+        entry.intersectionRatio >= threshold;
+      if (!visible && isVibePlayerParked(target)) {
+        unwatch ??= onVibePlayerUnparked(onUnparked);
+        onChange(null);
+        return;
+      }
+      onChange(visible);
+    });
+  };
+  observe();
+  return () => {
+    unobserve();
+    unwatch?.();
+  };
 }
 
 function getVisibilityThreshold(value: number): number {
@@ -126,26 +171,17 @@ export function useVibePlayerVisibility({
         controller.activate().catch(() => undefined);
       }
     };
-    const unobserve = observeVibePlayerIntersection(
-      target,
-      threshold,
-      (entry) => {
-        if (!current) {
-          return;
-        }
-        visible =
-          entry.isIntersecting &&
-          entry.intersectionRatio > 0 &&
-          entry.intersectionRatio >= threshold;
-        if (!visible) {
-          if (stopWhenOffscreen) {
-            releaseActivePlayer(controller);
-          }
-          return;
-        }
+    const unobserve = observeVisibility(target, threshold, (next) => {
+      if (!current) {
+        return;
+      }
+      visible = next;
+      if (next === false && stopWhenOffscreen) {
+        releaseActivePlayer(controller);
+      } else if (next) {
         onVisible();
       }
-    );
+    });
     // Leaving Picture-in-Picture while offscreen applies the deferred release.
     const unsubscribe = stopWhenOffscreen
       ? controller.subscribe(() => {

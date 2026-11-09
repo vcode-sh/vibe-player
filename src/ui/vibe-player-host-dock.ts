@@ -1,28 +1,39 @@
-const parkingClass = "vibe-player-parking";
+import {
+  notifyVibePlayerUnparked,
+  vibePlayerParkingClass,
+} from "../react/vibe-player-parking";
 
-/** One hidden, inert root per page holds frames while no host shows them. */
-let parkingRoot: HTMLElement | null = null;
+/** One hidden, inert root per document holds frames no host shows. */
+const parkingRoots = new WeakMap<Document, HTMLElement>();
+
+function isParkingRoot(element: Element | null): boolean {
+  return (
+    element !== null && parkingRoots.get(element.ownerDocument) === element
+  );
+}
 
 function getParkingRoot(document: Document): HTMLElement {
-  if (parkingRoot?.isConnected && parkingRoot.ownerDocument === document) {
-    return parkingRoot;
+  const existing = parkingRoots.get(document);
+  if (existing?.isConnected) {
+    return existing;
   }
   const root = document.createElement("div");
-  root.className = parkingClass;
+  root.className = vibePlayerParkingClass;
   root.inert = true;
   root.setAttribute("aria-hidden", "true");
   // Off-screen rather than `display: none`, so media keeps decoding.
   root.style.cssText =
     "position:fixed;left:-10000px;top:0;width:1px;height:1px;overflow:hidden;pointer-events:none";
   document.body.append(root);
-  parkingRoot = root;
+  parkingRoots.set(document, root);
   return root;
 }
 
-function releaseParkingRoot(): void {
-  if (parkingRoot && parkingRoot.childElementCount === 0) {
-    parkingRoot.remove();
-    parkingRoot = null;
+/** Removes the now empty root `element` belonged to, if it was one. */
+function releaseParkingRoot(element: Element | null): void {
+  if (element && isParkingRoot(element) && element.childElementCount === 0) {
+    element.remove();
+    parkingRoots.delete(element.ownerDocument);
   }
 }
 
@@ -53,7 +64,9 @@ function moveFrame(frame: HTMLElement, host: HTMLElement): void {
 /**
  * Media the viewer left playing. Engines pause media that stays out of the
  * page past a microtask; a `pause` while detached is such an interruption,
- * so the media stays listed for `resume()`.
+ * so the media stays listed for `resume()`. Parking normally reconnects the
+ * frame before engines pause, so this is a fallback. A resume the browser
+ * refuses drops the media, so nothing retries it later.
  */
 class PlayingMedia {
   private readonly playing = new Set<HTMLMediaElement>();
@@ -76,7 +89,7 @@ class PlayingMedia {
       if (!frame.contains(media)) {
         this.playing.delete(media);
       } else if (media.isConnected && media.paused && !media.ended) {
-        media.play().catch(() => undefined);
+        media.play().catch(() => this.playing.delete(media));
       }
     }
   }
@@ -115,20 +128,27 @@ export class VibePlayerHostDock {
     this.observer.disconnect();
     this.frame.removeEventListener("play", this.media.onPlay, true);
     this.frame.removeEventListener("pause", this.media.onPause, true);
+    const parent = this.frame.parentElement;
     this.frame.remove();
-    releaseParkingRoot();
+    releaseParkingRoot(parent);
   }
 
+  /** Media resumes only when the frame actually moved, never per mutation. */
   private place(): void {
     const { frame, host } = this;
+    const from = frame.parentElement;
     if (host?.isConnected) {
       moveFrame(frame, host);
     } else if (!frame.isConnected) {
       moveFrame(frame, getParkingRoot(frame.ownerDocument));
     }
-    if (frame.parentElement !== parkingRoot) {
-      releaseParkingRoot();
+    if (frame.parentElement === from) {
+      return;
     }
+    releaseParkingRoot(from);
     this.media.resume(frame);
+    if (isParkingRoot(from)) {
+      notifyVibePlayerUnparked();
+    }
   }
 }

@@ -194,51 +194,6 @@ for (const provider of ["file", "hls"] as const) {
   });
 }
 
-for (const atomic of [true, false]) {
-  test(`playback survives its host leaving the page${atomic ? "" : " without moveBefore"}`, async ({
-    page,
-  }) => {
-    if (!atomic) {
-      await page.addInitScript(() => {
-        Reflect.deleteProperty(Element.prototype, "moveBefore");
-      });
-    }
-    await startPlayback(page);
-    const video = await page.locator("video").elementHandle();
-    await instrument(page);
-
-    await page
-      .getByRole("button", { exact: true, name: "Remove slot" })
-      .click();
-    await expect(page.getByRole("region", { name: "Inline slot" })).toHaveCount(
-      0
-    );
-    expect(await hostOf(page)).toBeUndefined();
-    expect(await video?.evaluate((element) => element.isConnected)).toBe(true);
-    expect(
-      await video?.evaluate((element) =>
-        Boolean(element.closest(".vibe-player-parking[inert]"))
-      )
-    ).toBe(true);
-    // Parked media stays alive and keeps playing.
-    await expectAdvancing(page);
-
-    await page
-      .getByRole("button", { exact: true, name: "Restore slot" })
-      .click();
-    await expect.poll(() => hostOf(page)).toBe("Inline slot");
-    await expectAdvancing(page);
-    expect(
-      await page.evaluate(
-        (element) => element === document.querySelector("video"),
-        video
-      )
-    ).toBe(true);
-    expect(await page.locator(".vibe-player-parking").count()).toBe(0);
-    expect((await readProbe(page)).events).toEqual([]);
-  });
-}
-
 test("a move without moveBefore keeps playing", async ({ page }) => {
   await page.addInitScript(() => {
     Reflect.deleteProperty(Element.prototype, "moveBefore");

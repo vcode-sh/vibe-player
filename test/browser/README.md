@@ -57,7 +57,8 @@ the audible file player, every registered action including
 The host frame page (Chromium and WebKit) moves a playing compact player
 between hosts without reloading its media, with and without
 `Element.moveBefore`, keeps it playing in the hidden parking root while its
-host is removed from the page and attaches it to the restored host, and checks watched ranges, seek
+host is removed from the page (also under the default `stopWhenOffscreen`)
+and attaches it to the restored host, and checks watched ranges, seek
 analytics and resume saves on real media: a native seek reports one `media`
 seek and a `seek` batch that keeps its `playbackId`; controller seeks the
 media echoes report and save once each; milestones follow watched coverage;

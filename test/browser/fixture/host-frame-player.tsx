@@ -98,7 +98,9 @@ function App() {
         resumeStore={resumeStore}
         skin={skin}
         source={source}
-        stopWhenOffscreen={false}
+        stopWhenOffscreen={
+          query.get("offscreen") === "default" ? undefined : false
+        }
         timelineBackground={() => <VibePlayerHeatmap values={heatmap} />}
       />
       <output aria-label="Watched ranges">
