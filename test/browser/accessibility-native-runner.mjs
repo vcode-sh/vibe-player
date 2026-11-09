@@ -86,10 +86,11 @@ async function verifyCaptionRetry(page, dialog) {
 }
 
 async function verifyFullscreen(page, dialog) {
+  const beforeFocus = readSpeech().length;
   await dialog
     .getByRole("button", { exact: true, name: "Full screen" })
     .focus();
-  await waitForSpeech("Full screen");
+  await waitForSpeechLine((line) => line.includes("Full screen"), beforeFocus);
   // Only speech after the key press counts: focusing already said the name.
   const beforeToggle = readSpeech().length;
   pressNativeKey("Return");
@@ -99,8 +100,8 @@ async function verifyFullscreen(page, dialog) {
   await expect(
     dialog.getByRole("button", { name: "Full screen", pressed: true })
   ).toBeVisible();
-  // The toggle keeps its name; the screen reader reports the pressed state.
-  await waitForSpeechLine((line) => line.includes("Full screen"), beforeToggle);
+  // The toggle keeps its name, spoken on focus above. On the state change
+  // Orca 50 says only "pressed", so new speech must report that state.
   await waitForSpeechLine(
     (line) => line.includes("pressed") && !line.includes("not pressed"),
     beforeToggle
