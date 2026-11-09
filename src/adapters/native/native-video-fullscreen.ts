@@ -134,13 +134,35 @@ export class NativeVideoFullscreen {
   }
 
   private releaseVideo(video: HTMLVideoElement | null): void {
-    const owner = video && owners.get(video);
-    if (
-      video &&
-      (!owner || owner === this) &&
-      isDisplayingVideoFullscreen(video)
-    ) {
+    if (video && this.mayRelease(video) && isDisplayingVideoFullscreen(video)) {
       asWebKitVideo(video).webkitExitFullscreen?.();
+      if (isDisplayingVideoFullscreen(video)) {
+        this.retryReleaseOnce(video);
+      }
+    }
+  }
+
+  private mayRelease(video: HTMLVideoElement): boolean {
+    const owner = owners.get(video);
+    return !owner || owner === this;
+  }
+
+  /**
+   * WebKit ignores an exit during its enter transition. The next fullscreen
+   * event retries once, unless the exit took effect or the video has a new
+   * owner by then.
+   */
+  private retryReleaseOnce(video: HTMLVideoElement): void {
+    const retry = (): void => {
+      for (const event of videoFullscreenEvents) {
+        video.removeEventListener(event, retry);
+      }
+      if (this.mayRelease(video) && isDisplayingVideoFullscreen(video)) {
+        asWebKitVideo(video).webkitExitFullscreen?.();
+      }
+    };
+    for (const event of videoFullscreenEvents) {
+      video.addEventListener(event, retry);
     }
   }
 

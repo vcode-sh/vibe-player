@@ -141,6 +141,52 @@ describe("native video fullscreen fallback", () => {
     expect(events).toEqual([]);
   });
 
+  it("retries once when unmount lands during the enter transition", async () => {
+    const { adapter, platform, video } = await createPlayer();
+    platform.display(true);
+    // The fake platform ignores the exit, as WebKit does mid-transition.
+
+    await adapter.unmount();
+    expect(platform.exit).toHaveBeenCalledOnce();
+    video.dispatchEvent(new Event("webkitbeginfullscreen"));
+    expect(platform.exit).toHaveBeenCalledTimes(2);
+    video.dispatchEvent(new Event("fullscreenchange"));
+
+    expect(platform.exit).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry the exit once another presentation claimed the video", async () => {
+    const previous = adapterScope.track(
+      new NativeVideoPresentation(() => undefined)
+    );
+    const current = adapterScope.track(
+      new NativeVideoPresentation(() => undefined)
+    );
+    const target = document.createElement("div");
+    const video = document.createElement("video");
+    const platform = installVideoFullscreen(video);
+    previous.mount(video, target);
+    platform.display(true);
+
+    await previous.unmount();
+    current.mount(video, target);
+    video.dispatchEvent(new Event("webkitbeginfullscreen"));
+
+    expect(platform.exit).toHaveBeenCalledOnce();
+    expect(current.getSnapshot().isFullscreen).toBe(true);
+  });
+
+  it("does not retry an exit the platform completed", async () => {
+    const { adapter, platform, video } = await createPlayer();
+    platform.display(true);
+
+    await adapter.unmount();
+    platform.display(false);
+    video.dispatchEvent(new Event("webkitbeginfullscreen"));
+
+    expect(platform.exit).toHaveBeenCalledOnce();
+  });
+
   it("leaves a video's fullscreen alone after another presentation claimed it", async () => {
     const previous = adapterScope.track(
       new NativeVideoPresentation(() => undefined)
