@@ -92,9 +92,12 @@ describe("managed HLS decode failures reported by the media element", () => {
   it("fails on the third decode failure in a row, like an hls.js media error", async () => {
     const player = await loadPlayingManagedHls();
 
-    player.failElement(3);
-    player.failElement(3);
-    player.failElement(3);
+    for (const attempt of [1, 2, 3]) {
+      if (attempt > 1) {
+        player.engine.emit(HlsEngineProbe.Events.MEDIA_ATTACHED);
+      }
+      player.failElement(3);
+    }
 
     expect(player.engine.recoveries).toEqual([
       "recoverMediaError",
@@ -109,6 +112,30 @@ describe("managed HLS decode failures reported by the media element", () => {
     expect(player.controller.getState().error).toMatchObject({
       kind: "decode",
     });
+  });
+
+  it("counts the element and hls.js reports of one append failure as one fault", async () => {
+    const player = await loadPlayingManagedHls();
+
+    player.failElement(3);
+    player.engine.emit(HlsEngineProbe.Events.ERROR, {
+      details: "bufferAppendError",
+      error: new Error("Append failed."),
+      fatal: true,
+      type: "mediaError",
+    });
+    expect(player.engine.recoveries).toEqual(["recoverMediaError"]);
+    expect(player.controller.getState().error).toBeNull();
+    player.engine.emit(HlsEngineProbe.Events.MEDIA_ATTACHED);
+    player.failElement(3);
+
+    // A separate fault soon after still takes the next step.
+    expect(player.engine.recoveries).toEqual([
+      "recoverMediaError",
+      "swapAudioCodec",
+      "recoverMediaError",
+    ]);
+    expect(player.controller.getState().error).toBeNull();
   });
 
   it("keeps an element network failure terminal", async () => {

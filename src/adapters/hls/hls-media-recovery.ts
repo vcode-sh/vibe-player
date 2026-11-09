@@ -4,6 +4,12 @@ import type { ManagedHlsSession } from "./hls-runtime-types";
 
 /** Fatal media errors this close together escalate the recovery. */
 const escalationWindowMs = 3000;
+/**
+ * One append failure can be reported twice (the element's decode error and
+ * hls.js's own); a report this soon, before the media reattached, is the same
+ * fault. The bound keeps a reattach that never completes from absorbing more.
+ */
+const sameFaultWindowMs = 1000;
 /** A stream that needs more recoveries than this per minute is failing. */
 const recoveryBudget = 4;
 const budgetWindowMs = 60_000;
@@ -44,12 +50,16 @@ export class ManagedHlsMediaRecovery {
   }
 
   /**
-   * Takes the next step of the ladder for a media failure; returns false
-   * when the failure is terminal.
+   * Takes the next step of the ladder for a media failure, or none for a
+   * repeated report of the fault being recovered; returns false when the
+   * failure is terminal.
    */
   attempt(): boolean {
     const now = Date.now();
     const last = this.attempts.at(-1) ?? Number.NEGATIVE_INFINITY;
+    if (this.reattaching && now - last <= sameFaultWindowMs) {
+      return true;
+    }
     const step = now - last <= escalationWindowMs ? this.escalation + 1 : 1;
     const recent = this.attempts.filter((at) => now - at < budgetWindowMs);
     if (step > 2 || recent.length >= recoveryBudget) {

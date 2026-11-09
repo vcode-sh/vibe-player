@@ -141,26 +141,68 @@ describe("managed HLS media error recovery", () => {
   });
 
   it("drops a pending resume when a later error is terminal", () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    const resume = vi.fn();
-    const engine = new HlsEngineProbe({});
-    const recovery = new ManagedHlsMediaRecovery(engine as unknown as Hls, {
-      ...createProbeHlsSession(),
-      onMediaRecovery: () => resume,
-    });
-    const failure = {
-      details: "bufferAppendError",
-      fatal: true,
-      type: "mediaError",
-    } as ErrorData;
+    const { engine, recovery, resume } = createRecovery();
 
-    expect([1, 2, 3].map(() => recovery.recover(failure))).toEqual([
-      true,
-      true,
-      false,
+    expect(
+      [1, 2, 3].map(() => {
+        const recovered = recovery.recover(mediaFailure);
+        vi.advanceTimersByTime(1500);
+        return recovered;
+      })
+    ).toEqual([true, true, false]);
+    expect(engine.recoveries).toEqual([
+      "recoverMediaError",
+      "swapAudioCodec",
+      "recoverMediaError",
     ]);
     // hls.js still reports the pending reattach; it must not reload the source.
     expect(recovery.mediaAttached()).toBe(true);
     expect(resume).not.toHaveBeenCalled();
   });
+
+  it("absorbs a second report of the same fault while the media reattaches", () => {
+    const { engine, recovery } = createRecovery();
+
+    expect(recovery.recover(mediaFailure)).toBe(true);
+    vi.advanceTimersByTime(200);
+    expect(recovery.attempt()).toBe(true);
+
+    expect(engine.recoveries).toEqual(["recoverMediaError"]);
+  });
+
+  it("does not let a stuck reattach absorb failures forever", () => {
+    const { engine, recovery } = createRecovery();
+
+    recovery.recover(mediaFailure);
+    vi.advanceTimersByTime(500);
+    recovery.recover(mediaFailure);
+    vi.advanceTimersByTime(1500);
+    expect(recovery.recover(mediaFailure)).toBe(true);
+    vi.advanceTimersByTime(1500);
+
+    expect(recovery.recover(mediaFailure)).toBe(false);
+    expect(engine.recoveries).toEqual([
+      "recoverMediaError",
+      "swapAudioCodec",
+      "recoverMediaError",
+    ]);
+  });
 });
+
+const mediaFailure = {
+  details: "bufferAppendError",
+  fatal: true,
+  type: "mediaError",
+} as ErrorData;
+
+function createRecovery() {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(50_000);
+  const resume = vi.fn();
+  const engine = new HlsEngineProbe({});
+  const recovery = new ManagedHlsMediaRecovery(engine as unknown as Hls, {
+    ...createProbeHlsSession(),
+    onMediaRecovery: () => resume,
+  });
+  return { engine, recovery, resume };
+}

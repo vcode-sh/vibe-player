@@ -74,6 +74,7 @@ describe("playback across hls.js media recovery", () => {
     controllers.clear();
     HlsEngineProbe.instances.length = 0;
     document.body.replaceChildren();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -111,9 +112,13 @@ describe("playback across hls.js media recovery", () => {
 
   it("does not resume media whose recovery ended in a terminal error", async () => {
     const player = await loadPlayingManagedHls();
-    player.failMedia();
-    player.failMedia();
-    player.failMedia();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(50_000);
+    for (const _attempt of [1, 2, 3]) {
+      // Distinct faults while the reattach is still pending.
+      player.failMedia();
+      vi.advanceTimersByTime(1500);
+    }
     expect(player.controller.getState().error).toMatchObject({
       kind: "decode",
     });

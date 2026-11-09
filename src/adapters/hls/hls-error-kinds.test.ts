@@ -71,6 +71,10 @@ describe("managed HLS error categories", () => {
     async ({ attempts = 1, details, kind, status, type }) => {
       const controller = await loadManagedHls();
       for (let attempt = 0; attempt < attempts; attempt += 1) {
+        if (attempt > 0) {
+          // Each recovery reattaches before the next fault arrives.
+          getLatestHlsEngine().emit(HlsEngineProbe.Events.MEDIA_ATTACHED);
+        }
         getLatestHlsEngine().emit(HlsEngineProbe.Events.ERROR, {
           details,
           error: new Error(details),
