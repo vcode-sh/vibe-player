@@ -67,10 +67,13 @@ export function Viewer() {
   keys.
 - **Detached hosts:** `host` (or `VibePlayerHostFrame`) moves one playing
   player into a mini player or dock without restarting it.
+- **Events:** a lossless, ordered and typed event stream through `onEvent` or
+  `controller.on("seeked", listener)`; every seek is reported once, whoever
+  started it.
 - **Watched ranges:** opt-in `onWatchedRanges` reports what actually played,
-  with a `playbackId` and `sequence` for deduplication.
-- **Events:** an ordered, typed event stream through `onEvent` or
-  `controller.on("seeked", listener)`.
+  split at every seek, with a `playbackId` and `sequence` for deduplication.
+- **Errors:** every error has a `kind` (`network`, `decode`, `source`,
+  `unknown`), so you can show a friendly message.
 - **Audio and visibility:** `audioFocus` groups, lazy `load` policies, and
   release when hidden or offscreen.
 - **Theming:** scoped CSS variables, including compact sizing variables
@@ -80,6 +83,8 @@ export function Viewer() {
   default, and reduced-motion support.
 - **Media audit CLI:** `vibe-player-media-audit` checks MP4 range delivery,
   faststart, CORS and size.
+- **Readable output:** unminified ESM with stable chunk names, so you can read
+  and debug what ships; your bundler still minifies it.
 
 ## Documentation
 
