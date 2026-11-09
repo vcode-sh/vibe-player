@@ -111,7 +111,10 @@ export class VibePlayerRawFeed {
    * `budget` is the controller's shared delivery bound; `onRunaway` reports
    * observers that kept the feed busy until it cut them off.
    */
-  constructor(budget?: VibePlayerDeliveryBudget, onRunaway?: () => void) {
+  constructor(
+    budget?: VibePlayerDeliveryBudget,
+    onRunaway?: (first: boolean) => void
+  ) {
     this.delivery = new VibePlayerOrderedDelivery(
       (entry) => {
         for (const consumer of this.consumers) {

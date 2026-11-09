@@ -4,6 +4,14 @@ import {
   type VibePlayerOverflowHandlers,
 } from "./vibe-player-delivery-budget";
 
+/** How one ordered delivery is bounded. */
+export interface VibePlayerOrderedDeliveryOptions<T> {
+  /** Values delivered past the limit and while settling, never dropped. */
+  always?: (value: T) => boolean;
+  /** Values this delivery may deliver within one outer delivery. */
+  limit?: number;
+}
+
 /**
  * Delivers published values one at a time and in publish order. A value
  * published while a delivery runs (for example by an observer that changes
@@ -13,14 +21,6 @@ import {
  * remaining values are dropped and the overflow handlers settle and report
  * it, so a feedback loop never hangs the page.
  */
-/** How one ordered delivery is bounded. */
-export interface VibePlayerOrderedDeliveryOptions<T> {
-  /** Values delivered past the limit and while settling, never dropped. */
-  always?: (value: T) => boolean;
-  /** Values this delivery may deliver within one outer delivery. */
-  limit?: number;
-}
-
 export class VibePlayerOrderedDelivery<T extends object> {
   private draining = false;
   private readonly queue: T[] = [];

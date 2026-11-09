@@ -82,11 +82,30 @@ export class VibePlayerIntegrationReporter {
     }
   }
 
+  /**
+   * Returns a reporter for a failure that surfaces later, bound to the source
+   * and session current now: it reports nothing for a null source or once
+   * the source or session changed.
+   */
+  reportLater(
+    operation: string,
+    source: VibePlayerSource | null
+  ): (cause: unknown) => void {
+    const { reporting, session } = this;
+    return (cause) => {
+      if (source && !reporting) {
+        this.report(operation, cause, source, session);
+      }
+    };
+  }
+
+  /** `details` adds fields next to `operation` in the error details. */
   report(
     operation: string,
     cause: unknown,
     source = this.host.source(),
-    session = this.session
+    session = this.session,
+    details: Record<string, boolean> = {}
   ): void {
     if (
       this.reporting ||
@@ -98,7 +117,7 @@ export class VibePlayerIntegrationReporter {
     }
     const error = createVibePlayerError({
       cause,
-      details: { operation },
+      details: { ...details, operation },
       phase: "integration",
       source,
     });

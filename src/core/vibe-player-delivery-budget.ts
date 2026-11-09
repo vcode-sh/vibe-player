@@ -5,9 +5,10 @@ export const VIBE_PLAYER_DELIVERY_LIMIT = 1000;
 export interface VibePlayerOverflowHandlers {
   /**
    * Reports the runaway once the outer delivery ended, settling finished
-   * and the counts reset. Every delivery that overflowed reports once.
+   * and the counts reset. Every delivery that overflowed reports once;
+   * `first` is true for the one that reached its limit first.
    */
-  report?: () => void;
+  report?: (first: boolean) => void;
   /**
    * Runs before the counts reset, while this delivery drops what is
    * published to it, so it can bring its own observers up to date without
@@ -72,8 +73,8 @@ export class VibePlayerDeliveryBudget {
     } finally {
       this.spent.clear();
     }
-    for (const handlers of overflows) {
-      handlers.report?.();
+    for (const [index, handlers] of overflows.entries()) {
+      handlers.report?.(index === 0);
     }
   }
 

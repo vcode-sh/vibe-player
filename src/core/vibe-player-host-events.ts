@@ -17,6 +17,12 @@ export interface VibePlayerRenewEvent {
   type: "renew";
 }
 
+/**
+ * Host code failed without stopping playback. `error.details.operation` names
+ * the integration. When several deliveries were cut off as a runaway in one
+ * cascade, the report of the one that reached its limit first also carries
+ * `error.details.first: true`.
+ */
 export interface VibePlayerIntegrationEvent {
   error: VibePlayerError;
   source: VibePlayerSource;

@@ -1,6 +1,11 @@
 import { createInitialControllerState } from "./vibe-player-controller-state";
 import { VibePlayerDeliveryBudget } from "./vibe-player-delivery-budget";
 import { VibePlayerEventListeners } from "./vibe-player-event-listeners";
+import {
+  VibePlayerHostCallbacks,
+  type VibePlayerHostRun,
+  wrapVibePlayerResumeStore,
+} from "./vibe-player-host-callbacks";
 import type {
   VibePlayerEvent,
   VibePlayerEventOfType,
@@ -11,7 +16,7 @@ import {
   VibePlayerIntegrationReporter,
 } from "./vibe-player-integration-reporter";
 import { VibePlayerOrderedDelivery } from "./vibe-player-ordered-delivery";
-import { VibePlayerStateListeners } from "./vibe-player-state-listeners";
+import { VibePlayerStateDelivery } from "./vibe-player-state-delivery";
 import type {
   VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
@@ -23,11 +28,6 @@ import type {
 } from "./vibe-player-types";
 import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
 
-interface SettleFailure {
-  cause: unknown;
-  source: VibePlayerSource | null;
-}
-
 const runawayMessage =
   "Observers kept changing the player while being notified; the remaining notifications were dropped.";
 
@@ -35,34 +35,35 @@ const runawayMessage =
 export class VibePlayerControllerObservers {
   /** Shared by every ordered delivery of this controller, the raw feed too. */
   readonly deliveryBudget = new VibePlayerDeliveryBudget();
-  private readonly listeners =
-    new VibePlayerStateListeners<VibePlayerControllerState>();
   private readonly eventListeners = new VibePlayerEventListeners();
-  private lastProgressAt = Number.NEGATIVE_INFINITY;
-  /** Subscriber throws while settling, reported once settling ended. */
-  private settleFailures: SettleFailure[] = [];
   private readonly options: VibePlayerControllerOptions;
   private currentState = createInitialControllerState();
   private readonly reporter = new VibePlayerIntegrationReporter({
     emit: (event) => this.emitEvent(event),
     source: () => this.currentState.currentSource,
   });
-  private readonly states = new VibePlayerOrderedDelivery(
-    (state: VibePlayerControllerState) => this.deliverState(state),
-    {
-      report: () => this.reportStateOverflow(),
-      settle: () => this.settleStates(),
-    },
-    this.deliveryBudget
-  );
+  private readonly states = new VibePlayerStateDelivery({
+    budget: this.deliveryBudget,
+    latest: () => this.currentState,
+    reporter: this.reporter,
+    reportRunaway: (first) => this.reportRunaway("state-listener", first),
+  });
   private readonly events = new VibePlayerOrderedDelivery(
     (event: VibePlayerEvent) => this.deliverEvent(event),
-    { report: () => this.reportRunaway("event") },
+    { report: (first) => this.reportRunaway("event", first) },
     this.deliveryBudget
   );
 
+  private readonly hostRun: VibePlayerHostRun = (
+    operation,
+    execute,
+    fallback
+  ) => this.run(operation, execute, fallback);
+  private readonly callbacks: VibePlayerHostCallbacks;
+
   constructor(options: VibePlayerControllerOptions) {
     this.options = options;
+    this.callbacks = new VibePlayerHostCallbacks(options, this.hostRun);
   }
 
   get state(): VibePlayerControllerState {
@@ -71,7 +72,7 @@ export class VibePlayerControllerObservers {
 
   beginSession(): void {
     this.reporter.beginSession();
-    this.lastProgressAt = Number.NEGATIVE_INFINITY;
+    this.callbacks.reset();
   }
 
   /** Events published while observers run are queued, never reordered. */
@@ -98,21 +99,7 @@ export class VibePlayerControllerObservers {
     if (state !== this.currentState || !isCurrent()) {
       return;
     }
-    if (event.type === "play") {
-      this.run("onPlay", () => this.options.onPlay?.(state));
-    } else if (event.type === "pause") {
-      this.run("onPause", () => this.options.onPause?.(state));
-    } else if (event.type === "ended") {
-      this.run("onEnded", () => this.options.onEnded?.(state));
-    } else if (event.type === "qualitychange") {
-      this.run("onQualityChange", () => this.options.onQualityChange?.(state));
-    } else if (
-      event.type === "timeupdate" &&
-      Date.now() - this.lastProgressAt >= 250
-    ) {
-      this.lastProgressAt = Date.now();
-      this.run("onProgress", () => this.options.onProgress?.(state));
-    }
+    this.callbacks.afterEvent(event.type, state);
   }
 
   renewed(
@@ -152,18 +139,24 @@ export class VibePlayerControllerObservers {
   }
 
   subscribe(listener: (state: VibePlayerControllerState) => void): () => void {
-    return this.listeners.add(listener);
-  }
-
-  /** Observers kept changing the player while `operation` notified them. */
-  reportRunaway(operation: string): void {
-    this.reporter.report(operation, new Error(runawayMessage));
+    return this.states.subscribe(listener);
   }
 
   /**
-   * Every subscriber receives every state in order. A state set while
-   * subscribers run waits until all of them received the current one.
+   * Observers kept changing the player while `operation` notified them;
+   * `first` marks the delivery that reached its limit first.
    */
+  reportRunaway(operation: string, first = false): void {
+    this.reporter.report(
+      operation,
+      new Error(runawayMessage),
+      undefined,
+      undefined,
+      first ? { first: true } : {}
+    );
+  }
+
+  /** Delivers `state` to every subscriber, in order. */
   notify(state: VibePlayerControllerState): void {
     this.states.publish(state);
   }
@@ -191,18 +184,7 @@ export class VibePlayerControllerObservers {
   };
 
   wrapResumeStore(): VibePlayerResumeStore | undefined {
-    const store = this.options.resumeStore;
-    if (!store) {
-      return;
-    }
-    return {
-      clear: (sourceId) =>
-        this.run("resume-clear", () => store.clear(sourceId)),
-      get: (sourceId) =>
-        this.run("resume-get", () => store.get(sourceId), null) ?? null,
-      set: (sourceId, seconds, context) =>
-        this.run("resume-set", () => store.set(sourceId, seconds, context)),
-    };
+    return wrapVibePlayerResumeStore(this.options.resumeStore, this.hostRun);
   }
 
   private run<T>(
@@ -212,45 +194,6 @@ export class VibePlayerControllerObservers {
     source = this.currentState.currentSource
   ): T | undefined {
     return this.reporter.run(operation, execute, fallback, source);
-  }
-
-  private deliverState(state: VibePlayerControllerState): void {
-    this.reporter.runAll(
-      "state-listener",
-      this.listeners.current(),
-      state,
-      state.currentSource
-    );
-  }
-
-  /**
-   * Dropped states never leave a subscriber behind the latest one. A throw
-   * waits for the report, since deliveries that overflowed drop what is
-   * published while they settle.
-   */
-  private settleStates(): void {
-    this.listeners.settle(
-      () => this.currentState,
-      (listener, state) => {
-        const source = state.currentSource;
-        try {
-          observeHostRejection(listener(state), (cause) =>
-            this.reporter.report("state-listener", cause, source ?? undefined)
-          );
-        } catch (cause) {
-          this.settleFailures.push({ cause, source });
-        }
-      }
-    );
-  }
-
-  private reportStateOverflow(): void {
-    this.reportRunaway("state-listener");
-    const failures = this.settleFailures;
-    this.settleFailures = [];
-    for (const { cause, source } of failures) {
-      this.reporter.report("state-listener", cause, source ?? undefined);
-    }
   }
 
   private deliverEvent(event: VibePlayerEvent): void {

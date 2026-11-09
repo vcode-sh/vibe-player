@@ -61,7 +61,7 @@ describe("VibePlayerController state notification order", () => {
     expect(events).toEqual([
       expect.objectContaining({
         error: expect.objectContaining({
-          details: { operation: "state-listener" },
+          details: { first: true, operation: "state-listener" },
           phase: "integration",
         }),
         type: "integrationerror",

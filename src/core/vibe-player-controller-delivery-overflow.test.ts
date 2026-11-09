@@ -152,6 +152,12 @@ describe("ordered delivery overflow", () => {
 
     // The state loop overflows first; the events it queued are cut off too.
     expect(integrationOperations(events)).toEqual(["state-listener", "event"]);
+    // Only the report of the delivery that started it is marked first.
+    expect(
+      events.flatMap((event) =>
+        event.type === "integrationerror" ? [event.error.details?.first] : []
+      )
+    ).toEqual([true, undefined]);
     await controller.teardown();
   });
 

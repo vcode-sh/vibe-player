@@ -145,7 +145,9 @@ describe("VibePlayerController.on", () => {
     const errors = events.filter((event) => event.type === "integrationerror");
     expect(errors).toEqual([
       expect.objectContaining({
-        error: expect.objectContaining({ details: { operation: "event" } }),
+        error: expect.objectContaining({
+          details: { first: true, operation: "event" },
+        }),
       }),
     ]);
     await controller.teardown();
