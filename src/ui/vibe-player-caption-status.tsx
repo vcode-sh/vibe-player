@@ -5,6 +5,10 @@ interface VibePlayerCaptionStatusProps {
   onRetry: () => void;
 }
 
+/**
+ * Visible caption failure with its retry. It is not a live region: the
+ * player's announcer speaks the failure, so it is heard once.
+ */
 export function VibePlayerCaptionStatusNotice({
   error,
   onRetry,
@@ -14,7 +18,7 @@ export function VibePlayerCaptionStatusNotice({
     return null;
   }
   return (
-    <div className="vibe-player-stage__caption-status" role="status">
+    <div className="vibe-player-stage__caption-status">
       <span>{labels.captionsUnavailable}</span>
       <button onClick={onRetry} type="button">
         {labels.retryCaptions}

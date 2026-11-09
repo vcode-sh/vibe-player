@@ -4,10 +4,12 @@ import { useVibePlayerCommitEffect } from "./use-vibe-player-commit-effect";
 /** How long an announcement stays in the live region before it clears. */
 export const VIBE_PLAYER_ANNOUNCEMENT_CLEAR_MS = 5000;
 
-/** Text for the player's polite live region and the command that sets it. */
+/** Text for the player's polite live region and the commands that set it. */
 export interface VibePlayerAnnouncer {
   announce: (text: string) => void;
   message: string;
+  /** Clears the region if it still holds `text` (a status that ended). */
+  withdraw: (text: string) => void;
 }
 
 const repeatMarker = " ";
@@ -37,21 +39,32 @@ export function useVibePlayerAnnouncer(): VibePlayerAnnouncer {
     },
     [stopClearTimer]
   );
+  const withdraw = useCallback((text: string) => {
+    setMessage((current) =>
+      current === text || current === text + repeatMarker ? "" : current
+    );
+  }, []);
   useEffect(() => stopClearTimer, [stopClearTimer]);
-  return { announce, message };
+  return { announce, message, withdraw };
 }
 
 /**
- * Announces a player status once each time it starts (busy, error). It runs
- * in the commit that shows the status, so text and announcement land together.
+ * Announces a player status once each time it starts (busy, error) and
+ * withdraws it when it ends, so browsing never finds it stale. It runs in the
+ * commit that shows the status, so text and announcement land together.
  */
 export function useVibePlayerStatusAnnouncement(
-  announce: (text: string) => void,
+  { announce, withdraw }: Pick<VibePlayerAnnouncer, "announce" | "withdraw">,
   status: string | null
 ): void {
+  const shown = useRef<string | null>(null);
   useVibePlayerCommitEffect(() => {
+    const previous = shown.current;
+    shown.current = status;
     if (status) {
       announce(status);
+    } else if (previous) {
+      withdraw(previous);
     }
-  }, [announce, status]);
+  }, [announce, status, withdraw]);
 }

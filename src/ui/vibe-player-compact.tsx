@@ -74,7 +74,7 @@ function VibePlayerCompactContent({
   } else if (view.phase === "error") {
     status = labels.unavailable;
   }
-  useVibePlayerStatusAnnouncement(playback.announcer.announce, status);
+  useVibePlayerStatusAnnouncement(playback.announcer, status);
   let overlay: ReactNode = null;
   if (renderOverlay) {
     overlay = renderOverlay(surface);

@@ -63,16 +63,17 @@ this fix and pass afterward.
 
 Added for 0.8.0 and covered by the Chromium lane; of the native checks, only
 the fullscreen pressed state was re-run (see above).
-- Each player has one always-mounted, visually hidden polite announcer
-  (`role="status"`, `aria-atomic="true"`, `data-part="announcer"`) for its
-  playback status. It announces delayed loading/buffering, a failure once, and
-  the settled result of keyboard play, pause and seeks (not for a focused seek
-  slider, which speaks its own value), then clears after 5 seconds. The
-  visible Stage status is no longer a second live region, and its busy spinner
-  carries real text. Captions keep their own regions: the full stage caption
-  text is `aria-live="polite"` while cues show, and a caption failure notice
-  is a `role="status"`. After the announcement clears, the Chromium AX tree
-  holds "Playback unavailable" once, from the visible compact panel.
+- Each player speaks every status message through one always-mounted,
+  visually hidden polite live region (`role="status"`, `aria-atomic="true"`,
+  `data-part="announcer"`): delayed loading/buffering, a playback failure once,
+  a caption failure, and the settled result of keyboard play, pause and seeks
+  (not for a focused seek slider, which speaks its own value). A message
+  clears when its status ends, or after 5 seconds. The visible Stage status
+  and caption failure notice are not live regions; the busy spinner carries
+  real text and the notice keeps its retry button. Only the caption text
+  (`aria-live="polite"` while cues show) remains a separate region. After the
+  announcement clears, the Chromium AX tree holds "Playback unavailable"
+  once, from the visible compact panel.
 - Hidden chrome is `aria-hidden` and `inert`. Programmatic focus entering the
   player, without key events (the way assistive technology moves focus),
   reveals the Stage and compact controls, and focus resting on a control keeps

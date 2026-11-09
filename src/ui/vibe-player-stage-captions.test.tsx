@@ -45,11 +45,17 @@ describe("stage caption availability", () => {
       />
     );
 
+    // The visible notice; the player's announcer speaks it (one status).
     await waitFor(() =>
-      expect(
-        screen.getByText("Captions unavailable").closest('[role="status"]')
-      ).not.toBeNull()
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Captions unavailable"
+      )
     );
+    expect(
+      screen.getByText("Captions unavailable", {
+        selector: ".vibe-player-stage__caption-status span",
+      })
+    ).toBeVisible();
     // The status observer runs in a passive effect after the commit that
     // rendered the status, so it is awaited rather than read synchronously.
     await waitFor(() =>
@@ -71,6 +77,7 @@ describe("stage caption availability", () => {
       expect(screen.getByText("Recovered caption")).toBeVisible()
     );
     expect(screen.queryByText("Captions unavailable")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("");
     await waitFor(() =>
       expect(onCaptionStatusChange).toHaveBeenLastCalledWith(
         expect.objectContaining({ error: null, loading: false })

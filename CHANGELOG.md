@@ -180,9 +180,11 @@
   until it next leaves view, instead of being stopped at once. A start while
   the player is fully out of view (autoplay, retry, a host or system play)
   is still released.
-- Screen readers hear the player: one always-present polite announcer
-  speaks loading, buffering, a failure once, and keyboard play, pause and
-  seek results. Translate the new words with `labels.playing` and `labels.paused`.
+- Screen readers hear the player: one always-present polite live region
+  speaks every status message (loading, buffering, a failure once, a caption
+  failure, and keyboard play, pause and seek results), and withdraws it when
+  the status ends. The caption failure notice is no longer a second live region.
+  Translate the new words with `labels.playing` and `labels.paused`.
 - Hidden controls are reachable for assistive technology: focus entering the
   player now reveals them, not only a key press, and focus resting on a
   control keeps them open. Returning to the browser tab no longer flashes them.

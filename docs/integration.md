@@ -156,17 +156,18 @@ attributes. Supported keyboard shortcuts are shown directly in the tooltip:
 `Space / K` for play/pause, `M` for mute, `C` for captions, `F` for fullscreen,
 and `← / →` for timeline seek.
 
-Every ready-made player keeps one visually hidden polite announcer
-(`data-part="announcer"`) for its playback status. It announces loading and
+Every ready-made player speaks all its status messages through one visually
+hidden polite live region (`data-part="announcer"`). It announces loading and
 buffering after the same 320 ms delay as the spinner, a playback failure once,
-and the settled result of keyboard play, pause and seeks ("Playing",
-"Paused", "1:20 of 5:00"); a focused seek slider speaks its own value instead.
-Translate those words with `labels.playing`, `labels.paused` and
-`labels.seekValue`. Each message clears after a few seconds, so a status is
-not read twice while browsing. The full stage has two caption regions of its
-own: the caption text (`aria-live="polite"`) while cues show, and a caption
-failure notice (`role="status"`). A standalone `VibePlayerStageStatus` is its
-own live region unless you pass `live={false}`.
+a caption failure (`labels.captionsUnavailable`), and the settled result of
+keyboard play, pause and seeks ("Playing", "Paused", "1:20 of 5:00"); a
+focused seek slider speaks its own value instead. Translate those words with
+`labels.playing`, `labels.paused` and `labels.seekValue`. A message clears
+when its status ends, and after a few seconds at most, so it is not read
+twice while browsing. The visible caption failure notice keeps its retry
+button but is not a live region. Only the caption text itself
+(`aria-live="polite"` while cues show) is a separate region. A standalone
+`VibePlayerStageStatus` is its own live region unless you pass `live={false}`.
 
 Hidden controls are `inert` while media plays. Focus entering the player,
 including its own region, reveals them, so a screen reader moving focus can

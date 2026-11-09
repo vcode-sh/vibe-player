@@ -5,6 +5,7 @@ import { useVibePlayerStageObservers } from "./use-vibe-player-stage-observers";
 import type { useVibePlayerStagePlayback } from "./use-vibe-player-stage-playback";
 import { useVibePlayerStageStatusView } from "./vibe-player-stage-status";
 import type { VibePlayerStageProps } from "./vibe-player-stage-types";
+import { useVibePlayerUI } from "./vibe-player-ui-context";
 
 export type VibePlayerStagePlayback = ReturnType<
   typeof useVibePlayerStagePlayback
@@ -12,12 +13,14 @@ export type VibePlayerStagePlayback = ReturnType<
 
 /**
  * Full-stage captions, host observers and the status, computed once: the
- * visible status and the announcer read the same view and timer.
+ * visible status and the announcer read the same view and timer. Playback
+ * status and caption failure are announced through the same region.
  */
 export function useVibePlayerFullStageBindings(
   props: VibePlayerStageProps,
   playback: VibePlayerStagePlayback
 ) {
+  const { labels } = useVibePlayerUI();
   const { activeSource, captionsEnabled, controller, state } = playback;
   const captions = useVibePlayerCaptions({
     currentTime: state.snapshot.currentTime,
@@ -45,9 +48,12 @@ export function useVibePlayerFullStageBindings(
     playbackBlocked: state.playbackBlocked,
     snapshot: state.snapshot,
   });
+  const { announcer } = playback;
+  useVibePlayerStatusAnnouncement(announcer, statusView?.label ?? null);
+  // Caption failure shares the player's one status region.
   useVibePlayerStatusAnnouncement(
-    playback.announcer.announce,
-    statusView?.label ?? null
+    announcer,
+    error ? labels.captionsUnavailable : null
   );
   return { captions, statusView };
 }

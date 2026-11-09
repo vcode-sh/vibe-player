@@ -90,15 +90,23 @@ test("browser accessibility tree exposes native modality and nested control sema
   });
 });
 
-test("caption failure is a polite live status with a reachable successful retry", async ({
+test("caption failure is spoken by the player's status region and retries", async ({
   page,
 }, testInfo) => {
   const dialog = await openPlayer(page);
-  // The player's announcer is a second, separate status region.
+  // The visible notice keeps its retry; the announcer speaks the failure.
   const status = dialog.locator(".vibe-player-stage__caption-status");
-  await expect(status).toHaveRole("status");
+  const announcer = dialog.locator('[data-part="announcer"]');
   await expect(status).toHaveText("Captions unavailableRetry captions");
+  await expect(announcer).toHaveText("Captions unavailable");
+  await expect(status).not.toHaveAttribute("role");
+  await expect(
+    dialog.locator('[role="status"], [aria-live], output')
+  ).toHaveCount(1);
   const errorTree = await readAccessibilityTree(page);
+  expect(
+    errorTree.filter((node) => node.properties.live === "polite")
+  ).toHaveLength(1);
   expect(errorTree).toContainEqual(
     expect.objectContaining({
       properties: expect.objectContaining({ atomic: "true", live: "polite" }),
@@ -109,6 +117,7 @@ test("caption failure is a polite live status with a reachable successful retry"
   await retry.focus();
   await page.keyboard.press("Enter");
   await expect(status).toHaveCount(0);
+  await expect(announcer).toHaveText("");
   await expect(dialog.getByText("Recovered English captions")).toBeVisible();
   expect(
     await dialog.evaluate((element) => element.contains(document.activeElement))
