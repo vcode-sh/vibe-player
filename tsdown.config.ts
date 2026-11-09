@@ -13,6 +13,19 @@ const lazyModulePattern =
  * so drop the source copy to emit exactly one readable directive per file.
  */
 const sourceUseClientDirective = /^"use client";\n+/;
+const sourceEntryPattern = /[\\/]src[\\/](?:compact|hook|index|stage)\.ts$/;
+/**
+ * Rolldown cannot keep that source directive once an entry shares chunks and
+ * warns for it; the banner restores it on every file and `package:readable`
+ * checks there is exactly one, so only this warning is dropped.
+ */
+function isSourceDirectiveLog(log: { code?: string; id?: string }): boolean {
+  return (
+    log.code === "MODULE_LEVEL_DIRECTIVE" &&
+    log.id !== undefined &&
+    sourceEntryPattern.test(log.id)
+  );
+}
 
 export default defineConfig({
   banner: '"use client";',
@@ -28,7 +41,14 @@ export default defineConfig({
     stage: "src/stage.ts",
   },
   format: "esm",
-  inputOptions: { preserveEntrySignatures: "allow-extension" },
+  inputOptions: {
+    onLog(level, log, defaultHandler) {
+      if (!isSourceDirectiveLog(log)) {
+        defaultHandler(level, log);
+      }
+    },
+    preserveEntrySignatures: "allow-extension",
+  },
   // Readable ESM: consumers can review, patch and debug the shipped code.
   // Application bundlers minify it; stable chunk names keep diffs reviewable.
   minify: false,
