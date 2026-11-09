@@ -1,8 +1,16 @@
 import { access, readFile, rm } from "node:fs/promises";
-import { resolve } from "node:path";
-import { afterEach, expect, it, vi } from "vitest";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { runConsumerCommand } from "./packed-consumer-commands.mjs";
-import { createPackedConsumer } from "./packed-consumer-setup.mjs";
+import {
+  createPackedConsumer,
+  resolveConsumerBase,
+} from "./packed-consumer-setup.mjs";
+
+const root = resolve(import.meta.dirname, "..");
+/** The developer default: the user cache, outside the repository. */
+const cacheEnv = { HOME: homedir() };
 
 vi.mock("./packed-consumer-commands.mjs", () => ({
   runConsumerCommand: vi.fn(),
@@ -26,11 +34,13 @@ it.each([
     .mockResolvedValueOnce(JSON.stringify(output))
     .mockResolvedValueOnce("");
 
-  const consumer = await createPackedConsumer(
-    resolve(import.meta.dirname, ".."),
-    "19.2.7"
-  );
+  const consumer = await createPackedConsumer(root, "19.2.7", cacheEnv);
   consumerDirectory = consumer.directory;
+  expect(
+    consumer.directory.startsWith(
+      join(homedir(), ".cache/vibe-player/consumer-")
+    )
+  ).toBe(true);
   const manifest = JSON.parse(
     await readFile(resolve(consumer.directory, "package.json"), "utf8")
   );
@@ -85,7 +95,7 @@ it.each(["pack", "install"])(
     });
 
     await expect(
-      createPackedConsumer(resolve(import.meta.dirname, ".."), "19.2.7")
+      createPackedConsumer(root, "19.2.7", cacheEnv)
     ).rejects.toMatchObject({ cause: failure });
     expect(consumerDirectory).toBeDefined();
     await expect(access(consumerDirectory)).rejects.toMatchObject({
@@ -96,3 +106,38 @@ it.each(["pack", "install"])(
     );
   }
 );
+
+describe("resolveConsumerBase", () => {
+  it("prefers the CI runner's temporary directory", () => {
+    expect(
+      resolveConsumerBase("/work/repo", {
+        HOME: "/home/dev",
+        RUNNER_TEMP: "/runner/_temp",
+        XDG_CACHE_HOME: "/cache",
+      })
+    ).toBe("/runner/_temp");
+  });
+
+  it.each([
+    [{ HOME: "/home/dev", XDG_CACHE_HOME: "/cache" }, "/cache/vibe-player"],
+    [{ HOME: "/home/dev" }, "/home/dev/.cache/vibe-player"],
+    [{ HOME: "/home/dev", XDG_CACHE_HOME: "" }, "/home/dev/.cache/vibe-player"],
+  ])("falls back to the user cache for %o", (env, expected) => {
+    expect(resolveConsumerBase("/work/repo", env)).toBe(expected);
+  });
+
+  it.each([
+    ["the repository", "/work/repo"],
+    ["a folder inside it", "/work/repo/build"],
+  ])("refuses %s, where node_modules would resolve", (_case, location) => {
+    expect(() =>
+      resolveConsumerBase("/work/repo", { RUNNER_TEMP: location })
+    ).toThrow("outside the repository");
+  });
+
+  it("accepts a sibling whose name starts like the repository", () => {
+    expect(
+      resolveConsumerBase("/work/repo", { RUNNER_TEMP: "/work/repo-temp" })
+    ).toBe("/work/repo-temp");
+  });
+});

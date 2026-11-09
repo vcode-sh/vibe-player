@@ -1,6 +1,6 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { runConsumerCommand } from "./packed-consumer-commands.mjs";
 
 async function installedVersion(root, name) {
@@ -10,8 +10,42 @@ async function installedVersion(root, name) {
   return manifest.version;
 }
 
-export async function createPackedConsumer(root, reactVersion) {
-  const directory = await mkdtemp(join(tmpdir(), "vibe-player-consumer-"));
+/**
+ * Where packed consumers are installed: on disk (never a RAM-backed temp
+ * directory) and outside the repository, so Node resolution cannot fall
+ * back to the repository's own node_modules.
+ * @param {string} root Repository root.
+ * @param {Record<string, string | undefined>} env Process environment.
+ * @returns {string}
+ */
+export function resolveConsumerBase(root, env) {
+  const base = env.RUNNER_TEMP
+    ? resolve(env.RUNNER_TEMP)
+    : resolve(
+        env.XDG_CACHE_HOME || join(env.HOME || homedir(), ".cache"),
+        "vibe-player"
+      );
+  const fromRoot = relative(resolve(root), base);
+  const outside =
+    fromRoot === ".." ||
+    fromRoot.startsWith(`..${sep}`) ||
+    isAbsolute(fromRoot);
+  if (!outside) {
+    throw new Error(
+      `Packed consumers must install outside the repository, not in ${base}.`
+    );
+  }
+  return base;
+}
+
+export async function createPackedConsumer(
+  root,
+  reactVersion,
+  env = process.env
+) {
+  const base = resolveConsumerBase(root, env);
+  await mkdir(base, { recursive: true });
+  const directory = await mkdtemp(join(base, "consumer-"));
   try {
     await cp(join(root, "test/consumer"), directory, { recursive: true });
     const packOutput = await runConsumerCommand(
