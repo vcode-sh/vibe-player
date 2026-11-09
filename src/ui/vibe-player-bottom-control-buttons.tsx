@@ -191,6 +191,7 @@ export function VibePlayerFullscreenControl({
       active={isFullscreen}
       label={isFullscreen ? labels.exitFullscreen : labels.fullscreen}
       onClick={onToggleFullscreen}
+      pressed={isFullscreen}
       shortcut={labels.fullscreenShortcut}
       tooltipAlign="end"
     >

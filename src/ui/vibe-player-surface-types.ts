@@ -27,6 +27,8 @@ export interface VibePlayerSurfaceState {
   /** Falls back to the source's `durationSeconds` before metadata loads. */
   duration: number;
   error: VibePlayerError | null;
+  /** The player is presented in fullscreen. */
+  fullscreen: boolean;
   /** Why controls are held open: phase, keyboard focus on a control, or scrub. */
   hold: "keyboard-focus" | "phase" | "scrub" | null;
   muted: boolean;

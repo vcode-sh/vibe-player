@@ -1,5 +1,6 @@
 import {
   EnterFullscreenIcon,
+  ExitFullscreenIcon,
   MuteIcon,
   PictureInPictureIcon,
   VolumeIcon,
@@ -115,13 +116,16 @@ export function VibePlayerGlassBar({
       ) : null}
       {controls.fullscreen ? (
         <button
-          aria-label={labels.fullscreen}
+          aria-label={
+            state.fullscreen ? labels.exitFullscreen : labels.fullscreen
+          }
+          aria-pressed={state.fullscreen}
           className={`${button} vibe-player-glass__expand`}
           data-part="fullscreen"
           onClick={actions.toggleFullscreen}
           type="button"
         >
-          <EnterFullscreenIcon />
+          {state.fullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
         </button>
       ) : null}
       {controls.mute ? (

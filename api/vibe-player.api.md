@@ -1340,6 +1340,7 @@ interface VibePlayerSurfaceState {
   controlsVisible: boolean;
   duration: number;
   error: VibePlayerError | null;
+  fullscreen: boolean;
   hold: "keyboard-focus" | "phase" | "scrub" | null;
   muted: boolean;
   phase: VibePlayerSurfacePhase;

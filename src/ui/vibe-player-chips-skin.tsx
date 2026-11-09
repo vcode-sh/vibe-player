@@ -1,5 +1,6 @@
 import {
   EnterFullscreenIcon,
+  ExitFullscreenIcon,
   MuteIcon,
   PictureInPictureIcon,
   UnavailableIcon,
@@ -203,12 +204,19 @@ function VibePlayerChipsSide({ surface }: { surface: VibePlayerSurface }) {
             "fullscreen",
             classNames.button
           )}
-          aria-label={labels.fullscreen}
+          aria-label={
+            state.fullscreen ? labels.exitFullscreen : labels.fullscreen
+          }
+          aria-pressed={state.fullscreen}
           onClick={actions.toggleFullscreen}
           type="button"
         >
           <span className={`vibe-player-chips__dot ${chip}`}>
-            <EnterFullscreenIcon />
+            {state.fullscreen ? (
+              <ExitFullscreenIcon />
+            ) : (
+              <EnterFullscreenIcon />
+            )}
           </span>
         </button>
       ) : null}
