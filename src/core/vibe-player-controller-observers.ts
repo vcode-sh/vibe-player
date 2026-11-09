@@ -232,8 +232,10 @@ export class VibePlayerControllerObservers {
 
   private deliverEvent(event: VibePlayerEvent): void {
     const deliver = () => {
+      // Taken before onEvent runs, so a listener it adds waits for the next.
+      const listeners = this.eventListeners.matching(event);
       this.run("event", () => this.options.onEvent?.(event));
-      for (const listener of this.eventListeners.matching(event)) {
+      for (const listener of listeners) {
         this.run("event-listener", listener);
       }
     };

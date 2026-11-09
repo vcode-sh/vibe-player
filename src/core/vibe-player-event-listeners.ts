@@ -29,19 +29,19 @@ export class VibePlayerEventListeners {
   }
 
   /**
-   * Listeners for `event.type` and `"*"` subscribed when the delivery
-   * started: one added meanwhile starts with the next event, and one
-   * unsubscribed meanwhile is skipped.
+   * Listeners for `event.type` and `"*"`, taken now, when the delivery
+   * starts: one added later starts with the next event. Each call skips a
+   * listener unsubscribed in the meantime.
    */
-  *matching(event: VibePlayerEvent): Iterable<() => unknown> {
-    for (const subscription of [...this.subscriptions]) {
-      if (
-        this.subscriptions.has(subscription) &&
-        (subscription.type === "*" || subscription.type === event.type)
-      ) {
-        yield () => subscription.listener(event);
-      }
-    }
+  matching(event: VibePlayerEvent): (() => unknown)[] {
+    return [...this.subscriptions]
+      .filter(({ type }) => type === "*" || type === event.type)
+      .map(
+        (subscription) => () =>
+          this.subscriptions.has(subscription)
+            ? subscription.listener(event)
+            : undefined
+      );
   }
 }
 
