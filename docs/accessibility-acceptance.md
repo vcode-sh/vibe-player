@@ -141,12 +141,16 @@ Only key delivery uses XTest. Playwright sets up the fixture, positions focus
 and observes results. This is native OS input evidence with scripted focus,
 not a complete physical keyboard navigation session.
 
-The command prints a temporary artifact directory containing `modal-atspi.json`,
+The command prints its artifact directory, created under the repository's
+ignored `test-results/` (never `/tmp`), containing `modal-atspi.json`,
 `quality-atspi.json`, `volume-atspi.json`, `closed-atspi.json`, `orca.log` and
 `orca-utterances.txt`. Raw Orca logs preserve generated speech and events. An
 isolated Orca customization only enables line-buffered debug output. The
 launcher owns a bounded process group and kills only that group on failure,
-timeout or interruption. The runner closes its browser and terminates its own
+timeout or interruption. It then detaches the FUSE mounts that the private
+D-Bus session's document portal and GVfs daemons left in its runtime
+directory, and deletes the session state (runtime, config, cache, data,
+speech), keeping only the result files. The runner closes its browser and terminates its own
 Orca and Speech Dispatcher children. Private portal/FUSE/PipeWire warnings can
 occur without audio devices; assertions determine the result.
 

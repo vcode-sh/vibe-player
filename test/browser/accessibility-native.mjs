@@ -1,8 +1,10 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
+import { releaseNativeSession } from "./accessibility-native-cleanup.mjs";
+
+const directory = dirname(fileURLToPath(import.meta.url));
 
 if (process.platform !== "linux") {
   throw new Error("The isolated native accessibility probe requires Linux.");
@@ -31,9 +33,13 @@ if (existingOrca.status !== 1) {
   );
 }
 
-const work = mkdtempSync(join(tmpdir(), "vibe-player-native-a11y-"));
-for (const directory of ["config", "cache", "data", "runtime", "speech"]) {
-  mkdirSync(join(work, directory), { mode: 0o700 });
+// Results live in the repository's ignored test-results, never in /tmp.
+const results = resolvePath(directory, "../../test-results");
+mkdirSync(results, { recursive: true });
+// The helpers require this name prefix for the private runtime directory.
+const work = mkdtempSync(join(results, "vibe-player-native-a11y-"));
+for (const entry of ["config", "cache", "data", "runtime", "speech"]) {
+  mkdirSync(join(work, entry), { mode: 0o700 });
 }
 mkdirSync(join(work, "data/orca"));
 writeFileSync(
@@ -66,10 +72,7 @@ const child = spawn(
     "-a",
     "--server-args=-screen 0 1280x800x24",
     process.execPath,
-    join(
-      dirname(fileURLToPath(import.meta.url)),
-      "accessibility-native-runner.mjs"
-    ),
+    join(directory, "accessibility-native-runner.mjs"),
     work,
   ],
   { detached: true, env: environment, stdio: "inherit" }
@@ -92,6 +95,7 @@ const deadline = setTimeout(stopOwnedSession, 45_000);
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.once(signal, () => {
     stopOwnedSession();
+    releaseNativeSession(work);
     process.exit(1);
   });
 }
@@ -108,4 +112,5 @@ try {
 } finally {
   clearTimeout(deadline);
   stopOwnedSession();
+  releaseNativeSession(work);
 }
