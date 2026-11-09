@@ -52,6 +52,8 @@ export class VibePlayerResumeWriter {
   /** A source the attached adapter reported live; it stays live once closed. */
   private liveSourceId: string | null = null;
   private mark: ResumeMark | null = null;
+  /** The mark a controller seek replaced, restored if the adapter rejects it. */
+  private markBeforeSeek: ResumeMark | null = null;
   private seeking = false;
   private readonly isLive: () => boolean;
   private readonly store: VibePlayerResumeStore;
@@ -71,12 +73,27 @@ export class VibePlayerResumeWriter {
       this.pause(entry.source, entry.snapshot);
     } else if (entry.kind === "seek") {
       const { source, target } = entry;
+      this.markBeforeSeek = this.mark;
       this.mark = { reason: null, seconds: target, sourceId: source.id };
+    } else if (entry.kind === "seekfailed") {
+      this.forgetSeek(entry.source, entry.target);
     } else if (entry.kind === "release") {
       this.release(entry.reason);
     } else if (entry.kind === "playback" && entry.playback.cause === "load") {
       // The host loaded a source, even the same one: what played closes.
       this.release("close");
+    }
+  }
+
+  /** A rejected seek never reached `target`, so it marks nothing there. */
+  private forgetSeek(source: VibePlayerSource, target: number): void {
+    const { mark } = this;
+    if (
+      mark?.reason === null &&
+      mark.sourceId === source.id &&
+      mark.seconds === target
+    ) {
+      this.mark = this.markBeforeSeek;
     }
   }
 

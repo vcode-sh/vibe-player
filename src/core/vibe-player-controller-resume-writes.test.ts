@@ -70,6 +70,19 @@ describe("controller resume writes", () => {
     await player.controller.teardown();
   });
 
+  it("saves a media seek near the target of a rejected controller seek", async () => {
+    const player = await createResumePlayer();
+    player.play(0, 1);
+    vi.spyOn(player.adapter, "seekTo").mockRejectedValueOnce(new Error("Gone"));
+    await expect(player.controller.seekTo(50)).rejects.toThrow("Gone");
+
+    player.adapter.emit("seeking", { currentTime: 50.2 });
+    player.adapter.emit("seeked", { currentTime: 50.2 });
+
+    expect(player.writes).toEqual([["video-1", 50.2, "seek"]]);
+    await player.controller.teardown();
+  });
+
   it("saves on pause, stop and page hide, once per boundary", async () => {
     const player = await createResumePlayer();
     player.play(0, 3);
