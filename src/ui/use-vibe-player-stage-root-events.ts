@@ -4,6 +4,7 @@ import {
   type PointerEvent,
   type RefObject,
   useCallback,
+  useRef,
 } from "react";
 import { flushSync } from "react-dom";
 import { shouldRevealVibePlayerChromeForKey } from "../core";
@@ -26,6 +27,7 @@ export interface VibePlayerStageRootEvents {
   onFocusCapture: (event: FocusEvent<HTMLElement>) => void;
   onKeyDownCapture: (event: KeyboardEvent<HTMLElement>) => void;
   onPointerDown: (event: PointerEvent<HTMLElement>) => void;
+  onPointerDownCapture: () => void;
   onPointerLeave: (event: PointerEvent<HTMLElement>) => void;
   onPointerMove: (event: PointerEvent<HTMLElement>) => void;
 }
@@ -46,6 +48,30 @@ export function isKeyboardControlFocus(
   } catch {
     return true;
   }
+}
+
+/** Focus this soon after a press came from the pointer, not from navigation. */
+const pointerFocusWindowMs = 1000;
+
+/**
+ * Focus arriving by keyboard or assistive technology reveals hidden chrome,
+ * which is inert until then. Pointer presses keep their own policy (a touch
+ * tap toggles), and the player returning focus to its region from an inner
+ * control that just hid must not bring the chrome back.
+ */
+function shouldRevealOnFocus(
+  event: FocusEvent<HTMLElement>,
+  lastPointerDown: number
+): boolean {
+  if (performance.now() - lastPointerDown < pointerFocusWindowMs) {
+    return false;
+  }
+  const { currentTarget, relatedTarget, target } = event;
+  return !(
+    target === currentTarget &&
+    relatedTarget instanceof Node &&
+    currentTarget.contains(relatedTarget)
+  );
 }
 
 export function useVibePlayerStageRootEvents({
@@ -73,13 +99,17 @@ export function useVibePlayerStageRootEvents({
     },
     [chrome]
   );
+  const lastPointerDown = useRef(Number.NEGATIVE_INFINITY);
   const onFocusCapture = useCallback(
     (event: FocusEvent<HTMLElement>) => {
       if (isKeyboardControlFocus(event)) {
         chrome.holdChrome();
-      } else {
-        // A removed control fires no blur; later focus must not stay pinned.
-        chrome.releaseChrome();
+        return;
+      }
+      // A removed control fires no blur; later focus must not stay pinned.
+      chrome.releaseChrome();
+      if (shouldRevealOnFocus(event, lastPointerDown.current)) {
+        chrome.showChrome();
       }
     },
     [chrome]
@@ -106,6 +136,9 @@ export function useVibePlayerStageRootEvents({
     onPointerDown: (event) => {
       pointerType.current = event.pointerType;
       chrome.showChrome();
+    },
+    onPointerDownCapture: () => {
+      lastPointerDown.current = performance.now();
     },
     onPointerLeave: (event) => {
       if (hideOnPointerLeave && event.pointerType !== "touch") {
