@@ -77,3 +77,17 @@ export function readWorkflowSteps(workflowSource) {
     .map(readStepFields)
     .map(toStep);
 }
+
+/**
+ * Finds the first step that runs a command, alone or with extra arguments.
+ * @param {{commands: string[]}[]} steps Steps from {@link readWorkflowSteps}.
+ * @param {string} command Command prefix to look for.
+ * @returns {number} The step index, or -1 when no step runs it.
+ */
+export function findWorkflowStep(steps, command) {
+  return steps.findIndex((step) =>
+    step.commands.some(
+      (line) => line === command || line.startsWith(`${command} `)
+    )
+  );
+}

@@ -1,19 +1,14 @@
-import { readWorkflowSteps } from "./release-workflow-steps.mjs";
+import {
+  findWorkflowStep,
+  readWorkflowSteps,
+} from "./release-workflow-steps.mjs";
 
 const INSTALL_COMMAND = "bunx playwright install --with-deps chromium webkit";
 const BROWSER_COMMAND = "bun run test:browser";
 const GATES_COMMAND = "bun run ci";
 const PUBLISH_COMMAND = "bun run release:publish --no-git-tag";
 
-function runsCommand(step, command) {
-  return step.commands.some(
-    (line) => line === command || line.startsWith(`${command} `)
-  );
-}
-
-function findStep(steps, command) {
-  return steps.findIndex((step) => runsCommand(step, command));
-}
+const findStep = findWorkflowStep;
 
 function collectOrderIssues(command, index, bounds) {
   const issues = [];

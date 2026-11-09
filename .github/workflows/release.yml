@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 concurrency:
@@ -35,6 +35,25 @@ jobs:
 
       - name: Install
         run: bun install --frozen-lockfile
+
+      - name: Prepare release notes from CHANGELOG
+        id: release
+        run: node scripts/write-release-notes.mjs --output "$RUNNER_TEMP/release-notes.md"
+
+      - name: Refuse an existing release tag
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          status=0
+          git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo "::error::Tag $TAG already exists on origin. Bump the version before releasing."
+            exit 1
+          fi
+          if [ "$status" -ne 2 ]; then
+            echo "::error::Could not check origin for tag $TAG (git exit code $status)."
+            exit 1
+          fi
 
       - name: Release quality gates
         run: bun run ci
@@ -73,3 +92,22 @@ jobs:
 
       - name: Publish committed version to npm
         run: bun run release:publish --no-git-tag
+
+      - name: Tag the released commit
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          flags=()
+          case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" "${flags[@]}"

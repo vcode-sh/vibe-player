@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { collectReleaseStateIssues } from "./release-state-rules.mjs";
+import { collectReleaseTagWorkflowIssues } from "./release-tag-workflow-rules.mjs";
 import { collectReleaseWorkflowIssues } from "./release-workflow-rules.mjs";
 
 const packageJsonPath = resolve(import.meta.dirname, "../package.json");
@@ -36,6 +37,7 @@ const issues = [
     mediaAuditBinSource,
   }),
   ...collectReleaseWorkflowIssues(releaseWorkflowSource),
+  ...collectReleaseTagWorkflowIssues(releaseWorkflowSource),
 ];
 
 reportIssues(issues);
