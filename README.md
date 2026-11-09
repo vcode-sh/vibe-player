@@ -20,7 +20,7 @@ npm install vibe-player hls.js
 ```
 
 `hls.js` is a peer dependency, loaded only for HLS sources. React 19.2.7 or
-later and Node 22 or later are supported.
+later and Node 24 or later are supported.
 
 ## Example
 

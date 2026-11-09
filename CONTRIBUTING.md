@@ -39,10 +39,10 @@ include a short testing note and screenshots or browser evidence for UI work.
 
 Use Node 26 for repository development and build tooling, as the workflows
 do. `package.json#packageManager` pins Bun for local work and CI workflows.
-The package supports Node 22 independently of the development toolchain;
+The package supports Node 24 independently of the development toolchain;
 `bun run ci` checks an isolated tarball consumer on the current Node (26 in
 CI) with the development React version, and Release also checks it on Node
-22.0.0 with React 19.2.7.
+24.0.0 with React 19.2.7.
 
 `bun run ci` checks the package, its API report and readable output, both demo
 builds and an isolated packed consumer, and type-checks the browser specs

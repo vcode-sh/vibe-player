@@ -54,7 +54,7 @@ with a dated comment, instead of waiting for it to fail.
 ## GitHub workflows
 
 Both workflows use Ubuntu 26.04 and Node 26; the minimum-runtime check uses
-the supported Node 22.0.0.
+the supported Node 24.0.0.
 
 CI runs on every push to `main` and on pull requests. The `quality` job runs
 `bun run ci`; the `browser` job installs Chromium and WebKit (cached by
@@ -63,7 +63,7 @@ Playwright version), builds and runs `bun run test:browser`, uploading
 runs cancel superseded runs.
 
 Release runs only through `workflow_dispatch` on `main` (timeout 40 minutes:
-`bun run ci` 20, browser engines 5, browser lane 5, Node 22 check 5, setup,
+`bun run ci` 20, browser engines 5, browser lane 5, Node 24 check 5, setup,
 checks and publish 5). Its `release` job has `contents: read` and
 `id-token: write`, and checks out with `persist-credentials: false`:
 1. Fail when the version is a prerelease (contains `-`) but
@@ -79,7 +79,7 @@ checks and publish 5). Its `release` job has `contents: read` and
 4. Fail when tag `v<version>` already exists on `origin` (the repository must
    be public; a failed query also fails).
 5. `bun run ci`, then `bun run test:browser` on Chromium and WebKit (uploading
-   `test-results/` on failure or cancellation), then the exact Node 22.0.0 /
+   `test-results/` on failure or cancellation), then the exact Node 24.0.0 /
    React 19.2.7 consumer check.
 6. `bun run release:publish --no-git-tag` publishes the committed version.
 

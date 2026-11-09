@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Node 24 is now the minimum supported version (was 22). Upgrade to Node 24
+  or later.
+
 ## [0.8.0] - 2026-11-09
 
 ### Removed

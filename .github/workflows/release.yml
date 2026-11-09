@@ -17,7 +17,7 @@ jobs:
   release:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-26.04
-    # bun run ci 20 + browser engines 5 + browser lane 5 + Node 22 check 5
+    # bun run ci 20 + browser engines 5 + browser lane 5 + Node 24 check 5
     # + setup, checks and publish 5 minutes.
     timeout-minutes: 40
     permissions:
@@ -103,7 +103,7 @@ jobs:
       - name: Setup minimum consumer Node
         uses: actions/setup-node@v7.1.0
         with:
-          node-version: "22.0.0"
+          node-version: "24.0.0"
           package-manager-cache: false
 
       - name: Verify minimum Node and React
