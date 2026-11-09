@@ -93,16 +93,20 @@ export function VibePlayerBottomControls({
         <span className="vibe-player-controls__time">
           {formatTime(snapshot.currentTime)}
         </span>
-        <VibePlayerTimeline
-          currentTime={snapshot.currentTime}
-          disabled={!(capabilities.canSeek && capabilities.supportsDuration)}
-          duration={snapshot.duration}
-          onSeek={onSeek}
-          seekThumbnails={seekThumbnails}
-        />
-        <span className="vibe-player-controls__time">
-          -{formatTime(remaining)}
-        </span>
+        {capabilities.isLive ? null : (
+          <VibePlayerTimeline
+            currentTime={snapshot.currentTime}
+            disabled={!(capabilities.canSeek && capabilities.supportsDuration)}
+            duration={snapshot.duration}
+            onSeek={onSeek}
+            seekThumbnails={seekThumbnails}
+          />
+        )}
+        {capabilities.supportsDuration ? (
+          <span className="vibe-player-controls__time">
+            -{formatTime(remaining)}
+          </span>
+        ) : null}
       </div>
       <div className="vibe-player-controls__options">
         <VibePlayerRateControl

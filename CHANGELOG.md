@@ -145,6 +145,8 @@
   button instead of a slider that does nothing.
 - Native HLS (Safari) now recognizes live streams without `live: true`: no
   seeking, skip buttons, duration or resume saves for them.
+- The full-stage bar no longer shows "-0:00" and an empty timeline for live
+  streams; the remaining time appears only when the duration is known.
 - hls.js media errors are recovered before playback fails: a fatal media
   error is retried, a second one shortly after also swaps the audio codec,
   and only a third fails. The recovered errors are reported as nonfatal.
