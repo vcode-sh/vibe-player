@@ -4,7 +4,12 @@ import { readMedia } from "./helpers";
 
 interface NativeMediaWindow {
   nativeMedia: {
-    controller: { getState(): { snapshot: { readyState: string } } };
+    controller: {
+      getState(): {
+        lastEvent: string | null;
+        snapshot: { readyState: string };
+      };
+    };
     play(): void;
     probe: NativeMediaProbe;
   };
@@ -46,8 +51,21 @@ test("a file whose every <source> fails reports one source error", async ({
     .toEqual([{ kind: "source", phase: "playback" }]);
   await expect.poll(() => readState(page)).toBe("error");
   await expect.poll(async () => (await readProbe(page)).play).toBe("resolved");
-  const { analytics } = await readProbe(page);
+  const { analytics, events } = await readProbe(page);
   expect(analytics.filter((type) => type === "error")).toHaveLength(1);
+  // Like a MediaError, the failure ends with the error: settling the pending
+  // play() pauses the element without a host-visible pause.
+  const afterError = events.slice(events.indexOf("error"));
+  expect(afterError).not.toContain("pause");
+  expect(afterError).not.toContain("onPause");
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as unknown as NativeMediaWindow
+        ).nativeMedia.controller.getState().lastEvent
+    )
+  ).toBe("error");
 });
 
 test("a pause the media makes during a pending play is not an error", async ({

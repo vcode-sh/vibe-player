@@ -98,6 +98,44 @@ describe("native media error categories", () => {
     expect(analytics.filter((type) => type === "error")).toHaveLength(1);
   });
 
+  it("ends with the error, without a pause, when every <source> fails during play", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
+      () => undefined
+    );
+    const calls: string[] = [];
+    const controller = new VibePlayerController({
+      adapterFactory: createFileAdapter,
+      onError: () => {
+        calls.push("onError");
+      },
+      onEvent: (event) => {
+        calls.push(`event:${event.type}`);
+      },
+      onPause: () => {
+        calls.push("onPause");
+      },
+    });
+    controllers.add(controller);
+    const target = document.createElement("div");
+    await controller.mount(target);
+    await controller.load(fileSource);
+    const video = getMountedNativeVideo(target);
+    // A pending play(): the element is unpaused while it waits for a source.
+    await video.play();
+    expect(controller.getState().lastEvent).toBe("playing");
+    calls.length = 0;
+
+    for (const candidate of Array.from(video.querySelectorAll("source"))) {
+      candidate.dispatchEvent(new Event("error"));
+    }
+
+    expect(calls).toHaveLength(2);
+    expect(calls).toEqual(expect.arrayContaining(["event:error", "onError"]));
+    expect(controller.getState().lastEvent).toBe("error");
+    // The pending play() still settles: the element itself is paused.
+    expect(video.paused).toBe(true);
+  });
+
   it("clears a failed <source> list when the adapter loads again", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(
       () => undefined

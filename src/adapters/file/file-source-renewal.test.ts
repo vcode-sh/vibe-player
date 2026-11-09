@@ -85,6 +85,33 @@ describe("file delivery renewal", () => {
     expect(renewSource).toHaveBeenCalledTimes(1);
   });
 
+  it("plays the renewed delivery when every <source> failed during play", async () => {
+    const { controller, video } = await loadSigned(fileSource);
+    const target = video().parentElement;
+    if (!target) {
+      throw new Error("Expected a mounted video.");
+    }
+    // Native playback only keeps playing in a connected element.
+    document.body.append(target);
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play");
+    await controller.play();
+    expect(video().paused).toBe(false);
+    const playsBeforeFailure = play.mock.calls.length;
+
+    for (const candidate of Array.from(video().querySelectorAll("source"))) {
+      candidate.dispatchEvent(new Event("error"));
+    }
+
+    await vi.waitFor(() =>
+      expect(controller.getState().currentSource).toEqual(renewed)
+    );
+    await vi.waitFor(() =>
+      expect(play.mock.calls.length).toBeGreaterThan(playsBeforeFailure)
+    );
+    expect(controller.getState().error).toBeNull();
+    target.remove();
+  });
+
   it("reports an unsupported file after metadata without renewing", async () => {
     const { controller, onError, renewSource, video } = await loadSigned();
     rejectDelivery(video(), 1);

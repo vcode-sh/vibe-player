@@ -12,6 +12,7 @@ import {
   bindNativeSourceFailure,
   createNativeErrorPayload,
   hasNativeSourceFailure,
+  isNativeFailurePauseEvent,
   resetNativeSourceFailure,
 } from "./native-video-errors";
 import { clearPendingNativeSeek } from "./native-video-seek";
@@ -119,6 +120,9 @@ function bindNativeVideoEvents(
         return;
       }
       observeNativePlayback(video, binding.nativeEvent);
+      if (isNativeFailurePauseEvent(video, binding.nativeEvent)) {
+        return;
+      }
       const error = binding.playerEvent === "error" ? video.error : null;
       emit(
         binding.playerEvent,

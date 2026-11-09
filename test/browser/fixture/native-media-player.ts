@@ -7,6 +7,8 @@ import {
 export interface NativeMediaProbe {
   analytics: string[];
   errors: { kind: string; phase: string }[];
+  /** Host-visible events and `onPause` calls, in order. */
+  events: string[];
   play: string;
   renewals: number;
 }
@@ -41,6 +43,7 @@ function createSource(): VibePlayerFileSource {
 const probe: NativeMediaProbe = {
   analytics: [],
   errors: [],
+  events: [],
   play: "idle",
   renewals: 0,
 };
@@ -57,6 +60,8 @@ const controller = new VibePlayerController({
   onAnalyticsEvent: (event) => probe.analytics.push(event.type),
   onError: (error) =>
     probe.errors.push({ kind: error.kind, phase: error.phase }),
+  onEvent: (event) => probe.events.push(event.type),
+  onPause: () => probe.events.push("onPause"),
   ...(scenario === "signed" ? { renewSource } : {}),
 });
 const target = document.getElementById("player");

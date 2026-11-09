@@ -11,6 +11,8 @@ type NativeErrorEmitter = (
 // MediaError codes: 1 aborted, 2 network, 3 decode, 4 source not supported.
 const mediaErrorKinds = ["unknown", "unknown", "network", "decode", "source"];
 const failedSourceLists = new WeakSet<HTMLVideoElement>();
+/** Elements whose failure pause has not reported its native events yet. */
+const failurePauses = new WeakSet<HTMLVideoElement>();
 
 /** `mediaReadyState` 0 means the failure happened before media data loaded. */
 export function createNativeErrorPayload(
@@ -34,6 +36,27 @@ export function hasNativeSourceFailure(video: HTMLVideoElement): boolean {
 
 export function resetNativeSourceFailure(video: HTMLVideoElement): void {
   failedSourceLists.delete(video);
+  failurePauses.delete(video);
+}
+
+/**
+ * The pause that settles a pending `play()` after every source failed is not
+ * a viewer pause: hosts already received the fatal error, as on the
+ * MediaError path, which pauses nothing. Its `timeupdate` and `pause` are
+ * swallowed; the `pause` ends the window.
+ */
+export function isNativeFailurePauseEvent(
+  video: HTMLVideoElement,
+  nativeEvent: string
+): boolean {
+  if (!failurePauses.has(video)) {
+    return false;
+  }
+  if (nativeEvent === "pause") {
+    failurePauses.delete(video);
+    return true;
+  }
+  return nativeEvent === "timeupdate";
 }
 
 /**
@@ -57,7 +80,10 @@ export function bindNativeSourceFailure(
       createNativeErrorPayload(video, 4, "No media source could be loaded.")
     );
     // A pending play() would otherwise wait for another source forever.
-    video.pause();
+    if (!video.paused) {
+      failurePauses.add(video);
+      video.pause();
+    }
   };
   video.addEventListener("error", listener, true);
   return () => video.removeEventListener("error", listener, true);
