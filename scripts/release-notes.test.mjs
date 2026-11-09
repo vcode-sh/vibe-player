@@ -2,6 +2,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { extractReleaseNotes } from "./release-notes.mjs";
+import { unwrapMarkdownLines } from "./release-notes-unwrap.mjs";
+
+/** A heading or bullet start; anything else would be a leftover wrap. */
+const BLOCK_LINE = /^(?:### |- )/;
 
 const changelog = [
   "# Changelog",
@@ -73,7 +77,73 @@ describe("extractReleaseNotes", () => {
     const { notes } = extractReleaseNotes(source, "0.7.1");
 
     expect(notes.startsWith("### Fixed\n")).toBe(true);
+    // Every bullet of that section is one line once unwrapped.
+    for (const line of notes.split("\n")) {
+      expect(line === "" || BLOCK_LINE.test(line)).toBe(true);
+    }
     expect(notes).not.toContain("## [0.7.0]");
     expect(notes).not.toContain("[Unreleased]");
+  });
+});
+
+describe("unwrapMarkdownLines", () => {
+  it("joins wrapped bullets and paragraphs but keeps the structure", () => {
+    const lines = [
+      "### Fixed",
+      "",
+      "- A wrapped bullet",
+      "  that continues here.",
+      "  - A nested item",
+      "    also wrapped.",
+      "1. A numbered item",
+      "   wrapped once.",
+      "",
+      "A paragraph",
+      "over two lines.",
+      "### Next heading",
+      "right below.",
+      "",
+      "```ts",
+      "const a = 1;",
+      "  const b = 2;",
+      "```",
+      "> A quote",
+      "| a | b |",
+      "| - | - |",
+    ];
+
+    expect(unwrapMarkdownLines(lines)).toEqual([
+      "### Fixed",
+      "",
+      "- A wrapped bullet that continues here.",
+      "  - A nested item also wrapped.",
+      "1. A numbered item wrapped once.",
+      "",
+      "A paragraph over two lines.",
+      "### Next heading",
+      "right below.",
+      "",
+      "```ts",
+      "const a = 1;",
+      "  const b = 2;",
+      "```",
+      "> A quote",
+      "| a | b |",
+      "| - | - |",
+    ]);
+  });
+
+  it("unwraps the extracted notes", () => {
+    const source = [
+      "## [2.0.0] - 2026-11-09",
+      "",
+      "- One bullet",
+      "  wrapped.",
+      "",
+    ].join("\n");
+
+    expect(extractReleaseNotes(source, "2.0.0")).toEqual({
+      notes: "- One bullet wrapped.\n",
+    });
   });
 });

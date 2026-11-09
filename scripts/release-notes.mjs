@@ -1,3 +1,5 @@
+import { unwrapMarkdownLines } from "./release-notes-unwrap.mjs";
+
 const LINE_BREAK = /\r?\n/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const ISO_DATE = "\\d{4}-\\d{2}-\\d{2}";
@@ -17,7 +19,8 @@ function trimBlankLines(lines) {
 
 /**
  * Extracts the body of a released version's CHANGELOG section, the text
- * between `## [<version>] - <YYYY-MM-DD>` and the next `## ` heading.
+ * between `## [<version>] - <YYYY-MM-DD>` and the next `## ` heading, with
+ * hard-wrapped paragraphs and list items joined into single lines.
  * @param {string} changelog CHANGELOG.md text.
  * @param {string} version Exact package version, without a leading "v".
  * @returns {{notes: string} | {issue: string}} The notes, or why there are none.
@@ -45,5 +48,5 @@ export function extractReleaseNotes(changelog, version) {
   if (body.length === 0) {
     return { issue: `CHANGELOG.md section for ${version} is empty.` };
   }
-  return { notes: `${body.join("\n")}\n` };
+  return { notes: `${unwrapMarkdownLines(body).join("\n")}\n` };
 }
