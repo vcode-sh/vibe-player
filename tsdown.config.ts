@@ -78,5 +78,11 @@ export default defineConfig({
           : null,
     },
   ],
+  // With TypeScript 7 installed, rolldown-plugin-dts emits declarations with
+  // its tsgo generator and always prints this notice once; the oxc generator
+  // would need isolatedDeclarations. Remove once the TypeScript 7 API is
+  // stable or isolatedDeclarations lands.
+  suppressWarnings:
+    "TypeScript 7.0 does not yet have a stable API and is experimental.",
   target: "es2022",
 });
