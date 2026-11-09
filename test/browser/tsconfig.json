@@ -1,6 +1,10 @@
 {
   "extends": "../../tsconfig.json",
-  "compilerOptions": { "types": ["node"], "noEmit": true },
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
   "include": [
     "./**/*.ts",
     "./**/*.tsx",
