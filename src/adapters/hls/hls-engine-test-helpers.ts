@@ -19,10 +19,12 @@ export class HlsEngineProbe {
   bandwidthEstimate = 2_750_000;
   destroyed = false;
   levels = [];
+  liveSyncPosition: number | null = null;
   loadedUrl = "";
   manualLevel = -1;
   nextLevel = -1;
   startedAt: number | undefined;
+  startPosition = -1;
   stopped = false;
   video: HTMLVideoElement | null = null;
 

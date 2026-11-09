@@ -418,6 +418,7 @@ interface HlsAdapterErrorPayload extends Record<string, boolean | number | strin
   credentialFailure?: boolean;
   details: string;
   fatal: boolean;
+  internal?: boolean;
   kind?: VibePlayerErrorKind;
   message: string;
   network?: boolean;
@@ -443,6 +444,7 @@ type HlsModuleLoader = () => Promise<{
 
 interface ManagedHlsController {
   destroy(): void;
+  isInternalSeek?(time: number): boolean;
   setQualityLevel(levelIndex: number): void;
 }
 

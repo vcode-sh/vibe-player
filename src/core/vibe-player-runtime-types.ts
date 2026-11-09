@@ -84,7 +84,12 @@ export interface VibePlayerAdapterEvent {
    * adapter's element does; with it, a `"source"` error at `mediaReadyState`
    * `0` (the element's numeric `readyState`: nothing loaded) triggers a source
    * renewal, because an expired URL fails exactly like that. `message`
-   * becomes the error message.
+   * becomes the error message. `internal: true` on `seeking`/`seeked` marks a
+   * seek the provider made itself (for example hls.js skipping a buffer gap,
+   * nudging a stall or catching up to the live edge), and on another event
+   * (such as the nonfatal diagnostic hls.js raises) that it just jumped: the
+   * controller sends no analytics `seek`, saves no resume position for it,
+   * keeps the watched batch and never counts the skipped stretch as watched.
    */
   payload?: Record<string, string | number | boolean | null | undefined>;
   snapshot: VibePlayerSnapshot;

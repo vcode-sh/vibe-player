@@ -1,3 +1,4 @@
+import { clampVibePlayerTime } from "../../core/vibe-player-time";
 import type {
   VibePlayerAdapter,
   VibePlayerAdapterEvent,
@@ -27,6 +28,7 @@ import {
 } from "./hls-adapter-dom";
 import { loadCurrentHlsAdapterSource } from "./hls-adapter-load-session";
 import { createHlsAdapterQualityState } from "./hls-adapter-quality-state";
+import { HlsAdapterSeekMarks } from "./hls-adapter-seek-marks";
 import { createHlsAdapterSessionState } from "./hls-adapter-session-state";
 import { createHlsAdapterRuntime } from "./hls-managed-runtime";
 import type { ManagedHlsLevel } from "./hls-quality";
@@ -57,6 +59,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   );
   private managedHlsController: ManagedHlsController | null = null;
   private readonly quality = createHlsAdapterQualityState();
+  private readonly seekMarks = new HlsAdapterSeekMarks();
   private video: HTMLVideoElement | null = null;
   private ownsVideo = true;
   constructor(runtime: HlsAdapterRuntime) {
@@ -144,7 +147,13 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
 
   pause = () => pauseNativeVideo(this.commandInput);
   play = () => playNativeVideo(this.commandInput);
-  seekTo = (seconds: number) => seekNativeVideo(this.commandInput, seconds);
+  seekTo = (seconds: number) => {
+    if (this.session.isSeekable) {
+      const { duration } = this.getSnapshot();
+      this.seekMarks.expectOwn(clampVibePlayerTime(seconds, duration, false));
+    }
+    return seekNativeVideo(this.commandInput, seconds);
+  };
   setMuted = (value: boolean) => setNativeVideoMuted(this.commandInput, value);
   setPlaybackRate = (value: number) =>
     setNativeVideoPlaybackRate(this.commandInput, value);
@@ -183,6 +192,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     this.managedHlsController?.destroy();
     this.managedHlsController = null;
     this.quality.reset();
+    this.seekMarks.reset();
   }
   private updateQualityOptions(
     levels: ManagedHlsLevel[],
@@ -222,7 +232,11 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
           event,
           event === "error"
             ? { ...payload, nativeHls: isNativeHlsVideo(video) }
-            : payload
+            : (this.seekMarks.payload(
+                event,
+                video.currentTime,
+                this.managedHlsController
+              ) ?? payload)
         );
       }
     }, externalVideo);

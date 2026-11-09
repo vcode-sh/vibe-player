@@ -22,7 +22,8 @@ interface Announcement {
 
 /**
  * Reports a `seek` for every seek the media starts itself (native controls,
- * Picture-in-Picture, the browser). The controller announces its own seeks
+ * Picture-in-Picture, the browser), except those the provider marks
+ * `internal` (it moved the playhead itself). The controller announces its own seeks
  * on the raw feed before it makes them: `seekTo()` reports for itself, and a
  * restored resume, recovery or replay position is not a seek at all. When
  * the media echoes an announced seek as `seeking`/`seeked`, nothing is
@@ -70,7 +71,7 @@ export class VibePlayerSeekAnalytics {
     const from = this.position;
     this.position = snapshot.currentTime;
     if (type === "seeking") {
-      this.observeSeeking(source, snapshot, from);
+      this.observeSeeking(source, snapshot, from, event.payload?.internal);
     } else if (type === "seeked") {
       this.settleSeeked(snapshot.currentTime);
     } else {
@@ -129,7 +130,8 @@ export class VibePlayerSeekAnalytics {
   private observeSeeking(
     source: VibePlayerSource,
     snapshot: VibePlayerSnapshot,
-    from: number
+    from: number,
+    internal: unknown
   ): void {
     const echo = this.announced.some(({ target }) =>
       isNear(target, snapshot.currentTime)
@@ -138,7 +140,8 @@ export class VibePlayerSeekAnalytics {
     const replay = this.ended && !snapshot.paused;
     this.ended = false;
     this.settle(snapshot.currentTime, false);
-    if (echo || replay) {
+    // The provider moved the playhead itself (a gap skip, a live catch-up).
+    if (echo || replay || internal === true) {
       return;
     }
     this.emit({

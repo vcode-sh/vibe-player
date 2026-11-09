@@ -1,6 +1,10 @@
 import type Hls from "hls.js";
 import type { ErrorData } from "hls.js";
 import type { VibePlayerErrorKind } from "../../core/vibe-player-types";
+import {
+  isHlsInternalSeekError,
+  type ManagedHlsInternalSeeks,
+} from "./hls-internal-seeks";
 import type {
   HlsAdapterErrorPayload,
   ManagedHlsSession,
@@ -9,6 +13,7 @@ import type {
 interface ManagedHlsErrorBinding {
   active: () => boolean;
   hls: Hls;
+  internalSeeks: ManagedHlsInternalSeeks;
   session: ManagedHlsSession;
 }
 
@@ -16,6 +21,7 @@ interface ManagedHlsErrorBinding {
 export function createManagedHlsErrorHandler({
   active,
   hls,
+  internalSeeks,
   session,
 }: ManagedHlsErrorBinding) {
   let credentialFailure = false;
@@ -24,6 +30,10 @@ export function createManagedHlsErrorHandler({
       return;
     }
     const payload = normalizeHlsError(data);
+    if (isHlsInternalSeekError(data.details, data.fatal)) {
+      internalSeeks.record();
+      payload.internal = true;
+    }
     if (payload.credentialFailure) {
       credentialFailure = true;
       hls.stopLoad();

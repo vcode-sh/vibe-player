@@ -9,6 +9,8 @@ export interface HlsAdapterErrorPayload
   credentialFailure?: boolean;
   details: string;
   fatal: boolean;
+  /** hls.js just moved the playhead itself (a stall nudge or a gap skip). */
+  internal?: boolean;
   /** HTTP 4xx and incompatible codecs are `source`; other failures by type. */
   kind?: VibePlayerErrorKind;
   message: string;
@@ -44,6 +46,12 @@ export interface ManagedHlsSession {
 
 export interface ManagedHlsController {
   destroy(): void;
+  /**
+   * Whether the media's seek to `time` is one the engine made itself, such
+   * as a stall nudge, a gap skip or a live-edge catch-up. Optional: without
+   * it every seek the adapter did not make counts as a media seek.
+   */
+  isInternalSeek?(time: number): boolean;
   setQualityLevel(levelIndex: number): void;
 }
 

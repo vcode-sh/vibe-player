@@ -427,11 +427,15 @@ Picture-in-Picture, the browser). `from` is the position the seek left and
 `currentTime` the position it went to. Restoring a resume or recovery position
 and rewinding to replay are not seeks. Each native `seeking` counts, so a scrub
 on native controls can report several seeks in a row; coalesce events that
-arrive close together if you want one per gesture. The browser and hls.js
-also seek on their own, for example to skip a small gap or catch up to the
-live edge. Those count as `media` seeks too: they send a `seek` event, start a
-fresh watched batch and can save a resume position. Filter on `initiator` if
-you only care about viewer-driven seeks.
+arrive close together if you want one per gesture. hls.js also seeks on its
+own: it nudges past a stall, skips small buffer gaps, catches up to the live
+edge and jumps to the start position. The HLS adapter marks those `seeking`
+and `seeked` events with `payload.internal: true`; they send no `seek` event,
+keep the watched batch, never count the skipped stretch as watched and save no
+resume position. Rarer hls.js seeks (alternate-audio switches, interstitials)
+are not recognized. The browser's own internal seeks, with native HLS or a
+file, cannot be told apart from a viewer's, so they still count as `media`
+seeks. Filter on `initiator` if you only care about your own seeks.
 
 Analytics follow one session per source. `opened` and `closed` bracket it:
 retry, renewal, stop, offscreen release and remounting the same source keep

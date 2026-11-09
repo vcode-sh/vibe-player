@@ -110,7 +110,7 @@ export class VibePlayerResumeWriter {
       this.seeking = false;
     } else if (type === "seeked") {
       this.seeking = false;
-      this.settleMediaSeek(source, snapshot);
+      this.settleMediaSeek(source, snapshot, payload?.internal === true);
     } else if (type === "pause") {
       this.pause(source, snapshot);
     } else if (type === "timeupdate") {
@@ -130,17 +130,21 @@ export class VibePlayerResumeWriter {
     }
   }
 
-  /** The controller already saved its own seek or restored this spot. */
+  /**
+   * The controller already saved its own seek or restored this spot, and a
+   * seek the provider made itself (`internal`) is no viewer's seek.
+   */
   private settleMediaSeek(
     source: VibePlayerSource,
-    snapshot: VibePlayerSnapshot
+    snapshot: VibePlayerSnapshot,
+    internal: boolean
   ): void {
     if (!isSavable(snapshot)) {
       return;
     }
     const position = this.toPosition(source, snapshot);
     this.latest = position;
-    if (!this.isMarked(position, null)) {
+    if (!(internal || this.isMarked(position, null))) {
       this.write(position, "seek");
     }
   }

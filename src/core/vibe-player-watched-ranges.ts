@@ -81,7 +81,8 @@ interface Sample {
  * while `readyState` is `playing` counts, and only when media time advanced
  * no faster than the wall clock allows. Seek boundaries (an announced
  * controller seek or the media's `seeking`) deliver the batch and keep jumps
- * out of playback; a seek ends on `seeked`, `pause`, `ended`, a fatal
+ * out of playback; a provider's own (`internal`) seek keeps the batch but
+ * never counts its jump; a seek ends on `seeked`, `pause`, `ended`, a fatal
  * `error`, an acknowledged pause or a release.
  */
 export class VibePlayerWatchedRangesTracker {
@@ -137,6 +138,10 @@ export class VibePlayerWatchedRangesTracker {
     this.batch.observe(source, snapshot.duration);
     if (this.observeSeek(event)) {
       return;
+    }
+    if (event.payload?.internal === true) {
+      // The provider jumped by itself; the skipped stretch was not watched.
+      this.last = null;
     }
     if (this.last) {
       this.advance(snapshot.currentTime, snapshot.playbackRate);
@@ -199,7 +204,10 @@ export class VibePlayerWatchedRangesTracker {
 
   private observeSeek({ payload, type }: VibePlayerAdapterEvent): boolean {
     if (type === "seeking") {
-      this.flush("seek");
+      // A seek the provider makes itself keeps the batch.
+      if (payload?.internal !== true) {
+        this.flush("seek");
+      }
       this.seeking = true;
     } else if (
       seekEndingEvents.has(type) ||

@@ -1,5 +1,6 @@
 import { canUseNativeHls } from "./hls-adapter-dom";
 import { createInlineHlsConfig } from "./hls-engine-config";
+import { ManagedHlsInternalSeeks } from "./hls-internal-seeks";
 import {
   bindManagedHlsEvents,
   syncManagedHlsLevels,
@@ -46,10 +47,12 @@ async function attachManagedHls(
     ...options.hlsConfig,
   });
   let destroyed = false;
+  const internalSeeks = new ManagedHlsInternalSeeks(hls, session.video);
   const binding = {
     active: () => !destroyed && session.isActive?.() !== false,
     events: Hls.Events,
     hls,
+    internalSeeks,
     session,
   };
   bindManagedHlsEvents(binding);
@@ -59,6 +62,7 @@ async function attachManagedHls(
       destroyed = true;
       hls.destroy();
     },
+    isInternalSeek: (time) => !destroyed && internalSeeks.matches(time),
     setQualityLevel: (levelIndex) => {
       hls.nextLevel = levelIndex;
       syncManagedHlsLevels(binding, levelIndex);

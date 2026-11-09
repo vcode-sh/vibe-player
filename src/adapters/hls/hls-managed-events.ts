@@ -2,6 +2,7 @@ import type Hls from "hls.js";
 import type { Level } from "hls.js";
 import { getNativeVideoStartPosition } from "../native/native-video-seek";
 import { recordHlsBandwidth } from "./hls-engine-config";
+import type { ManagedHlsInternalSeeks } from "./hls-internal-seeks";
 import { createManagedHlsErrorHandler } from "./hls-managed-errors";
 import type { ManagedHlsLevel } from "./hls-quality";
 import type { ManagedHlsSession } from "./hls-runtime-types";
@@ -10,6 +11,7 @@ interface ManagedHlsEventBinding {
   active: () => boolean;
   events: typeof Hls.Events;
   hls: Hls;
+  internalSeeks: ManagedHlsInternalSeeks;
   session: ManagedHlsSession;
 }
 
@@ -44,9 +46,13 @@ function bindManagedHlsLoading({
   active,
   events,
   hls,
+  internalSeeks,
   session,
 }: ManagedHlsEventBinding): void {
-  hls.on(events.ERROR, createManagedHlsErrorHandler({ active, hls, session }));
+  hls.on(
+    events.ERROR,
+    createManagedHlsErrorHandler({ active, hls, internalSeeks, session })
+  );
   hls.on(events.MEDIA_ATTACHED, () => {
     if (active()) {
       hls.loadSource(session.manifestUrl);
