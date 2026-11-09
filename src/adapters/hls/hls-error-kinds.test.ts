@@ -52,7 +52,13 @@ describe("managed HLS error categories", () => {
       status: 503,
       type: "networkError",
     },
-    { details: "bufferAppendError", kind: "decode", type: "mediaError" },
+    // A fatal media error is terminal once two recoveries in a row failed.
+    {
+      attempts: 3,
+      details: "bufferAppendError",
+      kind: "decode",
+      type: "mediaError",
+    },
     {
       details: "manifestIncompatibleCodecsError",
       kind: "source",
@@ -62,15 +68,17 @@ describe("managed HLS error categories", () => {
     { details: "internalException", kind: "unknown", type: "otherError" },
   ])(
     "reports a fatal $type ($details $status) as $kind",
-    async ({ details, kind, status, type }) => {
+    async ({ attempts = 1, details, kind, status, type }) => {
       const controller = await loadManagedHls();
-      getLatestHlsEngine().emit(HlsEngineProbe.Events.ERROR, {
-        details,
-        error: new Error(details),
-        fatal: true,
-        ...(status ? { response: { code: status } } : {}),
-        type,
-      });
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        getLatestHlsEngine().emit(HlsEngineProbe.Events.ERROR, {
+          details,
+          error: new Error(details),
+          fatal: true,
+          ...(status ? { response: { code: status } } : {}),
+          type,
+        });
+      }
       expect(controller.getState().error).toMatchObject({
         details: { kind },
         kind,

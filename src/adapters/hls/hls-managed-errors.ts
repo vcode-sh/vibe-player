@@ -5,6 +5,7 @@ import {
   isHlsInternalSeekError,
   type ManagedHlsInternalSeeks,
 } from "./hls-internal-seeks";
+import { createHlsMediaRecovery } from "./hls-media-recovery";
 import type {
   HlsAdapterErrorPayload,
   ManagedHlsSession,
@@ -17,7 +18,11 @@ interface ManagedHlsErrorBinding {
   session: ManagedHlsSession;
 }
 
-/** Retrying the same rejected credential cannot recover a signed delivery. */
+/**
+ * Retrying the same rejected credential cannot recover a signed delivery.
+ * A fatal media error hls.js can still recover is reported as nonfatal
+ * (`sdkFatal: true`) while the recovery runs.
+ */
 export function createManagedHlsErrorHandler({
   active,
   hls,
@@ -25,6 +30,7 @@ export function createManagedHlsErrorHandler({
   session,
 }: ManagedHlsErrorBinding) {
   let credentialFailure = false;
+  const recoverMedia = createHlsMediaRecovery(hls);
   return (_event: string, data: ErrorData): void => {
     if (!active() || credentialFailure) {
       return;
@@ -38,7 +44,11 @@ export function createManagedHlsErrorHandler({
       credentialFailure = true;
       hls.stopLoad();
     }
-    session.onError(payload);
+    session.onError(
+      recoverMedia(data)
+        ? { ...payload, fatal: false, sdkFatal: true }
+        : payload
+    );
   };
 }
 

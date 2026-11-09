@@ -32,6 +32,8 @@ export class HlsEngineProbe {
   loadedUrl = "";
   manualLevel = -1;
   nextLevel = -1;
+  /** Media recovery calls, in order. */
+  readonly recoveries: string[] = [];
   startedAt: number | undefined;
   startPosition = -1;
   stopped = false;
@@ -47,6 +49,12 @@ export class HlsEngineProbe {
   }
   destroy(): void {
     this.destroyed = true;
+  }
+  recoverMediaError(): void {
+    this.recoveries.push("recoverMediaError");
+  }
+  swapAudioCodec(): void {
+    this.recoveries.push("swapAudioCodec");
   }
   loadSource(url: string): void {
     this.loadedUrl = url;

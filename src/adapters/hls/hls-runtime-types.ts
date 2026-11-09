@@ -15,6 +15,10 @@ export interface HlsAdapterErrorPayload
   kind?: VibePlayerErrorKind;
   message: string;
   network?: boolean;
+  /**
+   * What hls.js itself reported as `fatal`. With `fatal: false` it marks a
+   * fatal media error the adapter is recovering (`recoverMediaError`).
+   */
   sdkFatal?: boolean;
   status?: number;
   type: string;
