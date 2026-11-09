@@ -63,16 +63,9 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
-      - name: Read Playwright version
-        id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Cache browser engines
-        uses: actions/cache@v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
+      # Not cached, as Playwright's CI guide recommends: the OS packages take
+      # about 36 s and cannot be cached, while the browsers download in about
+      # 8 s, no slower than restoring (and saving) a 387 MB cache.
       - name: Install browser engines
         run: bunx playwright install --with-deps chromium webkit
 

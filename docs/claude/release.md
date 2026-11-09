@@ -57,8 +57,10 @@ Both workflows use Ubuntu 26.04 and Node 26; the minimum-runtime check uses
 the supported Node 24.0.0.
 
 CI runs on every push to `main` and on pull requests. The `quality` job runs
-`bun run ci`; the `browser` job installs Chromium and WebKit (cached by
-Playwright version), builds and runs `bun run test:browser`, uploading
+`bun run ci`; the `browser` job installs Chromium and WebKit with their OS
+packages (not cached, as Playwright recommends: the OS packages cannot be
+cached and the browsers download as fast as a cache restores), builds and
+runs `bun run test:browser`, uploading
 `test-results/` as `browser-acceptance-results` on failure. Only pull request
 runs cancel superseded runs.
 
