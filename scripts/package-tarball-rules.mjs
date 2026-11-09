@@ -1,6 +1,7 @@
 const packedLinePattern = /^packed\s+\S+\s+(.+)$/;
 const lineBreakPattern = /\r\n|\r|\n/;
-// Shared chunks keep stable kebab-case names (`chunks/[name].js`), no hashes.
+// Shape only: kebab-case names under dist/chunks/. package:readable checks
+// that each name matches a source module or code-splitting group.
 const generatedChunkPattern =
   /^dist\/chunks\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:js|d\.ts)$/;
 
