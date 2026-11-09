@@ -110,11 +110,6 @@ export class VibePlayerControllerActions {
         snapshot: { ...this.host.state().snapshot, paused: true },
       });
     }
-    if (!adapter && command === "pause") {
-      this.host.update({
-        snapshot: { ...this.host.state().snapshot, paused: true },
-      });
-    }
     this.pauseIntent.begin(command, adapter);
     return this.run(
       command,

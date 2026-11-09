@@ -23,6 +23,22 @@ describe("controller deferred playback", () => {
     await controller.teardown();
   });
 
+  it("pauses an idle source with one state notification", async () => {
+    const adapterFactory = vi.fn(() => new TestAdapter());
+    const controller = new VibePlayerController({ adapterFactory });
+    await controller.load(fileSource, "onPlay");
+    const states: string[] = [];
+    controller.subscribe(({ lastEvent, snapshot }) => {
+      states.push(`${lastEvent}:${snapshot.paused ? "paused" : "playing"}`);
+    });
+
+    await controller.pause();
+
+    expect(states).toEqual(["pause:paused"]);
+    expect(adapterFactory).not.toHaveBeenCalled();
+    await controller.teardown();
+  });
+
   it("keeps nonfatal provider diagnostics out of playback state", async () => {
     const adapter = new TestAdapter();
     let emit: (event: VibePlayerAdapterEvent) => void = () => undefined;
