@@ -109,7 +109,8 @@
 - When listeners keep changing the player, nested loops no longer multiply
   the cutoff, well-behaved subscribers still end on the latest state, and a
   runaway in provider event handling is reported too
-  (`operation: "provider-events"`).
+  (`operation: "provider-events"`). Every cut-off delivery is reported; the
+  one that reached its limit first carries `details.first: true`.
 - A listener added while an update is delivered starts with the next one.
 - A position captured before a stream turned out to be live is no longer
   saved for resume.
