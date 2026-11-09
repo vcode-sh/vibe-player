@@ -3,7 +3,7 @@
 ## Current state
 
 - Package: `vibe-player`
-- Repository version: `0.7.0`; check `npm view vibe-player version` for the
+- Repository version: `0.7.1`; check `npm view vibe-player version` for the
   published stable version.
 - License: `Apache-2.0`
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`

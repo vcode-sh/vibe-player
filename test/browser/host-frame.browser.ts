@@ -99,6 +99,37 @@ test("resuming from a pause keeps the paused frame instead of the poster", async
   expect(probe.events).toEqual([]);
 });
 
+test("native seeks flush observed playback and leave skipped time out of the next batch", async ({
+  page,
+}) => {
+  await startPlayback(page);
+  await expect
+    .poll(async () => (await readMedia(page)).currentTime)
+    .toBeGreaterThan(1);
+  const target = await page
+    .locator("video")
+    .evaluate((video: HTMLVideoElement) => {
+      const next = video.currentTime + 0.5;
+      video.currentTime = next;
+      return next;
+    });
+  const output = page.getByRole("status", { name: "Watched ranges" });
+  await expect(output).not.toHaveText("none");
+  const before = JSON.parse((await output.textContent()) ?? "null");
+  expect(before.reason).toBe("flush");
+  expect(before.ranges.at(-1).end).toBeLessThan(target - 0.45);
+
+  await expect
+    .poll(async () => (await readMedia(page)).currentTime)
+    .toBeGreaterThan(target + 0.7);
+  await expect(page.locator(player)).toHaveAttribute("data-state", "playing");
+  await expect(page.locator(player)).toHaveAttribute("data-busy", "false");
+  await togglePlayback(page, "Pause");
+  await expect(output).toContainText('"reason":"pause"');
+  const after = JSON.parse((await output.textContent()) ?? "null");
+  expect(after.ranges[0].start).toBeGreaterThanOrEqual(target - 0.05);
+});
+
 for (const provider of ["file", "hls"] as const) {
   test(`${provider} playback keeps playing while it moves between hosts`, async ({
     page,

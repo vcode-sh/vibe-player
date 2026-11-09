@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-09
+
+### Fixed
+
+- Watched ranges now stay accurate however viewers seek. File and HLS
+  playback deliver the current batch the moment a seek starts, so a jump is
+  never counted as watched time, not even a short one, and a rewatched
+  stretch is reported as its own range instead of disappearing into the
+  first viewing. This also covers seeks made with the browser's native
+  fullscreen controls. Calling `controller.flushWatchedRanges()` on seek as
+  well is still safe and sends nothing twice.
+- Playback resumes smoothly after a seek in Safari and other WebKit browsers.
+  The player follows the media's real progress, so the buffering spinner no
+  longer lingers once the video is moving again, and watched time keeps
+  counting from the new position.
+
+### Added
+
+- Native adapters emit normalized `seeking` and `seeked` events, available as
+  the controller state's `lastEvent`. Code that switches exhaustively over
+  `VibePlayerEventName` should handle the two new names.
+
 ## [0.7.0] - 2026-11-08
 
 ### Added

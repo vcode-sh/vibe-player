@@ -8,7 +8,8 @@ export const packageSizeBudgets = [
     directory: "dist",
     extension: ".js",
     label: "runtime ESM raw",
-    limit: 170 * kib,
+    // 2026-11-09: 170 -> 184 KiB (measured 159,163 B) to restore ~15 % headroom.
+    limit: 184 * kib,
     mode: "raw",
   },
   {
@@ -18,7 +19,9 @@ export const packageSizeBudgets = [
     // 2026-11-06: +4 KiB for the compact surface, Glass and the lazy Chips skin.
     // 2026-11-08: 42 -> 47 KiB (measured 46,180 B) for the Glide/Curve heatmap
     // preview, seek thumbnails and the lazy Media Session chunk.
-    limit: 47 * kib,
+    // 2026-11-09: 47 -> 55 KiB (measured 48,349 B) for native seek boundaries
+    // and observed-progress buffering; 0.7.0 had left only 16 B of headroom.
+    limit: 55 * kib,
     mode: "gzip",
   },
   {
@@ -26,7 +29,8 @@ export const packageSizeBudgets = [
     label: "stylesheet raw",
     // 2026-11-06: Glass Capsule styles; gzip stays under its 10 KiB limit.
     // 2026-11-08: shipped stylesheets are minified (62,314 -> 50,052 B raw).
-    limit: 58 * kib,
+    // 2026-11-09: 58 -> 62 KiB (measured 53,890 B) to restore ~15 % headroom.
+    limit: 62 * kib,
     mode: "raw",
   },
   {
@@ -49,7 +53,8 @@ export const packageSizeBudgets = [
     // 2026-11-08: host frame, heatmap, timeline background and watched ranges.
     // 2026-11-08: 76 -> 86 KiB (measured 83,531 B) for heatmap variants, seek
     // thumbnails and Media Session options.
-    limit: 86 * kib,
+    // 2026-11-09: 86 -> 99 KiB (measured 86,316 B) to restore ~15 % headroom.
+    limit: 99 * kib,
     mode: "raw",
   },
 ];

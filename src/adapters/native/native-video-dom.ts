@@ -20,6 +20,11 @@ interface NativeEventBinding {
   playerEvent: VibePlayerEventName;
 }
 
+interface NativePlaybackProgress {
+  buffering: boolean | null;
+  time: number;
+}
+
 export interface NativeVideoSourceMetadata {
   captions?: readonly VibePlayerCaptionTrack[];
   crossOrigin?: "anonymous" | "use-credentials" | null;
@@ -37,7 +42,8 @@ const nativeEventBindings: NativeEventBinding[] = [
   { nativeEvent: "play", playerEvent: "play" },
   { nativeEvent: "playing", playerEvent: "playing" },
   { nativeEvent: "ratechange", playerEvent: "ratechange" },
-  { nativeEvent: "seeked", playerEvent: "ready" },
+  { nativeEvent: "seeked", playerEvent: "seeked" },
+  { nativeEvent: "seeking", playerEvent: "seeking" },
   { nativeEvent: "stalled", playerEvent: "buffering" },
   { nativeEvent: "timeupdate", playerEvent: "timeupdate" },
   { nativeEvent: "volumechange", playerEvent: "volumechange" },
@@ -45,6 +51,10 @@ const nativeEventBindings: NativeEventBinding[] = [
 ];
 
 const nativeEventCleanups = new WeakMap<HTMLVideoElement, () => void>();
+const nativePlaybackProgress = new WeakMap<
+  HTMLVideoElement,
+  NativePlaybackProgress
+>();
 
 export function appendNativeCaptionTracks(
   video: HTMLVideoElement,
@@ -88,12 +98,17 @@ function bindNativeVideoEvents(
   video: HTMLVideoElement,
   emit: NativeVideoEventEmitter
 ): void {
+  nativePlaybackProgress.set(video, {
+    buffering: null,
+    time: video.currentTime,
+  });
   const cleanups: (() => void)[] = [];
   for (const binding of nativeEventBindings) {
     const listener = () => {
       if (binding.playerEvent === "buffering" && video.paused) {
         return;
       }
+      observeNativePlayback(video, binding.nativeEvent);
       const error = binding.playerEvent === "error" ? video.error : null;
       emit(
         binding.playerEvent,
@@ -122,6 +137,31 @@ function bindNativeVideoEvents(
 export function clearNativeVideoEvents(video: HTMLVideoElement): void {
   nativeEventCleanups.get(video)?.();
   nativeEventCleanups.delete(video);
+  nativePlaybackProgress.delete(video);
+}
+
+function observeNativePlayback(
+  video: HTMLVideoElement,
+  event: keyof HTMLVideoElementEventMap
+): void {
+  const progress = nativePlaybackProgress.get(video);
+  if (!progress) {
+    return;
+  }
+  if (event === "waiting" || event === "stalled" || event === "seeking") {
+    progress.buffering = true;
+  } else if (
+    event === "playing" ||
+    (event === "timeupdate" &&
+      !video.paused &&
+      !video.seeking &&
+      video.currentTime > progress.time)
+  ) {
+    progress.buffering = false;
+  } else if (event === "play" || event === "pause") {
+    progress.buffering = null;
+  }
+  progress.time = video.currentTime;
 }
 
 export function getNativeVideoSnapshot(
@@ -175,6 +215,18 @@ function getBufferedPct(video: HTMLVideoElement, duration: number): number {
   );
 }
 
+/**
+ * Observed progress outranks a lagging `readyState`: WebKit can report
+ * HAVE_CURRENT_DATA for a while after a seek although media already advances.
+ */
+function isNativeVideoStalled(video: HTMLVideoElement): boolean {
+  const buffering = nativePlaybackProgress.get(video)?.buffering ?? null;
+  if (buffering !== null) {
+    return buffering || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA;
+  }
+  return video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA;
+}
+
 function getReadyState(
   video: HTMLVideoElement
 ): VibePlayerSnapshot["readyState"] {
@@ -184,7 +236,7 @@ function getReadyState(
   if (video.ended) {
     return "ended";
   }
-  if (!video.paused && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+  if (video.seeking || (!video.paused && isNativeVideoStalled(video))) {
     return "buffering";
   }
   if (!video.paused) {

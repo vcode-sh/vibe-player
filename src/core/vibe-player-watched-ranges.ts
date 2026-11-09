@@ -10,7 +10,7 @@ export interface VibePlayerWatchedRange {
 /**
  * Why a batch was delivered: the viewer paused or stopped (`pause`), media
  * ended, the source closed or changed (`close`), the page was hidden, the
- * batch reached its range limit, or the host called `flushWatchedRanges()`.
+ * batch reached its range limit, or a seek boundary or host call flushed it.
  */
 export type VibePlayerWatchedRangesReason =
   | "close"
@@ -44,12 +44,13 @@ interface Sample {
 /**
  * Turns normalized controller state into watched ranges. Only progress while
  * `readyState` is `playing` counts, and only when media time advanced no
- * faster than the wall clock allows, so seeks, scrubs and loops never count.
+ * faster than the wall clock allows. Seek boundaries keep jumps out of playback.
  */
 export class VibePlayerWatchedRangesTracker {
   private duration = 0;
   private last: Sample | null = null;
   private ranges: VibePlayerWatchedRange[] = [];
+  private seeking = false;
   private source: VibePlayerSource | null = null;
   private readonly emit: (report: VibePlayerWatchedRangesReport) => void;
   private readonly now: () => number;
@@ -62,20 +63,35 @@ export class VibePlayerWatchedRangesTracker {
     this.now = now;
   }
 
-  update({ currentSource, snapshot }: VibePlayerControllerState): void {
+  update({
+    currentSource,
+    lastEvent,
+    snapshot,
+  }: VibePlayerControllerState): void {
     if (currentSource?.id !== this.source?.id) {
       this.flush("close");
       this.last = null;
       this.duration = 0;
     }
+    if (currentSource !== this.source) {
+      this.seeking = false;
+    }
     this.source = currentSource;
     if (Number.isFinite(snapshot.duration) && snapshot.duration > 0) {
       this.duration = snapshot.duration;
     }
+    if (this.observeSeek(lastEvent)) {
+      return;
+    }
     if (this.last) {
       this.advance(snapshot.currentTime, snapshot.playbackRate);
     }
-    if (!snapshot.paused && snapshot.readyState === "playing") {
+    const startsAfterSeek =
+      lastEvent === "seeked" && snapshot.readyState === "buffering";
+    if (
+      !snapshot.paused &&
+      (snapshot.readyState === "playing" || startsAfterSeek)
+    ) {
       this.last ??= { at: this.now(), time: snapshot.currentTime };
       return;
     }
@@ -103,6 +119,21 @@ export class VibePlayerWatchedRangesTracker {
       reason,
       sourceId: source.id,
     });
+  }
+
+  private observeSeek(
+    lastEvent: VibePlayerControllerState["lastEvent"]
+  ): boolean {
+    if (lastEvent === "seeking") {
+      this.flush("flush");
+      this.seeking = true;
+    } else if (lastEvent === "seeked") {
+      this.seeking = false;
+    }
+    if (this.seeking) {
+      this.last = null;
+    }
+    return this.seeking;
   }
 
   private advance(time: number, rate: number): void {

@@ -254,7 +254,9 @@ duplicate host-owned lifecycle events.
 
 Watched ranges are opt-in through `onWatchedRanges`: merged media ranges that
 played since the last report, delivered on pause, end, close, page hide, at 64
-ranges, or on `controller.flushWatchedRanges()`. The host owns transport,
+ranges, at native seek boundaries, or on `controller.flushWatchedRanges()`.
+Native `seeking` and `seeked` events keep seek jumps out of watched time and
+separate replayed ranges. The host owns transport,
 identity, sampling and aggregation (for example into the normalized values that
 `VibePlayerHeatmap` draws on hover and scrub). Callback failures report as nonfatal
 `integrationerror` events with `operation: "watched-ranges"`.

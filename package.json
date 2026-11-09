@@ -1,6 +1,6 @@
 {
   "name": "vibe-player",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Cinematic, provider-agnostic React video player primitives and skins.",
   "keywords": [
     "video-player",

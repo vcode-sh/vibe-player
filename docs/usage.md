@@ -454,8 +454,10 @@ for "most replayed" data or completion that ignores skipping. Each report holds
 the merged, sorted ranges (seconds) since the previous one and why it was
 sent: `pause` (including stop and offscreen release), `ended`, `close` (source
 changed, closed or unmounted), `hidden` (page hidden or `pagehide`), `limit`
-(64 separate ranges) or `flush` (`controller.flushWatchedRanges()`). Only
-progress while playing counts, and only as fast as the wall clock allows, so
+(64 separate ranges) or `flush` (native seek boundaries or
+`controller.flushWatchedRanges()`). Native seeks begin a fresh batch so replayed
+stretches retain their playback time. Only
+unpaused media progress counts, and only as fast as the wall clock allows, so
 seeks, scrubs, loops and stalls never do. Nothing is sent or stored by the
 package; use `navigator.sendBeacon` or your API client:
 
@@ -967,12 +969,12 @@ can retry without refreshing the page.
 ## Bundle Size
 
 `bun run package:size` measures built output and enforces an initial combined
-compact + hook budget of **22,360 B gzip**, excluding React, React DOM and
+compact + hook budget of **24,600 B gzip**, excluding React, React DOM and
 `hls.js`. Provider bridges and the Ink Chips skin are separate chunks loaded on
 first use; the report also includes their deferred bytes and the complete
 consumer bundle. Measurements use a minified Vite application, include
 non-peer dependencies, exclude React/React DOM/hls.js, and sum each emitted
-chunk's gzip size. All package ESM files keep a separate 47 KiB gzip limit.
+chunk's gzip size. All package ESM files keep a separate 55 KiB gzip limit.
 
 ## Media Audit
 

@@ -70,7 +70,9 @@ rows.push(
       // 2026-11-08: 20,500 -> 22,360 B (measured 21,295 B + 5 %) for seek
       // step, skip buttons, double-tap seek and the compact scrub frame
       // (seek thumbnails without a heatmap).
-      limit: 22_360,
+      // 2026-11-09: 22,360 -> 24,600 B (measured 21,418 B + 15 %) to restore
+      // headroom after native seek boundaries.
+      limit: 24_600,
       mode: "gzip",
     },
     initial.map((chunk) => chunk.code)

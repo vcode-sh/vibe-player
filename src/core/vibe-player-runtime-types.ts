@@ -80,6 +80,8 @@ export type VibePlayerEventName =
   | "qualitychange"
   | "ratechange"
   | "ready"
+  | "seeked"
+  | "seeking"
   | "timeupdate"
   | "volumechange";
 
