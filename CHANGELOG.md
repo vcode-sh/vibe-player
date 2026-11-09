@@ -171,8 +171,10 @@
   hls.js playback (such as a segment Chromium cannot decode) now goes through
   the same recovery instead of failing playback at once.
 - Pressing Play on a player that is mostly out of view (below
-  `offscreenThreshold`) now plays it until it next leaves view, instead of
-  being stopped at once.
+  `offscreenThreshold`), or a click that scrolls it into view, now plays it
+  until it next leaves view, instead of being stopped at once. A start while
+  the player is fully out of view (autoplay, retry, a host or system play)
+  is still released.
 - Screen readers hear the player: one always-present polite announcer
   speaks loading, buffering, a failure once, and keyboard play, pause and
   seek results. Translate the new words with `labels.playing` and `labels.paused`.

@@ -97,20 +97,50 @@ function isInPictureInPicture(controller: VibePlayerController): boolean {
   return controller.getState().snapshot.isPictureInPicture === true;
 }
 
+function getReadyState(controller: VibePlayerController) {
+  return controller.getState().snapshot.readyState;
+}
+
+/** The frame's real box misses the viewport entirely (or has no size). */
+function isFullyOutOfView(target: Element): boolean {
+  const rect = target.getBoundingClientRect();
+  return (
+    rect.width === 0 ||
+    rect.height === 0 ||
+    rect.bottom <= 0 ||
+    rect.right <= 0 ||
+    rect.top >= window.innerHeight ||
+    rect.left >= window.innerWidth
+  );
+}
+
 /**
- * Leaving Picture-in-Picture while offscreen applies the deferred release.
- * Other changes never do: an explicit Play on a mostly hidden player keeps
- * playing until its next offscreen entry.
+ * Deferred releases while the last entry said offscreen. Closing
+ * Picture-in-Picture there releases. A start that begins there (autoplay,
+ * retry, a host or Media Session play) releases only when the frame is fully
+ * out of view: a click that scrolled it in, or a Play on a frame partly in
+ * view, keeps playing until the next offscreen entry. Geometry is read only
+ * when the ready state changes, never on every time update.
  */
-function releaseWhenPictureClosesOffscreen(
+function releaseOffscreenStarts(
   controller: VibePlayerController,
+  target: Element,
   isOffscreen: () => boolean
 ): () => void {
   let inPicture = isInPictureInPicture(controller);
+  let readyState = getReadyState(controller);
   return controller.subscribe(() => {
     const wasInPicture = inPicture;
+    const previousReadyState = readyState;
     inPicture = isInPictureInPicture(controller);
-    if (wasInPicture && !inPicture && isOffscreen()) {
+    readyState = getReadyState(controller);
+    if (!isOffscreen()) {
+      return;
+    }
+    const pictureClosed = wasInPicture && !inPicture;
+    const started =
+      readyState !== previousReadyState && isFullyOutOfView(target);
+    if (pictureClosed || started) {
       releaseActivePlayer(controller);
     }
   });
@@ -207,8 +237,9 @@ export function useVibePlayerVisibility({
     });
     // A parked frame (visible === null) is never offscreen.
     const unsubscribe = stopWhenOffscreen
-      ? releaseWhenPictureClosesOffscreen(
+      ? releaseOffscreenStarts(
           controller,
+          target,
           () => current && visible === false
         )
       : undefined;
