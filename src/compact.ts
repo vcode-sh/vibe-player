@@ -7,6 +7,8 @@ export type {
   VibePlayerError,
   VibePlayerErrorKind,
   VibePlayerEvent,
+  VibePlayerEventOfType,
+  VibePlayerEventType,
   VibePlayerHlsSource,
   VibePlayerLoadMode,
   VibePlayerMp4Source,

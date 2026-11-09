@@ -210,6 +210,8 @@ type VibePlayerControllerState
 type VibePlayerError
 type VibePlayerErrorKind
 type VibePlayerEvent
+type VibePlayerEventOfType
+type VibePlayerEventType
 type VibePlayerGestures
 value VibePlayerHeadless
 type VibePlayerHeadlessProps
@@ -306,6 +308,8 @@ type VibePlayerControllerState
 type VibePlayerError
 type VibePlayerErrorKind
 type VibePlayerEvent
+type VibePlayerEventOfType
+type VibePlayerEventType
 type VibePlayerGestures
 value VibePlayerHeadless
 type VibePlayerHeadlessProps
