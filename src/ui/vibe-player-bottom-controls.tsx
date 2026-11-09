@@ -102,7 +102,7 @@ export function VibePlayerBottomControls({
             seekThumbnails={seekThumbnails}
           />
         )}
-        {capabilities.supportsDuration ? (
+        {!capabilities.isLive && snapshot.duration > 0 ? (
           <span className="vibe-player-controls__time">
             -{formatTime(remaining)}
           </span>

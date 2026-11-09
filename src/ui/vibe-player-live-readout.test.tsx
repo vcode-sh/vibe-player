@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { createIdleCapabilities, createIdleSnapshot } from "../core";
+import {
+  createIdleCapabilities,
+  createIdleSnapshot,
+  type VibePlayerCapabilities,
+} from "../core";
 import { VibePlayerBottomControls } from "./vibe-player-bottom-controls";
+
+const remainingReadout = /^-/;
 
 const playing = {
   ...createIdleCapabilities(),
@@ -12,7 +18,7 @@ const playing = {
 };
 
 function renderBar(
-  capabilities: typeof playing,
+  capabilities: VibePlayerCapabilities,
   snapshot: { currentTime: number; duration: number }
 ) {
   render(
@@ -39,11 +45,12 @@ describe("bottom bar time readout", () => {
   it("shows no remaining time or timeline for a live stream", () => {
     renderBar(
       { ...playing, canSeek: false, isLive: true, supportsDuration: false },
-      { currentTime: 42, duration: 0 }
+      // A custom adapter may still report the live window as a duration.
+      { currentTime: 42, duration: 3600 }
     );
 
     expect(screen.getByText("0:42")).toBeInTheDocument();
-    expect(screen.queryByText("-0:00")).not.toBeInTheDocument();
+    expect(screen.queryByText(remainingReadout)).not.toBeInTheDocument();
     expect(screen.queryByRole("slider", { name: "Seek" })).toBeNull();
   });
 
@@ -61,5 +68,12 @@ describe("bottom bar time readout", () => {
     );
 
     expect(screen.queryByText("-0:00")).not.toBeInTheDocument();
+  });
+
+  it("shows the known duration of a source that has not loaded yet", () => {
+    // A lazy player knows the duration from the source before loading it.
+    renderBar(createIdleCapabilities(), { currentTime: 0, duration: 83 });
+
+    expect(screen.getByText("-1:23")).toBeInTheDocument();
   });
 });
