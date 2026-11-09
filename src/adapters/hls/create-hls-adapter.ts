@@ -24,14 +24,12 @@ import { clearElement } from "../shared/clear-element";
 import {
   getHlsVideoCapabilities,
   getHlsVideoSnapshot,
-  readNativeHlsLive,
 } from "./hls-adapter-dom";
 import { loadCurrentHlsAdapterSource } from "./hls-adapter-load-session";
 import { createHlsAdapterQualityState } from "./hls-adapter-quality-state";
-import { HlsAdapterSeekMarks } from "./hls-adapter-seek-marks";
 import { createHlsAdapterSessionState } from "./hls-adapter-session-state";
 import { createHlsAdapterRuntime } from "./hls-managed-runtime";
-import { HlsMediaDecodeRecovery } from "./hls-media-decode-recovery";
+import { HlsMediaEvents } from "./hls-media-events";
 import type { ManagedHlsLevel } from "./hls-quality";
 import { captureHlsRecoveryPlayback } from "./hls-recovery-playback";
 import type {
@@ -61,8 +59,11 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   );
   private managedHlsController: ManagedHlsController | null = null;
   private readonly quality = createHlsAdapterQualityState();
-  private readonly seekMarks = new HlsAdapterSeekMarks();
-  private readonly decodeRecovery = new HlsMediaDecodeRecovery();
+  private readonly media = new HlsMediaEvents({
+    emit: (type, payload) => this.emit(type, payload),
+    getController: () => this.managedHlsController,
+    setNativeLive: (isLive) => this.session.setNativeLive(isLive),
+  });
   private video: HTMLVideoElement | null = null;
   private ownsVideo = true;
   constructor(runtime: HlsAdapterRuntime) {
@@ -124,7 +125,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
         captureHlsRecoveryPlayback(
           this.commandInput,
           () => this.session.failed,
-          this.decodeRecovery.playingAtRecovery
+          this.media.decodeRecovery.playingAtRecovery
         ),
       runtime: this.runtime,
       setLive: (isLive) => this.session.setLive(isLive),
@@ -159,7 +160,9 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
   seekTo = (seconds: number) => {
     if (this.session.isSeekable) {
       const { duration } = this.getSnapshot();
-      this.seekMarks.expectOwn(clampVibePlayerTime(seconds, duration, false));
+      this.media.seekMarks.expectOwn(
+        clampVibePlayerTime(seconds, duration, false)
+      );
     }
     return seekNativeVideo(this.commandInput, seconds);
   };
@@ -201,7 +204,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     this.managedHlsController?.destroy();
     this.managedHlsController = null;
     this.quality.reset();
-    this.seekMarks.reset();
+    this.media.seekMarks.reset();
   }
   private updateQualityOptions(
     levels: ManagedHlsLevel[],
@@ -237,25 +240,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     this.ownsVideo = !externalVideo;
     const video = createNativeVideo((event, payload) => {
       if (this.video === video) {
-        const nativeLive = readNativeHlsLive(video, event);
-        if (nativeLive !== null) {
-          this.session.setNativeLive(nativeLive);
-        }
-        this.decodeRecovery.observe(video, event);
-        this.emit(
-          event,
-          event === "error"
-            ? this.decodeRecovery.errorPayload(
-                video,
-                payload,
-                this.managedHlsController
-              )
-            : (this.seekMarks.payload(
-                event,
-                video.currentTime,
-                this.managedHlsController
-              ) ?? payload)
-        );
+        this.media.handle(video, event, payload);
       }
     }, externalVideo);
     this.video = video;
