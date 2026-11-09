@@ -79,12 +79,18 @@ describe("ordered delivery overflow", () => {
     // Each delivery stops at 1000 per outer delivery and this volume change
     // runs two (states, then events); unbounded nesting made 2,002,000.
     expect(calls).toBeLessThan(5000);
-    // Both listeners loop: each outer delivery reports its own looping one.
-    expect(integrationOperations(events)).toEqual(["event", "state-listener"]);
+    // Both listeners loop and the volume change runs two outer deliveries;
+    // each reports every delivery it cut off, first to overflow first.
+    expect(integrationOperations(events)).toEqual([
+      "event",
+      "state-listener",
+      "state-listener",
+      "event",
+    ]);
     await controller.teardown();
   });
 
-  it("reports a runaway in provider event processing once", async () => {
+  it("reports a provider event runaway and the deliveries it cut off", async () => {
     const adapter = new TestAdapter();
     let seeks = 0;
     const events: VibePlayerEvent[] = [];
@@ -105,8 +111,15 @@ describe("ordered delivery overflow", () => {
 
     adapter.emit("seeking", { currentTime: 70, readyState: "buffering" });
 
-    expect(seeks).toBeLessThan(1200);
-    expect(integrationOperations(events)).toEqual(["provider-events"]);
+    // The raw feed stops at its own cap of 10 x 1000 entries.
+    expect(seeks).toBe(10_000);
+    // Each seek also changes the state and sends an event, so those
+    // deliveries reach their lower limit first and are reported too.
+    expect(integrationOperations(events)).toEqual([
+      "state-listener",
+      "event",
+      "provider-events",
+    ]);
     await controller.teardown();
   });
 
@@ -137,7 +150,8 @@ describe("ordered delivery overflow", () => {
 
     adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
 
-    expect(integrationOperations(events)).toEqual(["state-listener"]);
+    // The state loop overflows first; the events it queued are cut off too.
+    expect(integrationOperations(events)).toEqual(["state-listener", "event"]);
     await controller.teardown();
   });
 

@@ -4,8 +4,8 @@ export const VIBE_PLAYER_DELIVERY_LIMIT = 1000;
 /** What an ordered delivery does once a runaway loop cut it off. */
 export interface VibePlayerOverflowHandlers {
   /**
-   * Reports the runaway once the outer delivery ended. Only the delivery
-   * that reached its limit first reports, so one loop is reported once.
+   * Reports the runaway once the outer delivery ended, settling finished
+   * and the counts reset. Every delivery that overflowed reports once.
    */
   report?: () => void;
   /**
@@ -21,9 +21,9 @@ export interface VibePlayerOverflowHandlers {
  * delivery published while another one drains nests inside it. Each
  * delivery counts what it delivers until the outermost one ends, so nested
  * loops cannot multiply the bound, and one delivery running away never
- * drops the values of another. A per-drain delivery (the raw feed) only
- * bounds each of its own drains, so a runaway elsewhere never makes it drop
- * a release or playback entry.
+ * drops the values of another. A delivery can deliver chosen values (the
+ * raw feed's releases and playback starts) past its limit and while it
+ * settles.
  */
 export class VibePlayerDeliveryBudget {
   private depth = 0;
@@ -41,9 +41,12 @@ export class VibePlayerDeliveryBudget {
   }
 
   /** Counts one delivery; false once the delivery reached its limit. */
-  spend(handlers: VibePlayerOverflowHandlers): boolean {
+  spend(
+    handlers: VibePlayerOverflowHandlers,
+    limit = VIBE_PLAYER_DELIVERY_LIMIT
+  ): boolean {
     const spent = this.spent.get(handlers) ?? 0;
-    if (spent >= VIBE_PLAYER_DELIVERY_LIMIT) {
+    if (spent >= limit) {
       return false;
     }
     this.spent.set(handlers, spent + 1);
@@ -69,7 +72,9 @@ export class VibePlayerDeliveryBudget {
     } finally {
       this.spent.clear();
     }
-    overflows[0]?.report?.();
+    for (const handlers of overflows) {
+      handlers.report?.();
+    }
   }
 
   private settle(overflows: readonly VibePlayerOverflowHandlers[]): void {

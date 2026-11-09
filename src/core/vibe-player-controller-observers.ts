@@ -23,6 +23,11 @@ import type {
 } from "./vibe-player-types";
 import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
 
+interface SettleFailure {
+  cause: unknown;
+  source: VibePlayerSource | null;
+}
+
 const runawayMessage =
   "Observers kept changing the player while being notified; the remaining notifications were dropped.";
 
@@ -34,6 +39,8 @@ export class VibePlayerControllerObservers {
     new VibePlayerStateListeners<VibePlayerControllerState>();
   private readonly eventListeners = new VibePlayerEventListeners();
   private lastProgressAt = Number.NEGATIVE_INFINITY;
+  /** Subscriber throws while settling, reported once settling ended. */
+  private settleFailures: SettleFailure[] = [];
   private readonly options: VibePlayerControllerOptions;
   private currentState = createInitialControllerState();
   private readonly reporter = new VibePlayerIntegrationReporter({
@@ -43,7 +50,7 @@ export class VibePlayerControllerObservers {
   private readonly states = new VibePlayerOrderedDelivery(
     (state: VibePlayerControllerState) => this.deliverState(state),
     {
-      report: () => this.reportRunaway("state-listener"),
+      report: () => this.reportStateOverflow(),
       settle: () => this.settleStates(),
     },
     this.deliveryBudget
@@ -216,18 +223,34 @@ export class VibePlayerControllerObservers {
     );
   }
 
-  /** Dropped states never leave a subscriber behind the latest one. */
+  /**
+   * Dropped states never leave a subscriber behind the latest one. A throw
+   * waits for the report, since deliveries that overflowed drop what is
+   * published while they settle.
+   */
   private settleStates(): void {
     this.listeners.settle(
       () => this.currentState,
-      (listener, state) =>
-        this.reporter.runAll(
-          "state-listener",
-          [listener],
-          state,
-          state.currentSource
-        )
+      (listener, state) => {
+        const source = state.currentSource;
+        try {
+          observeHostRejection(listener(state), (cause) =>
+            this.reporter.report("state-listener", cause, source ?? undefined)
+          );
+        } catch (cause) {
+          this.settleFailures.push({ cause, source });
+        }
+      }
     );
+  }
+
+  private reportStateOverflow(): void {
+    this.reportRunaway("state-listener");
+    const failures = this.settleFailures;
+    this.settleFailures = [];
+    for (const { cause, source } of failures) {
+      this.reporter.report("state-listener", cause, source ?? undefined);
+    }
   }
 
   private deliverEvent(event: VibePlayerEvent): void {

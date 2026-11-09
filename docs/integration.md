@@ -287,10 +287,10 @@ the report. A listener added during a delivery starts with the next state or
 event, and one removed meanwhile receives nothing more. Listeners that keep
 changing the player during notification are cut off after a bounded number of
 updates per delivery, counted across the whole cascade so nesting cannot
-multiply it, and reported once (`operation` `"state-listener"`, `"event"` or
-`"provider-events"`, for the delivery that reached its limit first). Provider
-events still reach the controller's own trackers during another delivery's
-runaway. Afterwards every state subscriber that does not change the state when
+multiply it. Every delivery that was cut off is reported once
+(`operation` `"state-listener"`, `"event"` or `"provider-events"`). Provider
+events have a higher limit of their own, and source releases and playback
+starts always reach the controller's own trackers, even during a runaway. Afterwards every state subscriber that does not change the state when
 it receives it ends on the latest state; a subscriber that changes it again is
 not called again and stays one state behind. Rejected
 asynchronous observer/write callbacks are contained too. Failure of `onError`

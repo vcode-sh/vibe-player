@@ -13,33 +13,38 @@ import {
  * remaining values are dropped and the overflow handlers settle and report
  * it, so a feedback loop never hangs the page.
  */
+/** How one ordered delivery is bounded. */
+export interface VibePlayerOrderedDeliveryOptions<T> {
+  /** Values delivered past the limit and while settling, never dropped. */
+  always?: (value: T) => boolean;
+  /** Values this delivery may deliver within one outer delivery. */
+  limit?: number;
+}
+
 export class VibePlayerOrderedDelivery<T extends object> {
   private draining = false;
   private readonly queue: T[] = [];
+  private readonly always: (value: T) => boolean;
   private readonly budget: VibePlayerDeliveryBudget;
   private readonly deliver: (value: T) => void;
   private readonly handlers: VibePlayerOverflowHandlers;
+  private readonly limit: number;
 
-  private readonly perDrain: boolean;
-
-  /**
-   * `perDrain` bounds each drain on its own instead of everything this
-   * delivery delivers within the outer delivery.
-   */
   constructor(
     deliver: (value: T) => void,
     handlers: VibePlayerOverflowHandlers = {},
     budget = new VibePlayerDeliveryBudget(),
-    perDrain = false
+    options: VibePlayerOrderedDeliveryOptions<T> = {}
   ) {
     this.deliver = deliver;
     this.handlers = handlers;
     this.budget = budget;
-    this.perDrain = perDrain;
+    this.always = options.always ?? never;
+    this.limit = options.limit ?? VIBE_PLAYER_DELIVERY_LIMIT;
   }
 
   publish(value: T): void {
-    if (this.budget.isDropping(this.handlers)) {
+    if (!this.always(value) && this.budget.isDropping(this.handlers)) {
       return;
     }
     this.queue.push(value);
@@ -57,25 +62,29 @@ export class VibePlayerOrderedDelivery<T extends object> {
     }
   }
 
+  /** Past the limit, drops what is not `always` delivered. */
   private drain(): void {
-    let drained = 0;
+    let cut = false;
     for (
       let value = this.queue.shift();
       value !== undefined;
       value = this.queue.shift()
     ) {
-      if (!this.spend(drained)) {
-        this.budget.overflow(this.handlers);
-        return;
+      if (!this.always(value)) {
+        if (cut) {
+          continue;
+        }
+        if (!this.budget.spend(this.handlers, this.limit)) {
+          this.budget.overflow(this.handlers);
+          cut = true;
+          continue;
+        }
       }
-      drained += 1;
       this.deliver(value);
     }
   }
+}
 
-  private spend(drained: number): boolean {
-    return this.perDrain
-      ? drained < VIBE_PLAYER_DELIVERY_LIMIT
-      : this.budget.spend(this.handlers);
-  }
+function never(): boolean {
+  return false;
 }

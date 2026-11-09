@@ -1,4 +1,7 @@
-import type { VibePlayerDeliveryBudget } from "./vibe-player-delivery-budget";
+import {
+  VIBE_PLAYER_DELIVERY_LIMIT,
+  type VibePlayerDeliveryBudget,
+} from "./vibe-player-delivery-budget";
 import { VibePlayerOrderedDelivery } from "./vibe-player-ordered-delivery";
 import type { VibePlayerPlayback } from "./vibe-player-playback";
 import type {
@@ -79,6 +82,13 @@ export type VibePlayerRawFeedEntry =
 
 type RawFeedConsumer = (entry: VibePlayerRawFeedEntry) => void;
 
+/** Entries that change what the trackers own; never dropped. */
+const controlEntryKinds: ReadonlySet<VibePlayerRawFeedEntry["kind"]> = new Set([
+  "playback",
+  "release",
+  "seekfailed",
+]);
+
 /** Attaching the same source id again is a reload; another id closes it. */
 export function getVibePlayerReleaseReason(
   current: VibePlayerSource | null,
@@ -110,9 +120,14 @@ export class VibePlayerRawFeed {
       },
       onRunaway ? { report: onRunaway } : {},
       budget,
-      // Trackers must still see releases and playback starts after a
-      // runaway elsewhere; only the feed's own loop is cut off.
-      true
+      {
+        // Trackers must always see releases, playback starts and failed
+        // seeks, even after a runaway cut the feed off.
+        always: (entry) => controlEntryKinds.has(entry.kind),
+        // One entry per state or event delivery is normal; a cap above
+        // theirs only stops the feed's own loop.
+        limit: 10 * VIBE_PLAYER_DELIVERY_LIMIT,
+      }
     );
   }
 
