@@ -277,6 +277,8 @@ type VibePlayerMediaSessionOptions
 type VibePlayerMp4Source
 type VibePlayerPlaybackEvent
 type VibePlayerRenewEvent
+type VibePlayerResumeContext
+type VibePlayerResumeStore
 type VibePlayerSnapshot
 type VibePlayerSource
 type VibePlayerSourceMetadata

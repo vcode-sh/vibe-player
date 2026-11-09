@@ -89,6 +89,8 @@ export const publicSubpathExports = {
       "VibePlayerHlsManifestSource",
       "VibePlayerPlaybackEvent",
       "VibePlayerRenewEvent",
+      "VibePlayerResumeContext",
+      "VibePlayerResumeStore",
       "VibePlayerIntegrationEvent",
       "VibePlayerStopEvent",
       "VibePlayerWatchedRange",
