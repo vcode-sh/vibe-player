@@ -115,7 +115,8 @@ function isFullyOutOfView(target: Element): boolean {
 }
 
 /**
- * Deferred releases while the last entry said offscreen. Closing
+ * Deferred releases while the last entry said offscreen (`false`; a parked
+ * frame is `null` and never released here). Closing
  * Picture-in-Picture there releases. A start that begins there (autoplay,
  * retry, a host or Media Session play) releases only when the frame is fully
  * out of view: a click that scrolled it in, or a Play on a frame partly in

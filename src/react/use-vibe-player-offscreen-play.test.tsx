@@ -6,6 +6,7 @@ import {
   TestAdapter,
 } from "../core/vibe-player-controller-test-helpers";
 import { useVibePlayer } from "./use-vibe-player";
+import { vibePlayerParkingClass } from "./vibe-player-parking";
 import { stubPlayerIntersections } from "./vibe-player-visibility-test-helpers";
 
 const viewport = { height: 800, width: 1000 };
@@ -82,5 +83,31 @@ describe("playback that starts below the visibility threshold", () => {
     );
     expect(adapter.calls).toContain("unmount");
     unmount();
+  });
+
+  it("never releases a parked frame when its ready state changes", async () => {
+    const intersections = stubPlayerIntersections();
+    const adapter = new TestAdapter();
+    const adapterFactory = () => adapter;
+    const { result, unmount } = renderPlayer(adapterFactory);
+    // A detached player waiting in its host frame's parking root, drawn far
+    // off the page, so its real box is fully out of view.
+    const parking = document.createElement("div");
+    parking.className = vibePlayerParkingClass;
+    const frame = frameAt(0);
+    vi.spyOn(frame, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(-10_000, 0, 400, 300)
+    );
+    parking.append(frame);
+    document.body.append(parking);
+    act(() => result.current.setTarget(frame));
+    await act(async () => intersections.emit(0));
+
+    await act(() => result.current.controller.play());
+    act(() => adapter.emit("play", { paused: false, readyState: "playing" }));
+    expect(result.current.state.snapshot.readyState).toBe("playing");
+    expect(adapter.calls).not.toContain("unmount");
+    unmount();
+    parking.remove();
   });
 });
