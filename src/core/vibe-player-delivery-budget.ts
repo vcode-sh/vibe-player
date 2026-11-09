@@ -1,58 +1,59 @@
-/** Deliveries one outer delivery may make before it counts as a runaway loop. */
-const VIBE_PLAYER_DELIVERY_LIMIT = 1000;
+/** Values one delivery may deliver within one outer delivery. */
+export const VIBE_PLAYER_DELIVERY_LIMIT = 1000;
 
 /** What an ordered delivery does once a runaway loop cut it off. */
 export interface VibePlayerOverflowHandlers {
   /**
-   * Reports the runaway once the outer delivery ended. Only the outermost
-   * delivery that overflowed reports, so one loop is reported once.
+   * Reports the runaway once the outer delivery ended. Only the delivery
+   * that reached its limit first reports, so one loop is reported once.
    */
   report?: () => void;
   /**
-   * Runs before the budget resets, while every publish is dropped, so it can
-   * bring its own observers up to date without restarting the loop.
+   * Runs before the counts reset, while this delivery drops what is
+   * published to it, so it can bring its own observers up to date without
+   * restarting the loop.
    */
   settle?: () => void;
 }
 
-interface Overflow {
-  depth: number;
-  handlers: VibePlayerOverflowHandlers;
-}
-
 /**
- * One delivery bound shared by every ordered delivery of a controller. A
- * delivery published while another one drains nests inside it; all of them
- * spend from the same total, which refills when the outermost one ends.
+ * The delivery bound shared by the ordered deliveries of a controller. A
+ * delivery published while another one drains nests inside it. Each
+ * delivery counts what it delivers until the outermost one ends, so nested
+ * loops cannot multiply the bound, and one delivery running away never
+ * drops the values of another. A per-drain delivery (the raw feed) only
+ * bounds each of its own drains, so a runaway elsewhere never makes it drop
+ * a release or playback entry.
  */
 export class VibePlayerDeliveryBudget {
   private depth = 0;
-  private overflows: Overflow[] = [];
-  private settling = false;
-  private spent = 0;
+  private overflows: VibePlayerOverflowHandlers[] = [];
+  private readonly settling = new Set<VibePlayerOverflowHandlers>();
+  private readonly spent = new Map<VibePlayerOverflowHandlers, number>();
 
-  /** True while overflowed deliveries settle: publishes are dropped. */
-  get dropping(): boolean {
-    return this.settling;
+  /** True while the delivery owning `handlers` settles an overflow. */
+  isDropping(handlers: VibePlayerOverflowHandlers): boolean {
+    return this.settling.has(handlers);
   }
 
   enter(): void {
     this.depth += 1;
   }
 
-  /** Takes one delivery from the budget; false once it is used up. */
-  spend(): boolean {
-    if (this.spent >= VIBE_PLAYER_DELIVERY_LIMIT) {
+  /** Counts one delivery; false once the delivery reached its limit. */
+  spend(handlers: VibePlayerOverflowHandlers): boolean {
+    const spent = this.spent.get(handlers) ?? 0;
+    if (spent >= VIBE_PLAYER_DELIVERY_LIMIT) {
       return false;
     }
-    this.spent += 1;
+    this.spent.set(handlers, spent + 1);
     return true;
   }
 
-  /** A delivery dropped values because the budget ran out. */
+  /** A delivery dropped values because it reached its limit. */
   overflow(handlers: VibePlayerOverflowHandlers): void {
-    if (!this.overflows.some((overflow) => overflow.handlers === handlers)) {
-      this.overflows.push({ depth: this.depth, handlers });
+    if (!this.overflows.includes(handlers)) {
+      this.overflows.push(handlers);
     }
   }
 
@@ -63,31 +64,27 @@ export class VibePlayerDeliveryBudget {
     }
     const { overflows } = this;
     this.overflows = [];
-    if (overflows.length > 0) {
+    try {
       this.settle(overflows);
+    } finally {
+      this.spent.clear();
     }
-    this.spent = 0;
-    reportOutermost(overflows);
+    overflows[0]?.report?.();
   }
 
-  private settle(overflows: readonly Overflow[]): void {
-    this.settling = true;
+  private settle(overflows: readonly VibePlayerOverflowHandlers[]): void {
+    for (const handlers of overflows) {
+      this.settling.add(handlers);
+    }
     try {
-      for (const { handlers } of overflows) {
+      for (const handlers of overflows) {
         handlers.settle?.();
       }
     } finally {
-      this.settling = false;
+      // A delivery nested in a settle ends on its own; keep the outer set.
+      for (const handlers of overflows) {
+        this.settling.delete(handlers);
+      }
     }
   }
-}
-
-function reportOutermost(overflows: readonly Overflow[]): void {
-  let outermost: Overflow | undefined;
-  for (const overflow of overflows) {
-    if (!outermost || overflow.depth < outermost.depth) {
-      outermost = overflow;
-    }
-  }
-  outermost?.handlers.report?.();
 }

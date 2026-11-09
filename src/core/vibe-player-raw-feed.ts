@@ -109,7 +109,10 @@ export class VibePlayerRawFeed {
         }
       },
       onRunaway ? { report: onRunaway } : {},
-      budget
+      budget,
+      // Trackers must still see releases and playback starts after a
+      // runaway elsewhere; only the feed's own loop is cut off.
+      true
     );
   }
 

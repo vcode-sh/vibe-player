@@ -106,8 +106,8 @@
   `lastEvent: "pause"`) after the error.
 - A media seek near a controller seek the provider rejected or never reached
   is reported again.
-- When listeners keep changing the player, the cutoff now counts the whole
-  cascade once, every subscriber still ends on the latest state, and a
+- When listeners keep changing the player, nested loops no longer multiply
+  the cutoff, well-behaved subscribers still end on the latest state, and a
   runaway in provider event handling is reported too
   (`operation: "provider-events"`).
 - A listener added while an update is delivered starts with the next one.

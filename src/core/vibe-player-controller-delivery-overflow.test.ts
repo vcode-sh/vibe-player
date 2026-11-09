@@ -60,7 +60,7 @@ describe("ordered delivery overflow", () => {
     }
   );
 
-  it("bounds nested state and event loops by one total", async () => {
+  it("never multiplies the bound when state and event loops nest", async () => {
     const adapter = new EchoTestAdapter();
     const { controller, events } = await createPlayer(adapter);
     await controller.activate();
@@ -76,8 +76,11 @@ describe("ordered delivery overflow", () => {
 
     await controller.setVolume(1);
 
-    expect(calls).toBeLessThan(1200);
-    expect(integrationOperations(events).length).toBeGreaterThan(0);
+    // Each delivery stops at 1000 per outer delivery and this volume change
+    // runs two (states, then events); unbounded nesting made 2,002,000.
+    expect(calls).toBeLessThan(5000);
+    // Both listeners loop: each outer delivery reports its own looping one.
+    expect(integrationOperations(events)).toEqual(["event", "state-listener"]);
     await controller.teardown();
   });
 
@@ -104,6 +107,64 @@ describe("ordered delivery overflow", () => {
 
     expect(seeks).toBeLessThan(1200);
     expect(integrationOperations(events)).toEqual(["provider-events"]);
+    await controller.teardown();
+  });
+
+  it("names a state loop that runs inside an event delivery", async () => {
+    const events: VibePlayerEvent[] = [];
+    const adapter = new EchoTestAdapter();
+    const controller = new VibePlayerController({
+      adapterFactory: () => adapter,
+      onEvent: (event) => {
+        events.push(event);
+      },
+    });
+    await controller.load(fileSource);
+    let armed = false;
+    let volume = 0;
+    // Each state also queues an event, so the event delivery overflows too.
+    controller.subscribe(() => {
+      if (armed) {
+        volume = volume === 0.5 ? 0.25 : 0.5;
+        controller.setVolume(volume).catch(() => undefined);
+      }
+    });
+    // The loop starts inside the delivery of a seeking event.
+    controller.on("seeking", () => {
+      armed = true;
+      controller.setVolume(1).catch(() => undefined);
+    });
+
+    adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
+
+    expect(integrationOperations(events)).toEqual(["state-listener"]);
+    await controller.teardown();
+  });
+
+  it("keeps feeding provider events to trackers during a state runaway", async () => {
+    const adapter = new TestAdapter();
+    let reported = 0;
+    const controller = new VibePlayerController({
+      adapterFactory: () => adapter,
+      onAnalyticsEvent: (event) => {
+        if (event.type === "seek") {
+          reported += 1;
+        }
+      },
+    });
+    await controller.load(fileSource);
+    let emitted = 0;
+    // Every state makes the media seek again, so states run away while
+    // each seek reaches the raw feed in a drain of its own.
+    controller.subscribe(() => {
+      emitted += 1;
+      adapter.emit("seeking", { currentTime: (emitted % 40) + 1 });
+    });
+
+    adapter.emit("timeupdate", { currentTime: 0.5 });
+
+    expect(emitted).toBeGreaterThan(1000);
+    expect(reported).toBe(emitted);
     await controller.teardown();
   });
 });
