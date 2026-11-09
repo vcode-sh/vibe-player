@@ -60,6 +60,7 @@ async function attachManagedHls(
   return {
     destroy: () => {
       destroyed = true;
+      internalSeeks.dispose();
       hls.destroy();
     },
     isInternalSeek: (time) => !destroyed && internalSeeks.matches(time),

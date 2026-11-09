@@ -1,4 +1,5 @@
 import type Hls from "hls.js";
+import { isHlsLiveCatchUp } from "./hls-live-catch-up";
 
 /** hls.js sets the playhead exactly, so its own target is this close. */
 const recordedToleranceSeconds = 0.1;
@@ -23,18 +24,28 @@ export function isHlsInternalSeekError(
 /**
  * Recognizes the seeks hls.js makes itself: stall nudges and buffer-hole
  * skips (reported by a nonfatal error right after the jump), live-edge
- * catch-up to `liveSyncPosition` on a live playlist, and the start-position seek before
+ * catch-up (see `isHlsLiveCatchUp`), and the start-position seek before
  * playback. Rarer hls.js seeks, such as alternate-audio switches and
  * interstitials, are not recognized and remain media seeks.
  */
 export class ManagedHlsInternalSeeks {
+  /** The last position playback reported; `seeking` reports the target. */
+  private lastPosition: number | null = null;
   private targets: number[] = [];
   private readonly hls: Hls;
   private readonly video: HTMLVideoElement;
+  private readonly onTimeUpdate = () => {
+    this.lastPosition = this.video.currentTime;
+  };
 
   constructor(hls: Hls, video: HTMLVideoElement) {
     this.hls = hls;
     this.video = video;
+    video.addEventListener("timeupdate", this.onTimeUpdate);
+  }
+
+  dispose(): void {
+    this.video.removeEventListener("timeupdate", this.onTimeUpdate);
   }
 
   /** hls.js just moved the playhead; its `seeking` arrives later. */
@@ -54,12 +65,7 @@ export class ManagedHlsInternalSeeks {
       this.targets = this.targets.filter((_, item) => item !== index);
       return true;
     }
-    // hls.js computes a sync position for VOD too; it only seeks there live.
-    const live =
-      this.hls.latestLevelDetails?.live === true
-        ? readPosition(this.hls.liveSyncPosition)
-        : null;
-    if (live !== null && isNear(live, time)) {
+    if (isHlsLiveCatchUp(this.hls, time, this.lastPosition)) {
       return true;
     }
     const start = readPosition(this.hls.startPosition);

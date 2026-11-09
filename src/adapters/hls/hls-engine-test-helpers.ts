@@ -2,6 +2,14 @@ import type Hls from "hls.js";
 import type { HlsConfig } from "hls.js";
 import type { HlsModuleLoader, ManagedHlsSession } from "./hls-runtime-types";
 
+/** The parts of hls.js level details the adapter reads. */
+export interface ProbeLevelDetails {
+  edge?: number;
+  fragmentStart?: number;
+  live: boolean;
+  targetduration?: number;
+}
+
 export class HlsEngineProbe {
   static readonly Events = {
     ERROR: "error",
@@ -18,7 +26,7 @@ export class HlsEngineProbe {
   readonly handlers = new Map<string, (event: string, data: unknown) => void>();
   bandwidthEstimate = 2_750_000;
   destroyed = false;
-  latestLevelDetails: { live: boolean } | null = null;
+  latestLevelDetails: ProbeLevelDetails | null = null;
   levels = [];
   liveSyncPosition: number | null = null;
   loadedUrl = "";

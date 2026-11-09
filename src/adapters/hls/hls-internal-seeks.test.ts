@@ -93,14 +93,57 @@ describe("seeks hls.js makes itself", () => {
     }
   );
 
-  it("marks a live-edge catch-up internal", async () => {
+  /** A live playlist whose sliding window spans 100 s to 130 s. */
+  function goLive(player: Awaited<ReturnType<typeof loadManagedHls>>) {
+    player.engine.latestLevelDetails = {
+      edge: 130,
+      fragmentStart: 100,
+      live: true,
+      targetduration: 6,
+    };
+    player.engine.config.maxFragLookUpTolerance = 0.25;
+    player.engine.liveSyncPosition = 127;
+  }
+
+  /** Playback reports `time`, as the element's timeupdate does. */
+  function playAt(
+    player: Awaited<ReturnType<typeof loadManagedHls>>,
+    time: number
+  ) {
+    player.video.currentTime = time;
+    player.video.dispatchEvent(new Event("timeupdate"));
+  }
+
+  it("marks a live-edge catch-up from outside the sliding window internal", async () => {
     const player = await loadManagedHls();
-    player.engine.latestLevelDetails = { live: true };
-    player.engine.liveSyncPosition = 120;
-    player.seekMedia(120.2);
+    goLive(player);
+    playAt(player, 50);
+    player.seekMedia(127.2);
 
     expect(player.marks()).toEqual([true, true]);
     expect(player.seeks()).toEqual([]);
+  });
+
+  it("marks a catch-up from behind the configured maximum latency internal", async () => {
+    const player = await loadManagedHls();
+    goLive(player);
+    player.engine.config.liveMaxLatencyDuration = 10;
+    playAt(player, 115);
+    player.seekMedia(127.2);
+
+    expect(player.marks()).toEqual([true, true]);
+  });
+
+  it("reports a viewer seek to the live edge from inside the sliding window", async () => {
+    const player = await loadManagedHls();
+    goLive(player);
+    playAt(player, 110);
+    player.seekMedia(127.2);
+
+    expect(player.marks()).toEqual([undefined, undefined]);
+    expect(player.seeks()).toEqual([
+      expect.objectContaining({ currentTime: 127.2, initiator: "media" }),
+    ]);
   });
 
   it("marks the start-position seek before playback internal", async () => {
