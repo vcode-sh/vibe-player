@@ -159,6 +159,14 @@
 - A decode failure the browser reports only on the video element during
   hls.js playback (such as a segment Chromium cannot decode) now goes through
   the same recovery instead of failing playback at once.
+- Screen readers hear the player: one always-present polite live region
+  announces loading, buffering, a failure once, and keyboard play, pause and
+  seek results. Translate the new words with `labels.playing` and `labels.paused`.
+- Hidden controls are reachable for assistive technology: focus entering the
+  player now reveals them, not only a key press.
+- Fullscreen toggles in the Glass, Chips and full stage chrome expose
+  `aria-pressed` and the "Exit full screen" label; overlays read
+  `surface.state.fullscreen`.
 
 ## [0.7.1] - 2026-11-09
 

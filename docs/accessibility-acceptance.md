@@ -49,12 +49,39 @@ button and left focus on the document body. The Stage now focuses its existing
 root before retry removes the notice. DOM and Chromium checks failed before
 this fix and pass afterward.
 
+## Announcements, reachable controls and fullscreen state
+
+Added for 0.8.0 and covered by the Chromium lane only; the Linux native and
+Orca probes above were not re-run for them.
+- Each player has one always-mounted, visually hidden polite live region
+  (`role="status"`, `aria-atomic="true"`, `data-part="announcer"`). It
+  announces delayed loading/buffering, a failure once, and the settled result
+  of keyboard play, pause and seeks, then clears after 5 seconds. The visible
+  Stage status is no longer a second live region, and its busy spinner
+  carries real text. After the announcement clears, the Chromium AX tree
+  holds "Playback unavailable" once, from the visible compact panel.
+- Hidden chrome is `aria-hidden` and `inert`. Programmatic focus entering the
+  player, without key events (the way assistive technology moves focus),
+  reveals the Stage and compact controls. Pointer presses keep their own
+  policy, and focus the player moves back to its region does not reveal.
+- Fullscreen toggles in Glass, Chips and the full stage expose
+  `aria-pressed` and the "Exit full screen" name while fullscreen.
+
+Whether a screen reader moves DOM focus at all depends on the product and its
+settings (for example NVDA browse mode or VoiceOver swipe navigation), so the
+reveal is only as reachable as that focus movement. Speech timing, queueing
+and whether a cleared message interrupts speech are not verified; use the
+manual protocol below.
+
 ## Maintained browser check
 
 ```bash
 bun run build
 bunx playwright test --project=chromium accessibility.browser.ts
 ```
+
+`/accessibility-live.html` adds a Stage, a compact player and a compact player
+whose media always fails, for the announcement and reveal cases.
 
 The fixture at `/accessibility.html` imports public package exports and CSS,
 uses committed local media, and deliberately rejects its first caption request.
@@ -131,6 +158,13 @@ for each step; retain a recording or transcript when feasible.
    close the modal. Repeat entry/exit using the package button and F.
 6. Close during playback, confirm audio/video stops, reopen and check there is
    one player. Verify focus restoration with keyboard and pointer closure.
+7. On `/accessibility-live.html`, focus the Stage and press K, K, then the
+   right arrow twice. Confirm "Playing", "Paused" and one position such as
+   "0:21 of 0:24" are spoken once each. Play the broken sample and confirm
+   "Playback unavailable" is spoken once.
+8. Start playback with the pointer and let the controls hide. Move the screen
+   reader's cursor away from the player and back. Record whether the controls
+   become reachable and whether focus actually moved.
 
 Run this protocol with Orca on supported Linux browsers, NVDA on Windows and
 VoiceOver on actual macOS Safari. For iOS Safari/VoiceOver, use touch exploration

@@ -156,6 +156,20 @@ attributes. Supported keyboard shortcuts are shown directly in the tooltip:
 `Space / K` for play/pause, `M` for mute, `C` for captions, `F` for fullscreen,
 and `← / →` for timeline seek.
 
+Every ready-made player keeps one visually hidden polite live region
+(`data-part="announcer"`). It announces loading and buffering after the same
+320 ms delay as the spinner, a playback failure once, and the settled result
+of keyboard play, pause and seeks ("Playing", "Paused", "1:20 of 5:00").
+Translate those words with `labels.playing`, `labels.paused` and
+`labels.seekValue`. Each message clears after a few seconds, so a status is
+not read twice while browsing. A standalone `VibePlayerStageStatus` is its own
+live region unless you pass `live={false}`.
+
+Hidden controls are `inert` while media plays. Focus entering the player,
+including its own region, reveals them, so a screen reader moving focus can
+reach them without a key press. Fullscreen toggles in every skin expose
+`aria-pressed` and switch to `labels.exitFullscreen` while fullscreen.
+
 ### Media Session ownership
 
 `mediaSession` is opt-in; see

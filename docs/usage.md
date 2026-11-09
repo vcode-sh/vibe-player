@@ -657,7 +657,9 @@ Options:
   nothing there.
 - `renderOverlay={(surface) => …}` replaces the whole overlay. The shell keeps
   media, poster, timing, keyboard, autoplay and audio focus; the overlay gets
-  `surface.state`, `surface.actions` and `surface.controls`.
+  `surface.state`, `surface.actions` and `surface.controls`. A custom
+  fullscreen toggle reads `surface.state.fullscreen` for its `aria-pressed`
+  and label.
 - `icons` (add `unavailable` for the error glyph, `seekBackward` /
   `seekForward` for skips), `labels`, `formatTime` and
   `classNames` (`playButton`, `duration`, `controls`, `progress`, `time`,
@@ -677,7 +679,7 @@ Styling contract for host CSS and tests:
 
 Every drawn part carries `data-part` (`overlay`, `play-button`, `duration`,
 `controls`, `toggle`, `track`, `time`, `fullscreen`, `mute`, `unmute`,
-`picture-in-picture`, `skip-backward`, `skip-forward`, `seek-ripple` (with
+`picture-in-picture`, `skip-backward`, `skip-forward`, `announcer`, `seek-ripple` (with
 `data-side` and `data-active`), `renewing`, `scrub-bubble`, `error`, `retry`, `poster`,
 `timeline-background`, `heatmap` with `data-variant` and `data-active` while
 shown). The root exposes
