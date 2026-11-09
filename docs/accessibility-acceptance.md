@@ -73,9 +73,10 @@ Orca probes above were not re-run for them.
   them open past the idle delay. Pointer presses keep their own policy, and
   neither focus the player moves back to its region nor focus returning with
   the window reveals.
-- Fullscreen toggles in Glass, Chips and the full stage keep the name
-  "Full screen" and expose `aria-pressed` (WAI-ARIA APG toggle button). An
-  `onExpand` button, which opens a host view, has no pressed state.
+- Fullscreen and Picture-in-Picture toggles in Glass, Chips and the full
+  stage keep their names ("Full screen", "Picture in picture") and expose
+  `aria-pressed` (WAI-ARIA APG toggle button). An `onExpand` button, which
+  opens a host view, has no pressed state.
 
 Whether a screen reader moves DOM focus at all depends on the product and its
 settings (for example NVDA browse mode or VoiceOver swipe navigation), so the

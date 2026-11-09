@@ -49,20 +49,27 @@ describe("compact Picture-in-Picture control", () => {
     "toggles Picture-in-Picture from the %s skin when enabled",
     async (skin) => {
       const adapter = await renderPaused(skin, true);
+      const toggle = screen.getByRole("button", { name: "Picture in picture" });
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
       await act(async () => {
-        fireEvent.click(
-          screen.getByRole("button", { name: "Picture in picture" })
-        );
+        fireEvent.click(toggle);
       });
       expect(adapter.calls).toContain("pip");
-      const exit = screen.getByRole("button", {
-        name: "Exit picture in picture",
+      // One name; aria-pressed carries the state (APG toggle button).
+      const pressed = screen.getByRole("button", {
+        name: "Picture in picture",
       });
-      expect(exit).toHaveAttribute("aria-pressed", "true");
+      expect(pressed).toHaveAttribute("aria-pressed", "true");
+      expect(
+        screen.queryByRole("button", { name: "Exit picture in picture" })
+      ).toBeNull();
       await act(async () => {
-        fireEvent.click(exit);
+        fireEvent.click(pressed);
       });
       expect(adapter.calls).toContain("exit-pip");
+      expect(
+        screen.getByRole("button", { name: "Picture in picture" })
+      ).toHaveAttribute("aria-pressed", "false");
     }
   );
 

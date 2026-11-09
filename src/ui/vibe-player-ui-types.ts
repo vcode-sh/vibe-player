@@ -50,6 +50,10 @@ export interface VibePlayerLabels {
    * `fullscreen` as their name and expose the state with `aria-pressed`.
    */
   exitFullscreen: string;
+  /**
+   * Reserved for custom controls. Package Picture-in-Picture toggles keep
+   * `pictureInPicture` as their name and expose the state with `aria-pressed`.
+   */
   exitPictureInPicture: string;
   fixedQuality: string;
   fullscreen: string;

@@ -62,8 +62,13 @@ test("picture in picture enters and exits through package controls", async ({
     )
     .toBe(true);
 
+  // The toggle keeps its name and reports the state with aria-pressed.
   await page
-    .getByRole("button", { exact: true, name: "Exit picture in picture" })
+    .getByRole("button", {
+      exact: true,
+      name: "Picture in picture",
+      pressed: true,
+    })
     .click();
 
   await expect
@@ -71,6 +76,6 @@ test("picture in picture enters and exits through package controls", async ({
     .toBe(true);
   await expect(
     page.getByRole("button", { exact: true, name: "Picture in picture" })
-  ).toBeVisible();
+  ).toHaveAttribute("aria-pressed", "false");
   expect((await readMedia(page)).paused).toBe(false);
 });

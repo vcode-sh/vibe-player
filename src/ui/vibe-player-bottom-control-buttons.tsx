@@ -219,12 +219,10 @@ export function VibePlayerPictureInPictureControl({
   return (
     <VibePlayerToggleButton
       active={isPictureInPicture}
-      label={
-        isPictureInPicture
-          ? labels.exitPictureInPicture
-          : labels.pictureInPicture
-      }
+      // One name; aria-pressed carries the state (APG toggle button).
+      label={labels.pictureInPicture}
       onClick={onTogglePictureInPicture}
+      pressed={isPictureInPicture}
       tooltipAlign="end"
     >
       <PictureInPictureIcon />

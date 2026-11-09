@@ -54,11 +54,7 @@ function GlassPictureInPicture({
   const { state } = surface;
   return (
     <button
-      aria-label={
-        state.pictureInPicture
-          ? labels.exitPictureInPicture
-          : labels.pictureInPicture
-      }
+      aria-label={labels.pictureInPicture}
       aria-pressed={state.pictureInPicture}
       className={button}
       data-part="picture-in-picture"

@@ -172,10 +172,14 @@ Hidden controls are `inert` while media plays. Focus entering the player,
 including its own region, reveals them, so a screen reader moving focus can
 reach them without a key press. Focus on a control that no pointer press
 caused (keyboard or a screen reader) keeps them open; focus returning with the
-browser window does not reveal them. Fullscreen toggles in every skin keep the
-name `labels.fullscreen` and expose the state with `aria-pressed`, as the
-WAI-ARIA toggle button pattern recommends; an `onExpand` button has no pressed
-state. `labels.exitFullscreen` is reserved for your own controls.
+browser window does not reveal them. Focus that your own script moves onto a
+control without a pointer press holds the chrome too, like keyboard focus.
+
+Fullscreen and Picture-in-Picture toggles in every skin keep their names
+(`labels.fullscreen`, `labels.pictureInPicture`) and expose the state with
+`aria-pressed`, as the WAI-ARIA toggle button pattern recommends; an
+`onExpand` button has no pressed state. `labels.exitFullscreen` and
+`labels.exitPictureInPicture` are reserved for your own controls.
 
 ### Media Session ownership
 

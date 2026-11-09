@@ -62,11 +62,7 @@ function ChipsPictureInPicture({ surface }: VibePlayerChipsPartProps) {
         "picture-in-picture",
         classNames.button
       )}
-      aria-label={
-        state.pictureInPicture
-          ? labels.exitPictureInPicture
-          : labels.pictureInPicture
-      }
+      aria-label={labels.pictureInPicture}
       aria-pressed={state.pictureInPicture}
       onClick={surface.actions.togglePictureInPicture}
       type="button"

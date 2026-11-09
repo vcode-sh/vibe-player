@@ -57,6 +57,11 @@
   Tests that looked for "Exit full screen" can query
   `{ name: "Full screen", pressed: true }`. `labels.exitFullscreen` stays
   available for your own controls.
+- Picture-in-Picture buttons in Glass, Chips and the full stage keep the name
+  "Picture in picture" and report the state with `aria-pressed`, instead of
+  switching to "Exit picture in picture". Tests can query
+  `{ name: "Picture in picture", pressed: true }`.
+  `labels.exitPictureInPicture` stays available for your own controls.
 - `VibePlayerSurfaceState` has a new `fullscreen` field: `true`/`false` for
   the fullscreen toggle's pressed state, `null` while `onExpand` replaces
   fullscreen. `renderOverlay` code compiles unchanged, but a hand-built

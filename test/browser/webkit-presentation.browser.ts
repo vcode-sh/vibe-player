@@ -74,7 +74,11 @@ test("WebKit picture-in-picture controls match the actual platform capability", 
   await enter.click();
   await expect.poll(() => hasPictureInPicture(page)).toBe(true);
   await page
-    .getByRole("button", { exact: true, name: "Exit picture in picture" })
+    .getByRole("button", {
+      exact: true,
+      name: "Picture in picture",
+      pressed: true,
+    })
     .click();
   await expect.poll(() => hasPictureInPicture(page)).toBe(false);
   expect((await readMedia(page)).paused).toBe(false);
