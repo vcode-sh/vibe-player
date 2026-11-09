@@ -59,17 +59,24 @@ describe("package tarball rules", () => {
     });
   });
 
-  it("allows generated shared chunks while rejecting arbitrary dist files", () => {
+  it("allows stably named shared chunks while rejecting hashed or arbitrary dist files", () => {
     expect(
       collectPackageArchiveIssues([
         ...consumerArchive,
+        "dist/chunks/player.js",
+        "dist/chunks/vibe-player-compact.d.ts",
         "dist/chunks/controller-a1B2c3D4.js",
-        "dist/chunks/types-a1B2c3D4.d.ts",
+        "dist/player.js",
         "dist/debug.json",
         "dist/chunks/secret.env",
       ])
     ).toEqual({
-      extraFiles: ["dist/debug.json", "dist/chunks/secret.env"],
+      extraFiles: [
+        "dist/chunks/controller-a1B2c3D4.js",
+        "dist/player.js",
+        "dist/debug.json",
+        "dist/chunks/secret.env",
+      ],
       missingFiles: [],
     });
   });

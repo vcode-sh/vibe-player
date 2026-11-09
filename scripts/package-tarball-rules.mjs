@@ -1,7 +1,8 @@
 const packedLinePattern = /^packed\s+\S+\s+(.+)$/;
 const lineBreakPattern = /\r\n|\r|\n/;
+// Shared chunks keep stable kebab-case names (`chunks/[name].js`), no hashes.
 const generatedChunkPattern =
-  /^dist\/(?:chunks\/)?[A-Za-z0-9_-]+-[A-Za-z0-9_-]{8,}\.(?:js|d\.ts)$/;
+  /^dist\/chunks\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:js|d\.ts)$/;
 
 export const expectedPackageFiles = [
   "CHANGELOG.md",
