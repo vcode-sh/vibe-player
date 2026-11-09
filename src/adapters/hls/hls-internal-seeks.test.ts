@@ -95,6 +95,7 @@ describe("seeks hls.js makes itself", () => {
 
   it("marks a live-edge catch-up internal", async () => {
     const player = await loadManagedHls();
+    player.engine.latestLevelDetails = { live: true };
     player.engine.liveSyncPosition = 120;
     player.seekMedia(120.2);
 
@@ -110,8 +111,22 @@ describe("seeks hls.js makes itself", () => {
     expect(player.marks()).toEqual([true, true]);
   });
 
+  it("reports a viewer seek near the computed sync position of a VOD stream", async () => {
+    const player = await loadManagedHls();
+    // hls.js computes a sync position for VOD playlists too.
+    player.engine.latestLevelDetails = { live: false };
+    player.engine.liveSyncPosition = 88;
+    player.seekMedia(88.1);
+
+    expect(player.marks()).toEqual([undefined, undefined]);
+    expect(player.seeks()).toEqual([
+      expect.objectContaining({ currentTime: 88.1, initiator: "media" }),
+    ]);
+  });
+
   it("leaves a seek the viewer makes elsewhere a media seek", async () => {
     const player = await loadManagedHls();
+    player.engine.latestLevelDetails = { live: true };
     player.engine.liveSyncPosition = 120;
     player.seekMedia(30);
 

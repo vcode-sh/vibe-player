@@ -23,7 +23,7 @@ export function isHlsInternalSeekError(
 /**
  * Recognizes the seeks hls.js makes itself: stall nudges and buffer-hole
  * skips (reported by a nonfatal error right after the jump), live-edge
- * catch-up to `liveSyncPosition`, and the start-position seek before
+ * catch-up to `liveSyncPosition` on a live playlist, and the start-position seek before
  * playback. Rarer hls.js seeks, such as alternate-audio switches and
  * interstitials, are not recognized and remain media seeks.
  */
@@ -54,7 +54,11 @@ export class ManagedHlsInternalSeeks {
       this.targets = this.targets.filter((_, item) => item !== index);
       return true;
     }
-    const live = readPosition(this.hls.liveSyncPosition);
+    // hls.js computes a sync position for VOD too; it only seeks there live.
+    const live =
+      this.hls.latestLevelDetails?.live === true
+        ? readPosition(this.hls.liveSyncPosition)
+        : null;
     if (live !== null && isNear(live, time)) {
       return true;
     }

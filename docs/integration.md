@@ -304,7 +304,10 @@ also cover seeks the media starts itself (`initiator: "media"`, from native
 stall nudges, gap skips, live-edge catch-up and its start position), which
 also keep the watched batch and save no resume position. A custom
 `ManagedHlsController` can recognize its engine's own seeks with
-`isInternalSeek(time)`. A `seekTo()` the media echoes as `seeking`/`seeked` is reported
+`isInternalSeek(time)`. A custom adapter should report the new position as
+soon as its `seekTo()` resolves: two progress events at the old position
+after that count as "playback moved on", and a later echo of the seek is then
+reported as a `media` seek. A `seekTo()` the media echoes as `seeking`/`seeked` is reported
 once, and restoring a resume, recovery or replay position is not a seek. Pending pause
 intent suppresses stale active events until a provider pause acknowledgment;
 a later provider-initiated play can then update normalized state. That intent

@@ -432,10 +432,16 @@ own: it nudges past a stall, skips small buffer gaps, catches up to the live
 edge and jumps to the start position. The HLS adapter marks those `seeking`
 and `seeked` events with `payload.internal: true`; they send no `seek` event,
 keep the watched batch, never count the skipped stretch as watched and save no
-resume position. Rarer hls.js seeks (alternate-audio switches, interstitials)
-are not recognized. The browser's own internal seeks, with native HLS or a
+resume position. On a live stream, a viewer seek to near the live edge through
+the browser's own controls looks the same as hls.js catching up, so it is
+marked internal too. Rarer hls.js seeks (alternate-audio switches,
+interstitials) are not recognized. The browser's own internal seeks, with native HLS or a
 file, cannot be told apart from a viewer's, so they still count as `media`
-seeks. Filter on `initiator` if you only care about your own seeks.
+seeks. Filter on `initiator` if you only care about your own seeks. A
+`seekTo()` the media never reaches stops waiting for its echo once playback
+moves on elsewhere; a custom adapter that keeps reporting the old position
+after it accepted a seek can therefore see its late echo counted as a
+`media` seek, so report the new position as soon as `seekTo()` resolves.
 
 Analytics follow one session per source. `opened` and `closed` bracket it:
 retry, renewal, stop, offscreen release and remounting the same source keep

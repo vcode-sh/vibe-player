@@ -18,6 +18,7 @@ export class HlsEngineProbe {
   readonly handlers = new Map<string, (event: string, data: unknown) => void>();
   bandwidthEstimate = 2_750_000;
   destroyed = false;
+  latestLevelDetails: { live: boolean } | null = null;
   levels = [];
   liveSyncPosition: number | null = null;
   loadedUrl = "";
