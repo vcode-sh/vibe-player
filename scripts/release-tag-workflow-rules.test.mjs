@@ -233,4 +233,42 @@ describe("collectReleaseTagWorkflowIssues", () => {
 
     expect(issues).toEqual([]);
   });
+
+  it.each([
+    ["no failure", ['  if [ -z "$TAG" ]; then echo "No tag"; fi']],
+    ["a successful exit", ['  if [ -z "$TAG" ]; then', "    exit 0", "  fi"]],
+    [
+      "a failure too far away",
+      ['  if [ -z "$TAG" ]; then', '    echo "No tag"', "    exit 1", "  fi"],
+    ],
+  ])("reports an empty-TAG check with %s", (_case, check) => {
+    const issues = issuesFor(
+      withSteps([
+        ["run: |", ...check, '  git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"'],
+        pushTag,
+        githubReleaseStep,
+      ])
+    );
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("empty TAG");
+  });
+
+  it.each([
+    ["on the same line", ['  test -z "$TAG" && false']],
+    [
+      "on the next line",
+      ['  if [ -z "$TAG" ]; then', '    echo "No tag" >&2; exit 1', "  fi"],
+    ],
+  ])("accepts an empty-TAG check that fails %s", (_case, check) => {
+    const issues = issuesFor(
+      withSteps([
+        ["run: |", ...check, '  git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"'],
+        pushTag,
+        githubReleaseStep,
+      ])
+    );
+
+    expect(issues).toEqual([]);
+  });
 });

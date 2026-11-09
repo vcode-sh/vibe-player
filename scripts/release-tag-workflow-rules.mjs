@@ -16,6 +16,8 @@ const UNSAFE_PUSH =
   /\s(?:--force\b|-f\b|--delete\b|-d\b|--mirror\b|--all\b|["']?\+)/;
 /** `[ -z "$TAG" ]` or `test -z "$TAG"`: an empty tag stops the job. */
 const EMPTY_TAG_CHECK = /(?:\[|\btest)\s+-z\s+"?\$\{?TAG\}?"?/;
+/** A failing exit status: `exit` with a non-zero code, or `false`. */
+const FAILS = /\bexit\s+[1-9]\d*\b|\bfalse\b/;
 /** A single pipe, not `||`. */
 const PIPE = /(?<!\|)\|(?!\|)/;
 const PIPEFAIL = /^set\s+-[a-z]*o\s+pipefail\b/;
@@ -97,11 +99,17 @@ function collectEmptyTagIssues(lines) {
   // A missing tag step is reported on its own.
   const checked =
     create === -1 ||
-    lines.slice(0, create).some((line) => EMPTY_TAG_CHECK.test(line));
+    lines
+      .slice(0, create)
+      .some(
+        (line, index) =>
+          EMPTY_TAG_CHECK.test(line) &&
+          (FAILS.test(line) || FAILS.test(lines[index + 1] ?? ""))
+      );
   return checked
     ? []
     : [
-        `Tag job must fail on an empty TAG (for example [ -z "$TAG" ]) before "${TAG_CREATE_COMMAND}"; needs.release.outputs.tag can be empty.`,
+        `Tag job must fail on an empty TAG (for example [ -z "$TAG" ] with exit 1 on that line or the next) before "${TAG_CREATE_COMMAND}"; needs.release.outputs.tag can be empty.`,
       ];
 }
 
