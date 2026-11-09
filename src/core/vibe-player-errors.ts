@@ -44,12 +44,16 @@ function getErrorKind(
   details: VibePlayerAdapterEvent["payload"]
 ): VibePlayerErrorKind {
   const kind = details?.kind;
-  if (errorKinds.includes(kind)) {
-    return kind as VibePlayerErrorKind;
+  if (isErrorKind(kind)) {
+    return kind;
   }
   return cause instanceof Error && cause.name === "NotSupportedError"
     ? "source"
     : "unknown";
+}
+
+function isErrorKind(value: unknown): value is VibePlayerErrorKind {
+  return errorKinds.includes(value);
 }
 
 /**

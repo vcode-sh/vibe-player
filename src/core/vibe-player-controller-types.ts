@@ -75,7 +75,8 @@ export interface VibePlayerAnalyticsEvent {
 }
 
 /**
- * What kind of failure stopped playback.
+ * What kind of failure this is. Terminal playback errors carry it, and so do
+ * nonfatal `commanderror` and `integrationerror` events.
  *
  * - `"network"`: the connection failed while loading or playing the media.
  * - `"decode"`: the media loaded but could not be decoded or played.
@@ -140,6 +141,8 @@ export interface VibePlayerControllerOptions {
    * delivered on pause, end, seek, reload, close, page hide or
    * `flushWatchedRanges()`, numbered by `sequence` within a `playbackId`.
    * Seeks and scrubbing never count. The host owns delivery and storage.
+   * It runs before controller state reflects the event that sent the report,
+   * so `getState()` inside it can still show the previous state.
    */
   onWatchedRanges?: (report: VibePlayerWatchedRangesReport) => void;
   renewSource?: (() => Promise<VibePlayerSource>) | undefined;

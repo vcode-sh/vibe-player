@@ -48,7 +48,9 @@ export class VibePlayerController {
   }
   /**
    * Calls `listener` with every state, in order, even when another subscriber
-   * changes state meanwhile. Returns the unsubscribe function.
+   * changes state meanwhile, so a listener can receive states that are
+   * already superseded; read `getState()` for the latest. Returns the
+   * unsubscribe function.
    */
   subscribe(listener: (state: VibePlayerControllerState) => void): () => void {
     return this.observers.subscribe(listener);
