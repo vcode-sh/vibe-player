@@ -17,7 +17,6 @@ export interface LoadVibePlayerControllerSourceInput {
   adapterFactory: VibePlayerControllerOptions["adapterFactory"];
   analyticsSession: VibePlayerAnalyticsSession;
   beginSession: () => void;
-  currentState: VibePlayerControllerState;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
   /** Hears the resume seek before it happens, so it is not a viewer seek. */
   feed: VibePlayerRawFeed;
@@ -40,12 +39,12 @@ export interface LoadVibePlayerControllerSourceInput {
 export async function loadVibePlayerControllerSource(
   input: LoadVibePlayerControllerSourceInput
 ): Promise<void> {
-  input.analyticsSession.close(input.currentState);
+  // Retry, renewal and reattaching the same source keep the session.
+  input.analyticsSession.attach(input.source);
   await input.teardownAdapter();
   if (!input.isCurrentOperation(input.operationGeneration)) {
     return;
   }
-  input.analyticsSession.clear();
   input.beginSession();
   const adapter = await createControllerAdapter(input);
   if (!(adapter && input.isCurrentOperation(input.operationGeneration))) {
@@ -70,11 +69,7 @@ export async function loadVibePlayerControllerSource(
   if (!input.isCurrentOperation(input.operationGeneration)) {
     return;
   }
-  input.analyticsSession.emitOnce({
-    provider: input.source.type,
-    sourceId: input.source.id,
-    type: "opened",
-  });
+  input.analyticsSession.open(input.source);
   await restoreControllerResumePosition(input, adapter);
 }
 

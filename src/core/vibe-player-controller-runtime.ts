@@ -97,12 +97,11 @@ export class VibePlayerControllerRuntime {
   /** Releases the adapter and the source; `dispose` drops the mount too. */
   async closeSource(dispose = false): Promise<void> {
     const operationGeneration = this.beginOperation();
-    this.analyticsSession.close(this.observers.state);
+    this.analyticsSession.close();
     await this.teardownAdapter("close");
     if (!this.isCurrentOperation(operationGeneration)) {
       return;
     }
-    this.analyticsSession.clear();
     if (dispose) {
       this.target = null;
       this.presentationTarget = null;
@@ -124,7 +123,6 @@ export class VibePlayerControllerRuntime {
       adapterFactory: this.adapterFactory,
       analyticsSession: this.analyticsSession,
       beginSession: () => this.observers.beginSession(),
-      currentState: this.observers.state,
       emitAnalytics: this.observers.emitAnalytics,
       feed: this.hooks.feed,
       handleAdapterEvent: (event) => this.hooks.event(event),
@@ -149,16 +147,15 @@ export class VibePlayerControllerRuntime {
     }
   }
 
+  /** A host load already ended the analytics session of what played. */
   async prepareSource(source: VibePlayerSource): Promise<void> {
     const operationGeneration = this.beginOperation();
-    this.analyticsSession.close(this.observers.state);
     await this.teardownAdapter(
       getVibePlayerReleaseReason(this.observers.state.currentSource, source)
     );
     if (!this.isCurrentOperation(operationGeneration)) {
       return;
     }
-    this.analyticsSession.clear();
     this.observers.beginSession();
     this.observers.updateState({
       capabilities: null,

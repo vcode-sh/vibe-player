@@ -32,8 +32,10 @@ export function createVibePlayerControllerIntegrations(
   const watched = createWatchedRanges(options, observers, feed);
   const analytics = new VibePlayerAnalyticsSession({
     emit: observers.emitAnalytics,
+    state: () => observers.state,
     watchedSeconds: () => watched?.watchedSeconds ?? 0,
   });
+  feed.subscribe((entry) => analytics.observe(entry));
   if (options.onAnalyticsEvent) {
     const seeks = new VibePlayerSeekAnalytics(observers.emitAnalytics);
     feed.subscribe((entry) => seeks.observe(entry));
