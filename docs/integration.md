@@ -272,13 +272,18 @@ Rejected control commands include their name in `details.command`. Failures in
 auxiliary actions such as fullscreen or PiP preserve ongoing playback. Browser
 policy blocking `play()` uses the `playbackBlocked` notice instead of `onError`.
 A pause the media makes itself while `play()` is pending (native controls,
-Picture-in-Picture or the system) is a pause, not an error.
+Picture-in-Picture or the system) is a pause, not an error, and the host's own
+`pause()` or `load()` likewise resolves the pending `play()` instead of
+rejecting it. A media failure that interrupts `play()` still reaches
+`state.error` and `onError` through the media's error event.
 Resume-store, analytics, controller-subscriber and `controller.on()` listener
 failures report as nonfatal `integrationerror` events with
 `error.details.operation`; they cannot block media cleanup or remaining
 listeners. Every state subscriber and event listener receives every update in
 order: a change made while listeners run waits until all of them received the
-current one. Listeners that keep changing the player during notification are
+current one, so a subscriber can receive a state that is already superseded.
+`onWatchedRanges` runs before controller state reflects the event that sent
+the report. Listeners that keep changing the player during notification are
 cut off after a bounded number of updates and reported once. Rejected
 asynchronous observer/write callbacks are contained too. Failure of `onError`
 itself is contained without recursively reporting another error. A failed
@@ -326,8 +331,8 @@ source. Inline callback updates do not recreate the controller. Changing the
 adapter factory or resume store establishes a new controller boundary.
 
 `VibePlayerInline` and `VibePlayerModal` forward playback options, state/error
-observers, and `topActions` to the package stage. Set `autoHideControls={false}`
-for a persistent control surface; the default follows normalized capabilities.
+observers, and `topActions` to the package stage. Controls hide while media
+plays; set `autoHideControls={false}` for a persistent control surface.
 `controlsHideDelay` changes the idle delay. `VibePlayerModal` defaults to
 `autoPlay`; pass `autoPlay={false}` for a viewer that waits for Play.
 

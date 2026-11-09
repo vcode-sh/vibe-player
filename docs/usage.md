@@ -382,6 +382,12 @@ same way. A second failure before `playing` becomes terminal.
 `onEvent` exposes a typed union of playback, renewal, stop, command-error and
 integration-error events. Optional command failures emit `commanderror` with the
 original error and reject their command promise, without interrupting playback.
+`play()` resolves instead when a pause interrupts it (your own `pause()` or
+`load()`, native controls, Picture-in-Picture or the system); a media failure
+that interrupts it still reaches `state.error` and `onError`.
+`timeupdate` also fires on the media's `progress`, `resize` and `stalled`
+events to refresh the buffered amount and video size, so the time may not have
+moved.
 Convenience callbacks receive normalized controller state for `onPlay`,
 `onPause`, `onEnded`, throttled `onProgress`, and `onQualityChange`; `onRenew`
 receives the refreshed source. Nonfatal engine/integration diagnostics remain
@@ -530,9 +536,8 @@ export function getWatchedSeconds(
 ```
 
 `VibePlayerInline` and `VibePlayerModal` accept the same playback options,
-including autoplay, callbacks, and `topActions`. Use `autoHideControls={false}`
-when controls should remain visible. The default follows the adapter's normalized
-chrome capability.
+including autoplay, callbacks, and `topActions`. Controls hide while media
+plays; use `autoHideControls={false}` when they should remain visible.
 
 `VibePlayerModal` starts audible playback when it opens, because opening a
 viewer is a deliberate act; pass `autoPlay={false}` to wait for Play. Playing
@@ -949,9 +954,12 @@ when a host session ends; the package does not own application authorization.
 `controller.on(type, listener)` listens to the same event stream as `onEvent`,
 narrowed and typed to one event type, or every event with `"*"`. It returns an
 unsubscribe function. Events and `subscribe()` states arrive in order and none
-are skipped, even when a listener changes the player meanwhile; a throwing
-listener becomes a nonfatal `integrationerror`. `state.lastEvent` names only
-the latest event, so use `on()` or `onEvent` when every event matters.
+are skipped, even when a listener changes the player meanwhile, so a listener
+can receive a state that is already superseded (`getState()` returns the
+latest); a throwing listener becomes a nonfatal `integrationerror`.
+`state.lastEvent` names only the latest event, so use `on()` or `onEvent` when
+every event matters. `onWatchedRanges` runs before the state reflects the
+event that sent the report.
 
 ```ts
 import type { VibePlayerController } from "vibe-player";
@@ -991,12 +999,13 @@ dependency of the package.
 ## Bundle Size
 
 `bun run package:size` measures built output and enforces an initial combined
-compact + hook budget of **24,600 B gzip**, excluding React, React DOM and
+compact + hook budget of **27,700 B gzip**, excluding React, React DOM and
 `hls.js`. Provider bridges and the Ink Chips skin are separate chunks loaded on
 first use; the report also includes their deferred bytes and the complete
 consumer bundle. Measurements use a minified Vite application, include
 non-peer dependencies, exclude React/React DOM/hls.js, and sum each emitted
-chunk's gzip size. All package ESM files keep a separate 55 KiB gzip limit.
+chunk's gzip size. The package ships readable, unminified ESM, so all package
+ESM files keep separate limits of 343 KiB raw and 85 KiB gzip.
 
 ## Media Audit
 
