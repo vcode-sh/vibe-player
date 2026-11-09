@@ -8,6 +8,11 @@ const playerModulePattern =
  */
 const lazyModulePattern =
   /[\\/]vibe-player-(?:chips-skin\.tsx|media-session(?:-[a-z]+)?\.ts|tap-seek\.ts)$/;
+/**
+ * Entry sources keep their own directive; the banner adds it to every chunk,
+ * so drop the source copy to emit exactly one readable directive per file.
+ */
+const sourceUseClientDirective = /^"use client";\n+/;
 
 export default defineConfig({
   banner: '"use client";',
@@ -44,5 +49,14 @@ export default defineConfig({
     },
   },
   platform: "neutral",
+  plugins: [
+    {
+      name: "single-use-client-directive",
+      renderChunk: (code: string) =>
+        sourceUseClientDirective.test(code)
+          ? code.replace(sourceUseClientDirective, "")
+          : null,
+    },
+  ],
   target: "es2022",
 });
