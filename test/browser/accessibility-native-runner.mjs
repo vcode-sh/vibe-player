@@ -40,11 +40,13 @@ async function waitForSpeech(text) {
   await waitForSpeechLine((line) => line.includes(text));
 }
 
-async function waitForSpeechLine(matches) {
+/** Waits for a speech line; with `since`, only in log text written after it. */
+async function waitForSpeechLine(matches, since = 0) {
   await expect
     .poll(
       () =>
         readSpeech()
+          .slice(since)
           .split("\n")
           .some((line) => line.includes("SPEECH OUTPUT") && matches(line)),
       { timeout: 5000 }
@@ -88,6 +90,8 @@ async function verifyFullscreen(page, dialog) {
     .getByRole("button", { exact: true, name: "Full screen" })
     .focus();
   await waitForSpeech("Full screen");
+  // Only speech after the key press counts: focusing already said the name.
+  const beforeToggle = readSpeech().length;
   pressNativeKey("Return");
   await expect
     .poll(() => page.evaluate(() => Boolean(document.fullscreenElement)))
@@ -96,8 +100,10 @@ async function verifyFullscreen(page, dialog) {
     dialog.getByRole("button", { name: "Full screen", pressed: true })
   ).toBeVisible();
   // The toggle keeps its name; the screen reader reports the pressed state.
+  await waitForSpeechLine((line) => line.includes("Full screen"), beforeToggle);
   await waitForSpeechLine(
-    (line) => line.includes("pressed") && !line.includes("not pressed")
+    (line) => line.includes("pressed") && !line.includes("not pressed"),
+    beforeToggle
   );
   pressNativeKey("Escape");
   await expect
