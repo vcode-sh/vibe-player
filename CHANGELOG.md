@@ -173,8 +173,8 @@
 - Pressing Play on a player that is mostly out of view (below
   `offscreenThreshold`) now plays it until it next leaves view, instead of
   being stopped at once.
-- Screen readers hear the player: one always-present polite live region
-  announces loading, buffering, a failure once, and keyboard play, pause and
+- Screen readers hear the player: one always-present polite announcer
+  speaks loading, buffering, a failure once, and keyboard play, pause and
   seek results. Translate the new words with `labels.playing` and `labels.paused`.
 - Hidden controls are reachable for assistive technology: focus entering the
   player now reveals them, not only a key press, and focus resting on a

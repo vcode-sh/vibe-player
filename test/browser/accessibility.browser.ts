@@ -176,12 +176,13 @@ async function openLivePlayers(page: Page) {
   return { compact, stage };
 }
 
-test("keyboard results are spoken through the player's one polite live region", async ({
+test("keyboard results are spoken through the player's polite announcer", async ({
   page,
 }) => {
   const { stage } = await openLivePlayers(page);
   const announcer = stage.locator('[data-part="announcer"]');
   await expect(announcer).toHaveText("");
+  // This fixture has no captions, whose overlay and notice are regions too.
   await expect(
     stage.locator('[aria-live], [role="status"], output')
   ).toHaveCount(1);
@@ -214,9 +215,8 @@ test("a failure is announced once and then read only from the visible panel", as
   });
   const announcer = broken.locator('[data-part="announcer"]');
   await expect(announcer).toHaveText("");
-  // Scroll first: offscreen players stop, and a click that scrolls would race it.
-  await broken.scrollIntoViewIfNeeded();
-  await expect(broken).toBeInViewport();
+  // The player starts below the fold, so this click also scrolls it into view;
+  // the offscreen release must not cancel that Play.
   await broken.getByRole("button", { exact: true, name: "Play" }).click();
   await expect(broken).toHaveAttribute("data-state", "error");
   await expect(announcer).toHaveText("Playback unavailable");
@@ -248,5 +248,12 @@ for (const name of ["Stage", "Compact"] as const) {
     await before.focus();
     await player.focus();
     await expect(pause).toBeVisible();
+
+    // Resting on a control holds the chrome past the 1.5 s idle delay. This
+    // asserts an absence over time, so it waits rather than polls.
+    await pause.focus();
+    await page.waitForTimeout(2000);
+    await expect(pause).toBeVisible();
+    await expect(pause).toBeFocused();
   });
 }

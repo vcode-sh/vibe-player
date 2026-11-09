@@ -57,17 +57,22 @@ this fix and pass afterward.
 
 Added for 0.8.0 and covered by the Chromium lane only; the Linux native and
 Orca probes above were not re-run for them.
-- Each player has one always-mounted, visually hidden polite live region
-  (`role="status"`, `aria-atomic="true"`, `data-part="announcer"`). It
-  announces delayed loading/buffering, a failure once, and the settled result
-  of keyboard play, pause and seeks, then clears after 5 seconds. The visible
-  Stage status is no longer a second live region, and its busy spinner
-  carries real text. After the announcement clears, the Chromium AX tree
+- Each player has one always-mounted, visually hidden polite announcer
+  (`role="status"`, `aria-atomic="true"`, `data-part="announcer"`) for its
+  playback status. It announces delayed loading/buffering, a failure once, and
+  the settled result of keyboard play, pause and seeks (not for a focused seek
+  slider, which speaks its own value), then clears after 5 seconds. The
+  visible Stage status is no longer a second live region, and its busy spinner
+  carries real text. Captions keep their own regions: the full stage caption
+  text is `aria-live="polite"` while cues show, and a caption failure notice
+  is a `role="status"`. After the announcement clears, the Chromium AX tree
   holds "Playback unavailable" once, from the visible compact panel.
 - Hidden chrome is `aria-hidden` and `inert`. Programmatic focus entering the
   player, without key events (the way assistive technology moves focus),
-  reveals the Stage and compact controls. Pointer presses keep their own
-  policy, and focus the player moves back to its region does not reveal.
+  reveals the Stage and compact controls, and focus resting on a control keeps
+  them open past the idle delay. Pointer presses keep their own policy, and
+  neither focus the player moves back to its region nor focus returning with
+  the window reveals.
 - Fullscreen toggles in Glass, Chips and the full stage keep the name
   "Full screen" and expose `aria-pressed` (WAI-ARIA APG toggle button). An
   `onExpand` button, which opens a host view, has no pressed state.

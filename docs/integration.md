@@ -156,18 +156,23 @@ attributes. Supported keyboard shortcuts are shown directly in the tooltip:
 `Space / K` for play/pause, `M` for mute, `C` for captions, `F` for fullscreen,
 and `← / →` for timeline seek.
 
-Every ready-made player keeps one visually hidden polite live region
-(`data-part="announcer"`). It announces loading and buffering after the same
-320 ms delay as the spinner, a playback failure once, and the settled result
-of keyboard play, pause and seeks ("Playing", "Paused", "1:20 of 5:00").
+Every ready-made player keeps one visually hidden polite announcer
+(`data-part="announcer"`) for its playback status. It announces loading and
+buffering after the same 320 ms delay as the spinner, a playback failure once,
+and the settled result of keyboard play, pause and seeks ("Playing",
+"Paused", "1:20 of 5:00"); a focused seek slider speaks its own value instead.
 Translate those words with `labels.playing`, `labels.paused` and
 `labels.seekValue`. Each message clears after a few seconds, so a status is
-not read twice while browsing. A standalone `VibePlayerStageStatus` is its own
-live region unless you pass `live={false}`.
+not read twice while browsing. The full stage has two caption regions of its
+own: the caption text (`aria-live="polite"`) while cues show, and a caption
+failure notice (`role="status"`). A standalone `VibePlayerStageStatus` is its
+own live region unless you pass `live={false}`.
 
 Hidden controls are `inert` while media plays. Focus entering the player,
 including its own region, reveals them, so a screen reader moving focus can
-reach them without a key press. Fullscreen toggles in every skin keep the
+reach them without a key press. Focus on a control that no pointer press
+caused (keyboard or a screen reader) keeps them open; focus returning with the
+browser window does not reveal them. Fullscreen toggles in every skin keep the
 name `labels.fullscreen` and expose the state with `aria-pressed`, as the
 WAI-ARIA toggle button pattern recommends; an `onExpand` button has no pressed
 state. `labels.exitFullscreen` is reserved for your own controls.
