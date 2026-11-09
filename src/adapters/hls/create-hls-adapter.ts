@@ -219,6 +219,11 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     payload?: VibePlayerAdapterEvent["payload"]
   ): void {
     if (type === "error" && payload?.fatal === true) {
+      // One terminal report per load, even when the element and hls.js
+      // both raise the same final failure.
+      if (this.session.failed) {
+        return;
+      }
       this.session.markFailed();
     }
     const event: VibePlayerAdapterEvent = {

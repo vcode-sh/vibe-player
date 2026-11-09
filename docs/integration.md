@@ -485,7 +485,7 @@ A decode failure the media element reports itself (`MEDIA_ERR_DECODE`, which
 hls.js does not report) takes the same steps while hls.js is attached and
 arrives as a nonfatal `error` with the element's `code: 3`. When the element
 and hls.js report the same failure within a second, before hls.js reattached
-the media, it counts as one step.
+the media, it counts as one step, and a load reports at most one fatal error.
 Network errors are not retried this way. A custom runtime can offer the same
 resume through the session's `onMediaRecovery()`, and the element's decode
 recovery through its controller's `recoverMediaError()`.

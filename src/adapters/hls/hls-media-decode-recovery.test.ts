@@ -36,8 +36,16 @@ async function loadPlayingManagedHls() {
       return Promise.resolve();
     });
   const events: VibePlayerEvent[] = [];
+  const analyticsErrors = vi.fn();
+  const onError = vi.fn();
   const controller = new VibePlayerController({
     adapterFactory: () => createHlsAdapter({ loadHls: loadProbeHls }),
+    onAnalyticsEvent: (event) => {
+      if (event.type === "error") {
+        analyticsErrors(event);
+      }
+    },
+    onError,
     onEvent: (event) => events.push(event),
   });
   controllers.add(controller);
@@ -63,7 +71,15 @@ async function loadPlayingManagedHls() {
         ? [{ code: event.payload?.code, fatal: event.payload?.fatal }]
         : []
     );
-  return { controller, engine, errorEvents, failElement, play };
+  return {
+    analyticsErrors,
+    controller,
+    engine,
+    errorEvents,
+    failElement,
+    onError,
+    play,
+  };
 }
 
 describe("managed HLS decode failures reported by the media element", () => {
@@ -136,6 +152,31 @@ describe("managed HLS decode failures reported by the media element", () => {
       "recoverMediaError",
     ]);
     expect(player.controller.getState().error).toBeNull();
+  });
+
+  it("reports a terminal fault the element and hls.js both raise only once", async () => {
+    const player = await loadPlayingManagedHls();
+    for (const attempt of [1, 2]) {
+      if (attempt > 1) {
+        player.engine.emit(HlsEngineProbe.Events.MEDIA_ATTACHED);
+      }
+      player.failElement(3);
+    }
+    player.engine.emit(HlsEngineProbe.Events.MEDIA_ATTACHED);
+
+    player.failElement(3);
+    player.engine.emit(HlsEngineProbe.Events.ERROR, {
+      details: "bufferAppendError",
+      error: new Error("Append failed."),
+      fatal: true,
+      type: "mediaError",
+    });
+
+    expect(player.controller.getState().error).toMatchObject({
+      kind: "decode",
+    });
+    expect(player.onError).toHaveBeenCalledOnce();
+    expect(player.analyticsErrors).toHaveBeenCalledOnce();
   });
 
   it("keeps an element network failure terminal", async () => {
