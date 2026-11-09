@@ -61,6 +61,7 @@ function App() {
   const [inline, setInline] = useState<HTMLElement | null>(null);
   const [floating, setFloating] = useState<HTMLElement | null>(null);
   const [docked, setDocked] = useState(true);
+  const [slotShown, setSlotShown] = useState(true);
   const [report, setReport] = useState<VibePlayerWatchedRangesReport | null>(
     null
   );
@@ -81,7 +82,12 @@ function App() {
       <button onClick={() => setDocked((value) => !value)} type="button">
         {docked ? "Float player" : "Dock player"}
       </button>
-      <section aria-label="Inline slot" ref={setInline} style={frame} />
+      <button onClick={() => setSlotShown((value) => !value)} type="button">
+        {slotShown ? "Remove slot" : "Restore slot"}
+      </button>
+      {slotShown ? (
+        <section aria-label="Inline slot" ref={setInline} style={frame} />
+      ) : null}
       <aside aria-label="Floating host" ref={setFloating} style={frame} />
       <VibePlayerCompact
         controls={{ pictureInPicture: true }}

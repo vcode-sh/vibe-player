@@ -1,12 +1,14 @@
 import { type ReactNode, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { VibePlayerHostDock } from "./vibe-player-host-dock";
 
 /** Moves one rendered player between host elements without remounting it. */
 export interface VibePlayerHostFrameProps {
   children: ReactNode;
   /**
    * The element that shows the player. Changing it moves the same media and
-   * chrome there; `null` leaves the player in its current host.
+   * chrome there; `null` leaves the player in its current host. While no
+   * host on the page shows it, the player waits in a hidden parking element.
    */
   host: HTMLElement | null;
 }
@@ -15,50 +17,25 @@ const useCommitEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
- * `moveBefore` keeps embedded frames and focus alive where browsers support
- * it; `append` is the same synchronous move, which a playing `<video>` survives.
- */
-function moveFrame(frame: HTMLElement, host: HTMLElement): void {
-  if (frame.parentElement === host) {
-    return;
-  }
-  // Older engines lack `moveBefore` although the DOM types declare it.
-  if (
-    typeof host.moveBefore === "function" &&
-    frame.isConnected &&
-    host.isConnected
-  ) {
-    try {
-      host.moveBefore(frame, null);
-      return;
-    } catch {
-      // A cross-document move is not state-preserving; append instead.
-    }
-  }
-  host.append(frame);
-}
-
-/**
  * Renders `children` into one package-owned element that follows `host`.
- * React state, the media element and its buffer survive every move. Renders
- * nothing on the server and until the first client commit.
+ * React state, the media element and its buffer survive every move. When
+ * the host leaves the page (or is not on it yet), the element moves into a
+ * hidden, inert parking root, so media stays alive until the next host
+ * appears; media an engine paused during a move resumes. Renders nothing on
+ * the server and until the first client commit.
  */
 export function VibePlayerHostFrame({
   children,
   host,
 }: VibePlayerHostFrameProps) {
-  const [frame, setFrame] = useState<HTMLDivElement | null>(null);
+  const [dock, setDock] = useState<VibePlayerHostDock | null>(null);
   useCommitEffect(() => {
-    const element = document.createElement("div");
-    element.className = "vibe-player-host-frame";
-    element.style.display = "contents";
-    setFrame(element);
-    return () => element.remove();
+    const created = new VibePlayerHostDock(document);
+    setDock(created);
+    return () => created.dispose();
   }, []);
   useCommitEffect(() => {
-    if (frame && host) {
-      moveFrame(frame, host);
-    }
-  }, [frame, host]);
-  return frame ? createPortal(children, frame) : null;
+    dock?.follow(host);
+  }, [dock, host]);
+  return dock ? createPortal(children, dock.frame) : null;
 }
