@@ -1,5 +1,6 @@
 import { access, rm } from "node:fs/promises";
 import { resolve } from "node:path";
+import { createConsumerBuildConfig } from "./packed-consumer-build.mjs";
 import { runConsumerCommand } from "./packed-consumer-commands.mjs";
 import { writeConsumerRecipes } from "./packed-consumer-recipes.mjs";
 import { createPackedConsumer } from "./packed-consumer-setup.mjs";
@@ -43,12 +44,7 @@ async function verifyConsumer(directory, skipBuild) {
   );
   if (!skipBuild) {
     const { build } = await import("vite");
-    await build({
-      build: { emptyOutDir: true, outDir: "build" },
-      configFile: false,
-      logLevel: "warn",
-      root: directory,
-    });
+    await build(createConsumerBuildConfig(directory));
   }
   return recipeCount;
 }
