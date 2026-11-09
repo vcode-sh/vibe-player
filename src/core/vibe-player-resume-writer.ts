@@ -22,11 +22,16 @@ const sameSpotSeconds = 0.5;
 
 interface ResumePosition {
   duration: number;
+  /** Captured with the position: a released adapter's flag is gone. */
+  live: boolean;
   seconds: number;
   source: VibePlayerSource;
 }
 
-/** What the store holds; `reason` is null for a position the controller seeks to. */
+/**
+ * What the store holds; `reason` is null for a position the controller
+ * seeks to.
+ */
 interface ResumeMark {
   reason: ResumeReason | null;
   seconds: number;
@@ -36,9 +41,9 @@ interface ResumeMark {
 /**
  * Saves resume positions from the provider's own events. Progress saves at
  * most once per 2 seconds of movement; a settled seek, pause, stop, page
- * hide and close (including a host load) always save, once per boundary. Restored positions are
- * never saved, nothing saves after `ended` (which clears the position), and
- * live sources never touch the store.
+ * hide and close (including a host load) always save, once per boundary.
+ * Restored positions are never saved, nothing saves after `ended` (which
+ * clears the position), and live sources never touch the store.
  */
 export class VibePlayerResumeWriter {
   /** After a pause, progress waits for the provider's next play. */
@@ -72,7 +77,11 @@ export class VibePlayerResumeWriter {
 
   /** A controller seek settled at `seconds`. */
   seeked(source: VibePlayerSource, seconds: number, duration: number): void {
-    this.write({ duration: knownDuration(duration), seconds, source }, "seek");
+    const live = this.isLive();
+    this.write(
+      { duration: knownDuration(duration), live, seconds, source },
+      "seek"
+    );
   }
 
   /** The page was hidden and may never come back. */
@@ -108,7 +117,7 @@ export class VibePlayerResumeWriter {
     if (this.held || this.seeking || !isSavable(snapshot) || snapshot.paused) {
       return;
     }
-    const position = toPosition(source, snapshot);
+    const position = this.toPosition(source, snapshot);
     this.latest = position;
     const saved = this.mark?.sourceId === source.id ? this.mark.seconds : 0;
     if (Math.abs(position.seconds - saved) >= progressStepSeconds) {
@@ -124,7 +133,7 @@ export class VibePlayerResumeWriter {
     if (!isSavable(snapshot)) {
       return;
     }
-    const position = toPosition(source, snapshot);
+    const position = this.toPosition(source, snapshot);
     this.latest = position;
     if (!this.isMarked(position, null)) {
       this.write(position, "seek");
@@ -135,7 +144,7 @@ export class VibePlayerResumeWriter {
     this.held = true;
     this.seeking = false;
     if (snapshot.paused && isSavable(snapshot)) {
-      this.writeOnce(toPosition(source, snapshot), "pause");
+      this.writeOnce(this.toPosition(source, snapshot), "pause");
     }
   }
 
@@ -181,8 +190,21 @@ export class VibePlayerResumeWriter {
     );
   }
 
+  /** Positions come from the attached adapter, so its flag is current. */
+  private toPosition(
+    source: VibePlayerSource,
+    { currentTime, duration }: VibePlayerSnapshot
+  ): ResumePosition {
+    return {
+      duration: knownDuration(duration),
+      live: this.isLive(),
+      seconds: currentTime,
+      source,
+    };
+  }
+
   private write(position: ResumePosition, reason: ResumeReason): void {
-    if (this.isLive()) {
+    if (position.live) {
       return;
     }
     const { duration, seconds, source } = position;
@@ -194,13 +216,6 @@ export class VibePlayerResumeWriter {
 
 function isSavable(snapshot: VibePlayerSnapshot): boolean {
   return isPlayableSnapshot(snapshot) && snapshot.readyState !== "ended";
-}
-
-function toPosition(
-  source: VibePlayerSource,
-  { currentTime, duration }: VibePlayerSnapshot
-): ResumePosition {
-  return { duration: knownDuration(duration), seconds: currentTime, source };
 }
 
 function knownDuration(duration: number): number {

@@ -70,11 +70,9 @@ export function createVibePlayerControllerParts(
   return parts;
 }
 
-/** The adapter's own flag; after release, the last state it published. */
-function isLive({ observers, runtime }: VibePlayerControllerParts): boolean {
-  const capabilities =
-    runtime.adapter?.capabilities ?? observers.state.capabilities;
-  return capabilities?.isLive === true;
+/** The attached adapter's flag; the resume writer reads it while attached. */
+function isLive({ runtime }: VibePlayerControllerParts): boolean {
+  return runtime.adapter?.capabilities.isLive === true;
 }
 
 function createRuntime(

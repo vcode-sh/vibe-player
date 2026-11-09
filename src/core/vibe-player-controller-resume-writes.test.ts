@@ -139,4 +139,33 @@ describe("controller resume writes", () => {
 
     expect(player.set).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {
+      after: (controller: VibePlayerController) => {
+        controller.flushWatchedRanges("hidden");
+        return Promise.resolve();
+      },
+      next: "a page hide",
+    },
+    {
+      after: (controller: VibePlayerController) => controller.teardown(),
+      next: "teardown",
+    },
+    {
+      after: (controller: VibePlayerController) =>
+        controller.load({ ...fileSource, id: "video-2" }),
+      next: "another load",
+    },
+  ])("never saves a stopped live source on $next", async ({ after }) => {
+    const player = await createResumePlayer();
+    player.adapter.capabilities.isLive = true;
+    player.play(0, 5);
+    // Stopping releases the adapter, so its capabilities are gone.
+    await player.controller.stop();
+    await after(player.controller);
+    await player.controller.teardown();
+
+    expect(player.set).not.toHaveBeenCalled();
+  });
 });

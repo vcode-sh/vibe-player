@@ -3,68 +3,114 @@ import { VibePlayerController } from "./vibe-player-controller";
 import { fileSource, TestAdapter } from "./vibe-player-controller-test-helpers";
 import { playTestAdapter } from "./vibe-player-watched-test-helpers";
 
+type Boundary = "none" | "state" | "storage";
+
+/**
+ * Plays 1.75 s of an 8 s source; `replace()` loads another one. A `storage`
+ * boundary replaces from inside the store's first write.
+ */
+async function createOwnershipPlayer(boundary: Boundary) {
+  const previous = new TestAdapter();
+  const current = new TestAdapter();
+  const saves: (number | string | undefined)[][] = [];
+  let replacement: Promise<void> | undefined;
+  const replace = () => {
+    replacement ??= controller.load({ ...fileSource, id: "video-2" });
+  };
+  const onAnalyticsEvent = vi.fn();
+  const controller = new VibePlayerController({
+    adapterFactory: (source) => (source.id === "video-1" ? previous : current),
+    onAnalyticsEvent,
+    resumeStore: {
+      clear: (sourceId) => {
+        saves.push(["clear", sourceId]);
+        if (boundary === "storage") {
+          replace();
+        }
+      },
+      get: () => null,
+      set: (sourceId, seconds, context) => {
+        saves.push([sourceId, seconds, context?.reason]);
+        if (boundary === "storage") {
+          replace();
+        }
+      },
+    },
+  });
+  await controller.load(fileSource);
+  previous.emit("durationchange", { duration: 8 });
+  playTestAdapter(previous, 0, 1.75);
+  const replaced = () => replacement;
+  return { controller, onAnalyticsEvent, previous, replace, replaced, saves };
+}
+
+const savedProgress = [
+  ["video-1", 2, "progress"],
+  ["video-1", 2, "close"],
+];
+
 describe("controller event side-effect ownership", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
+  // Resume saves follow the provider's own event, before state listeners,
+  // so a replacement never hides them; analytics run after state and stop.
   it.each([
-    { boundary: "none", effect: "progress_25", event: "timeupdate" },
-    { boundary: "state", effect: "progress_25", event: "timeupdate" },
-    { boundary: "storage", effect: "progress_25", event: "timeupdate" },
-    { boundary: "none", effect: "completed", event: "ended" },
-    { boundary: "state", effect: "completed", event: "ended" },
-    { boundary: "storage", effect: "completed", event: "ended" },
+    {
+      boundary: "none",
+      effect: "progress_25",
+      event: "timeupdate",
+      saves: [["video-1", 2, "progress"]],
+    },
+    {
+      boundary: "state",
+      effect: "progress_25",
+      event: "timeupdate",
+      saves: savedProgress,
+    },
+    {
+      boundary: "storage",
+      effect: "progress_25",
+      event: "timeupdate",
+      saves: savedProgress,
+    },
+    ...(["none", "state", "storage"] as const).map((boundary) => ({
+      boundary,
+      effect: "completed" as const,
+      event: "ended" as const,
+      saves: [["clear", "video-1"]],
+    })),
   ] as const)(
     "stops $event analytics when a $boundary callback replaces the source",
-    async ({ boundary, event, effect }) => {
+    async ({ boundary, effect, event, saves }) => {
       vi.useFakeTimers();
-      const previous = new TestAdapter();
-      const current = new TestAdapter();
-      let replacement: Promise<void> | undefined;
-      const replace = () => {
-        replacement ??= controller.load({ ...fileSource, id: "video-2" });
-      };
-      // The 2-second save and the end's clear are this event's own writes.
-      const write = () => {
-        if (boundary === "storage") {
-          replace();
-        }
-      };
-      const onAnalyticsEvent = vi.fn();
-      const controller = new VibePlayerController({
-        adapterFactory: (source) =>
-          source.id === "video-1" ? previous : current,
-        onAnalyticsEvent,
-        resumeStore: { clear: write, get: () => null, set: write },
-      });
-      await controller.load(fileSource);
-      previous.emit("durationchange", { duration: 8 });
-      playTestAdapter(previous, 0, 1.75);
-      controller.subscribe((state) => {
+      const player = await createOwnershipPlayer(boundary);
+      player.controller.subscribe((state) => {
         if (boundary === "state" && state.lastEvent === event) {
-          replace();
+          player.replace();
         }
       });
 
       // A quarter of the media played, or it ended.
-      previous.emit(event, {
+      player.previous.emit(event, {
         currentTime: event === "timeupdate" ? 2 : 8,
         ...(event === "ended" ? { paused: true, readyState: "ended" } : {}),
       });
-      await replacement;
+      await player.replaced();
 
       const reported = expect.objectContaining({
         sourceId: "video-1",
         type: effect,
       });
+      expect(player.saves).toEqual(saves);
       if (boundary === "none") {
-        expect(onAnalyticsEvent).toHaveBeenCalledWith(reported);
+        expect(player.onAnalyticsEvent).toHaveBeenCalledWith(reported);
       } else {
-        expect(onAnalyticsEvent).not.toHaveBeenCalledWith(reported);
-        expect(controller.getState().currentSource?.id).toBe("video-2");
+        expect(player.onAnalyticsEvent).not.toHaveBeenCalledWith(reported);
+        expect(player.controller.getState().currentSource?.id).toBe("video-2");
       }
-      await controller.teardown();
+      await player.controller.teardown();
     }
   );
 

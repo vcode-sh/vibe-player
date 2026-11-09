@@ -147,6 +147,31 @@ describe("VibePlayerController analytics session", () => {
     await player.controller.teardown();
   });
 
+  it("opens a new session when a renewal returns another source id", async () => {
+    const player = await createAnalyticsPlayer({
+      renewSource: () =>
+        Promise.resolve({
+          ...fileSource,
+          expiresAt: Date.now() + 600_000,
+          id: "video-2",
+        }),
+    });
+    player.start(0);
+    await player.controller.retry();
+    player.start(0);
+
+    expect(
+      player.analytics.map(({ sourceId, type }) => [type, sourceId])
+    ).toEqual([
+      ["opened", "video-1"],
+      ["started", "video-1"],
+      ["closed", "video-1"],
+      ["opened", "video-2"],
+      ["started", "video-2"],
+    ]);
+    await player.controller.teardown();
+  });
+
   it("reports closed only for a session that opened", async () => {
     const adapter = new TestAdapter();
     adapter.loadError = new Error("Media unavailable");
