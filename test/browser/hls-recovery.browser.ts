@@ -75,9 +75,19 @@ test("managed HLS fails a segment that never decodes after its recoveries", asyn
     .poll(async () => (await readProbe(page)).errors, { timeout: 25_000 })
     .toEqual([{ kind: "decode", phase: "playback" }]);
   expect(await readError(page)).toMatchObject({ kind: "decode" });
-  expect(elementErrors((await readProbe(page)).events)).toEqual([
-    { code: 3, fatal: false },
-    { code: 3, fatal: false },
-    { code: 3, fatal: true },
-  ]);
+  const failures = elementErrors((await readProbe(page)).events);
+  const recovered = failures.slice(0, -1);
+  expect(failures.at(-1)).toEqual({ code: 3, fatal: true });
+  expect(recovered.every((failure) => failure.code === 3)).toBe(true);
+  expect(recovered.every((failure) => failure.fatal === false)).toBe(true);
+  // Which limit ends playback depends on how fast each recovery reaches the
+  // broken frame again: within 3 s the ladder fails it after two recoveries;
+  // on a slower machine each fault starts the ladder over and the cap of
+  // four recoveries a minute fails it.
+  test.info().annotations.push({
+    description: String(recovered.length),
+    type: "recovered-faults",
+  });
+  expect(recovered.length).toBeGreaterThanOrEqual(2);
+  expect(recovered.length).toBeLessThanOrEqual(4);
 });
