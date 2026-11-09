@@ -57,6 +57,10 @@
   Tests that looked for "Exit full screen" can query
   `{ name: "Full screen", pressed: true }`. `labels.exitFullscreen` stays
   available for your own controls.
+- Stage and Compact no longer render `role="status"`: their status messages
+  go through one `aria-live` region, and the caption failure notice is not a
+  live region. Tests that used `getByRole("status")` on a player can query
+  `[data-part="announcer"]` or the visible text.
 - A standalone `VibePlayerStageStatus` is an atomic `aria-live="polite"`
   section instead of `role="status"`, which Orca 50 could skip when it
   appeared together with other page changes. Its busy state also carries
@@ -106,13 +110,18 @@
   seeks its engine makes itself are not counted as viewer seeks.
 - `controller.retire()` ends a player for good, e.g. at sign-out: no more
   events, analytics, watched ranges or resume saves, media and audio focus
-  released, and later commands do nothing.
+  released, and later commands do nothing. `controller.retired` tells you
+  whether it happened.
 - `getVibePlayerControllers(sourceId?)` and `subscribeVibePlayerControllers()`
   list the page's live controllers, read-only.
 - `getVibePlayerAudioFocusOwner()` and `subscribeVibePlayerAudioFocus()` tell
   you who holds audio focus; participants expose their `controller`, `group`
   and `mediaSession` (optional members, so hand-written participants still
-  compile).
+  compile). Pass them with
+  `createVibePlayerAudioFocusParticipant(group, onPause, { controller, mediaSession })`
+  or `useVibePlayerAudioFocus({ controller, mediaSession })`; host media
+  without a Media Session, such as a voice note, opts out with
+  `mediaSession: false`.
 - `audioFocus={{ group, onLose: "stop" }}` makes a player stop instead of
   pause when another one takes focus.
 - Media Session `metadata.artwork` can be a function of the current source,

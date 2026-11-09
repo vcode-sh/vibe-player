@@ -6,9 +6,10 @@ and its live lane were removed later. Current behavior is in
 [usage.md](./usage.md), [integration.md](./integration.md) and the
 [changelog](../CHANGELOG.md).
 
-The original T01–T17 backlog and the N01–N04
-implementation and available acceptance lanes are complete. Physical-platform limits remain explicit below. This checkpoint extends the modular-provider work in `ca6882f`;
-it does not prepare a release or change package ownership.
+The original T01–T17 backlog and the N01–N04 implementation and available
+acceptance lanes are complete. Physical-platform limits remain explicit below.
+This checkpoint extends the modular-provider work in `ca6882f`; it does not
+prepare a release or change package ownership.
 
 ## Implemented backlog
 
