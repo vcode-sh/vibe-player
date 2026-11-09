@@ -7,9 +7,10 @@
   published stable version.
 - License: `Apache-2.0`
 - Author: Vibe Code, `hello@vcode.sh`, `https://x.com/vcode_sh`
-- Output: minified ESM and stylesheets with readable type declarations, built
-  into `dist`; `src/styles` stays the readable CSS source
-- Versioning: Changesets
+- Output: readable, unminified ESM with stable chunk names
+  (`dist/chunks/[name].js`), readable type declarations and minified
+  stylesheets; no sourcemaps. `src/styles` stays the readable CSS source.
+- Versioning: hand-written `CHANGELOG.md` and a manual `package.json` bump
 - Publishing: public npm package with Trusted Publishing/provenance
 - Guard: `bun run package:release-state`
 
@@ -24,93 +25,91 @@ the package must not carry a second pinned runtime.
 Local `file:` dependencies are for active package work only. Stable consumers
 should use the npm package or a real workspace boundary.
 
+## Semver policy
+
+While the package is `0.x`, a minor bump (`0.x.0`) carries breaking API
+changes, including widening a union in an exported type and adding a required
+member to an exported interface or options object. Fixes and compatible
+additions are patches (`0.x.y`). Every breaking change gets a CHANGELOG bullet
+with a one-line migration hint.
+
+## API report
+
+`api/vibe-player.api.md` records every public entry point's exports and the
+full declaration graph, generated from `dist` declarations (sorted, comments
+removed). `bun run package:api` (part of `bun run ci`) fails when the build
+differs from the committed report. After an intended API change, run
+`bun run package:api:update`, review the report diff against the semver policy
+and commit it with the change.
+
+## Size budgets
+
+`bun run package:size` fails above a limit and warns when a budget has less
+than 5 % headroom. Re-base a warning budget deliberately (about 15 % headroom)
+with a dated comment, instead of waiting for it to fail.
+
 ## GitHub workflows
 
-Both workflows use Ubuntu 26.04. Build and publish steps use Node 26; the
-minimum-runtime check deliberately uses the package's supported Node 22.0.0.
+Both workflows use Ubuntu 26.04 and Node 26; the minimum-runtime check uses
+the supported Node 22.0.0.
 
-Pull requests run one lightweight CI job: formatting/lint, TypeScript, unit
-tests and build. New PR updates cancel superseded runs. Pushes to `main` do not
-start CI or publish packages.
+CI runs on every push to `main` and on pull requests. The `quality` job runs
+`bun run ci`; the `browser` job installs Chromium and WebKit (cached by
+Playwright version), builds and runs `bun run test:browser`, uploading
+`test-results/` as `browser-acceptance-results` on failure. Only pull request
+runs cancel superseded runs.
 
-Release runs only through `workflow_dispatch` on `main`. It runs `bun run ci`
-once on Node 26, including package rules, boundaries, dependency guard,
-release-state guard, TypeScript, tests, build, styles, size, public surface,
-tarball, publint, ATTW, the packaged consumer, and a type check of the browser
-specs. After `bun run ci`, Release installs Chromium and WebKit with
-`--with-deps` and runs `bun run test:browser` as a separate gate before
-publishing. On failure or cancellation (including the job timeout) it uploads
-`test-results/` (traces, screenshots) as the `browser-acceptance-results`
-artifact, kept for 7 days. Local `bun run ci` deliberately excludes the
-browser lane. The release-state guard fails if those workflow steps are
-removed, moved outside the span between `bun run ci` and publishing, given an
-`if:` condition or `continue-on-error`, or if the publish step gets an `if:`
-condition; see [the timing rationale](../research/playwright-release-gate.md).
-The same job then checks the built package on exact Node 22.0.0 / React
-19.2.7, restores Node 26, and runs `bun run release:publish --no-git-tag` to
-publish the committed version. The minimum-runtime check skips the Vite
-consumer build, whose toolchain requires a newer Node than package runtime.
-Node 26 consumer
-coverage already belongs to `bun run ci`.
+Release runs only through `workflow_dispatch` on `main`, in this order:
+1. Extract the `## [<version>] - <date>` section of `CHANGELOG.md` as release
+   notes (`scripts/write-release-notes.mjs`); fail when it is missing or empty.
+2. Fail when tag `v<version>` already exists on `origin`.
+3. `bun run ci`, then `bun run test:browser` on Chromium and WebKit (uploading
+   `test-results/` on failure or cancellation), then the exact Node 22.0.0 /
+   React 19.2.7 consumer check.
+4. `bun run release:publish --no-git-tag` publishes the committed version.
+5. Push an annotated `v<version>` tag on the released commit and run
+   `gh release create` with the notes file (`contents: write`).
 
-Changesets prepares versions and changelogs locally. There is no automatic
-version PR or `ENABLE_NPM_PUBLISH` repository variable to maintain.
-GitHub tags and releases are separate manual steps; this workflow only
-validates and publishes to npm.
+The release-state guard fails if the browser gate leaves the span between
+`bun run ci` and publishing, if the notes or tag checks move after publishing,
+if tagging or the GitHub release move before it, or if any of these steps gets
+an `if:` condition or `continue-on-error`; see
+[the timing rationale](../research/playwright-release-gate.md).
+`release:publish` calls `changeset publish`, so keep `.changeset/config.json`
+(public access, no commits); no changeset files or version PRs are used.
 
-The workflow uses npm Trusted Publishing through GitHub Actions OIDC. It does
-not require a long-lived `NPM_TOKEN`. Keep `id-token: write` in workflow
-permissions and keep `publishConfig.provenance: true` for public releases.
+The workflow uses npm Trusted Publishing through GitHub Actions OIDC; there is
+no long-lived `NPM_TOKEN`. Keep `id-token: write` and
+`publishConfig.provenance: true`.
 
 ## Prepare and publish a release
 
-1. Confirm the GitHub repository is public.
-2. Confirm the npm package is public and owned by the expected npm account/org.
-3. Configure npm Trusted Publishing with owner `vcode-sh`, repository
-   `vibe-player`, workflow filename `release.yml`, and permission for
-   `npm publish`. Leave the environment field empty; the workflow does not use
-   a GitHub environment. Preserve this filename when editing the workflow.
-4. Add a changeset with `bunx changeset`, then run `bun run release:version`.
-5. Review the version, changelog and lockfile changes, then commit and push the
-   prepared release to `main`.
-6. In GitHub Actions, select **Release**, choose **Run workflow** on `main`, and
-   start it. This validates the selected commit and publishes its prepared
-   version. Concurrent releases are serialized.
-7. Confirm the published version with `npm view vibe-player version` for a
-   stable release, or `npm view vibe-player dist-tags` for a prerelease.
+1. Confirm the repository and npm package are public and owned by the expected
+   account, and that npm Trusted Publishing names owner `vcode-sh`, repository
+   `vibe-player`, workflow `release.yml` and no environment. Keep that filename.
+2. Run `date "+%Y-%m-%d"`, rename `## [Unreleased]` content into
+   `## [<version>] - <date>` (keep an empty `[Unreleased]` above it), and bump
+   `version` in `package.json` according to the semver policy.
+3. Run `bun run ci` and `bun run test:browser`, review the API report and size
+   output, then commit and push the release to `main`.
+4. In GitHub Actions, run **Release** on `main`. Concurrent releases are
+   serialized.
+5. Confirm `npm view vibe-player version`, the `v<version>` tag and the GitHub
+   release.
 
-Saving the npm Trusted Publisher settings does not verify authentication or
-publish a version. A successful publish confirms the complete integration.
-
-## Prereleases
-
-Use Changesets pre-mode for prereleases:
-
-```bash
-bunx changeset pre enter alpha
-```
-
-Do not hard-code prerelease versions in docs or consumer branches before
-`changeset version` generates them. Let Changesets decide the exact version and
-dist tag.
+`changeset publish` uses the `latest` dist tag unless Changesets pre mode is
+active (`bunx changeset pre enter <tag>` writes `.changeset/pre.json`); enter it
+before releasing a prerelease. Prerelease versions get a GitHub prerelease.
 
 ## Manual checks
 
-For local release validation, reproduce the Release gate: install browser
-engines once, then run `bun run ci` (which builds `dist`) followed by the
-browser lane:
+Local `bun run ci` omits the browser lane; reproduce the full gate with:
 
 ```bash
-bunx playwright install --with-deps chromium firefox webkit
+bunx playwright install --with-deps chromium webkit
 bun run ci
 bun run test:browser
 ```
-
-Local `bun run ci` alone omits the browser lane that Release runs.
-
-Before publishing, the workflow also verifies the minimum Node/React runtime;
-it reuses the built package instead of installing and building it in another
-job.
 
 Before claiming target-platform acceptance, record the applicable native
 keyboard/screen-reader checks from

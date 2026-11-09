@@ -31,6 +31,9 @@
 - Resume saves are throttled to one per 2 seconds of playback; seeks, pause,
   stop, page hide and close always save, and live sources never save. For a
   save per `timeupdate`, write from `onProgress` instead.
+- The published JavaScript is readable, unminified ESM with stable chunk names
+  (`dist/chunks/player.js` and friends), so you can read, debug and patch it.
+  Your bundler still minifies it; nothing changes in how you import it.
 
 ### Added
 
