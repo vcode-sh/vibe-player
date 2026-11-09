@@ -5,7 +5,7 @@ import {
   isHlsInternalSeekError,
   type ManagedHlsInternalSeeks,
 } from "./hls-internal-seeks";
-import { createHlsMediaRecovery } from "./hls-media-recovery";
+import type { ManagedHlsMediaRecovery } from "./hls-media-recovery";
 import type {
   HlsAdapterErrorPayload,
   ManagedHlsSession,
@@ -15,6 +15,7 @@ interface ManagedHlsErrorBinding {
   active: () => boolean;
   hls: Hls;
   internalSeeks: ManagedHlsInternalSeeks;
+  recovery: ManagedHlsMediaRecovery;
   session: ManagedHlsSession;
 }
 
@@ -27,10 +28,10 @@ export function createManagedHlsErrorHandler({
   active,
   hls,
   internalSeeks,
+  recovery,
   session,
 }: ManagedHlsErrorBinding) {
   let credentialFailure = false;
-  const recoverMedia = createHlsMediaRecovery(hls);
   return (_event: string, data: ErrorData): void => {
     if (!active() || credentialFailure) {
       return;
@@ -45,7 +46,7 @@ export function createManagedHlsErrorHandler({
       hls.stopLoad();
     }
     session.onError(
-      recoverMedia(data)
+      recovery.recover(data)
         ? { ...payload, fatal: false, sdkFatal: true }
         : payload
     );

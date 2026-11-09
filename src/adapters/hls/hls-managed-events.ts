@@ -4,6 +4,7 @@ import { getNativeVideoStartPosition } from "../native/native-video-seek";
 import { recordHlsBandwidth } from "./hls-engine-config";
 import type { ManagedHlsInternalSeeks } from "./hls-internal-seeks";
 import { createManagedHlsErrorHandler } from "./hls-managed-errors";
+import type { ManagedHlsMediaRecovery } from "./hls-media-recovery";
 import type { ManagedHlsLevel } from "./hls-quality";
 import type { ManagedHlsSession } from "./hls-runtime-types";
 
@@ -12,6 +13,7 @@ interface ManagedHlsEventBinding {
   events: typeof Hls.Events;
   hls: Hls;
   internalSeeks: ManagedHlsInternalSeeks;
+  recovery: ManagedHlsMediaRecovery;
   session: ManagedHlsSession;
 }
 
@@ -47,14 +49,22 @@ function bindManagedHlsLoading({
   events,
   hls,
   internalSeeks,
+  recovery,
   session,
 }: ManagedHlsEventBinding): void {
   hls.on(
     events.ERROR,
-    createManagedHlsErrorHandler({ active, hls, internalSeeks, session })
+    createManagedHlsErrorHandler({
+      active,
+      hls,
+      internalSeeks,
+      recovery,
+      session,
+    })
   );
   hls.on(events.MEDIA_ATTACHED, () => {
-    if (active()) {
+    // hls.js restarts loading itself after a recovery reattach.
+    if (active() && !recovery.mediaAttached()) {
       hls.loadSource(session.manifestUrl);
       hls.startLoad(getNativeVideoStartPosition(session.video) || -1);
     }

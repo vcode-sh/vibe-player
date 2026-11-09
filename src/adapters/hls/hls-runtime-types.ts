@@ -44,6 +44,12 @@ export interface ManagedHlsSession {
     levels: ManagedHlsLevel[],
     selectedLevelIndex: number
   ) => void;
+  /**
+   * Called just before hls.js resets the media to recover a fatal media
+   * error, which pauses it. The returned function runs once the engine has
+   * attached the media again, for example to resume playback.
+   */
+  onMediaRecovery?: (() => (() => void) | undefined) | undefined;
   onReady: () => void;
   video: HTMLVideoElement;
 }

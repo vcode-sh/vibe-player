@@ -21,6 +21,8 @@ export interface LoadCurrentHlsAdapterSourceInput {
   ) => void;
   isCurrentLoadSession: (loadSession: HlsAdapterLoadSession) => boolean;
   loadSession: HlsAdapterLoadSession;
+  /** Returns how to resume playback after the engine resets the media. */
+  onMediaRecovery: () => (() => void) | undefined;
   runtime: HlsAdapterRuntime;
   setLive: (isLive: boolean) => void;
   source: VibePlayerHlsSource;
@@ -35,6 +37,7 @@ export async function loadCurrentHlsAdapterSource({
   emit,
   isCurrentLoadSession,
   loadSession,
+  onMediaRecovery,
   runtime,
   setLive,
   source,
@@ -50,6 +53,8 @@ export async function loadCurrentHlsAdapterSource({
         }
       },
       isActive: () => isCurrentLoadSession(loadSession),
+      onMediaRecovery: () =>
+        isCurrentLoadSession(loadSession) ? onMediaRecovery() : undefined,
       runtime,
       setLive: (isLive) => {
         if (isCurrentLoadSession(loadSession)) {

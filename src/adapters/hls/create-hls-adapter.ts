@@ -33,6 +33,7 @@ import { HlsAdapterSeekMarks } from "./hls-adapter-seek-marks";
 import { createHlsAdapterSessionState } from "./hls-adapter-session-state";
 import { createHlsAdapterRuntime } from "./hls-managed-runtime";
 import type { ManagedHlsLevel } from "./hls-quality";
+import { captureHlsRecoveryPlayback } from "./hls-recovery-playback";
 import type {
   HlsAdapterOptions,
   HlsAdapterRuntime,
@@ -118,6 +119,7 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
       isCurrentLoadSession: (session) =>
         this.session.isCurrentLoadSession(session),
       loadSession,
+      onMediaRecovery: () => captureHlsRecoveryPlayback(this.commandInput),
       runtime: this.runtime,
       setLive: (isLive) => this.session.setLive(isLive),
       source,

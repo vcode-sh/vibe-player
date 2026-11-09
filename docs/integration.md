@@ -475,9 +475,14 @@ Native HLS treats an infinite media duration, or an unknown one with a seekable
 window, as live even without `live: true`; a later finite duration returns it
 to on-demand. Managed HLS takes live from the playlist. A fatal hls.js media
 error first calls `recoverMediaError()`; a second one within three seconds
-calls `swapAudioCodec()` and `recoverMediaError()`; a third is terminal.
-Recovered errors arrive as nonfatal `error` events with `sdkFatal: true`.
-Network errors are not retried this way.
+calls `swapAudioCodec()` and `recoverMediaError()`; a third is terminal, and so
+is a fifth recovery within one minute, so a stream that keeps failing still
+fails. Recovered errors arrive as nonfatal `error` events with
+`sdkFatal: true`. The recovery reloads the media element, which pauses it;
+media that was playing resumes once hls.js has reattached it, unless a pause,
+play or load happened meanwhile. A blocked resume reports `playblocked`.
+Network errors are not retried this way. A custom runtime can offer the same
+resume through the session's `onMediaRecovery()`.
 
 For direct adapter use, subscribe, mount the target, then load the source and
 await commands. Unsubscribe and unmount when the owner disposes the adapter.

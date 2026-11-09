@@ -20,6 +20,7 @@ export interface LoadHlsAdapterSourceInput {
     payload?: VibePlayerAdapterEvent["payload"]
   ) => void;
   isActive: () => boolean;
+  onMediaRecovery: () => (() => void) | undefined;
   runtime: HlsAdapterRuntime;
   setLive: (isLive: boolean) => void;
   source: VibePlayerHlsSource;
@@ -33,6 +34,7 @@ export interface LoadHlsAdapterSourceInput {
 export async function loadHlsAdapterSource({
   emit,
   isActive,
+  onMediaRecovery,
   runtime,
   setLive,
   source,
@@ -62,6 +64,7 @@ export async function loadHlsAdapterSource({
         emit("durationchange");
       },
       onLevelsChanged: updateQualityOptions,
+      onMediaRecovery,
       onReady: () => emit("ready"),
       video,
     });

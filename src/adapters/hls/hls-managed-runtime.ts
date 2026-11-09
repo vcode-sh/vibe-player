@@ -5,6 +5,7 @@ import {
   bindManagedHlsEvents,
   syncManagedHlsLevels,
 } from "./hls-managed-events";
+import { ManagedHlsMediaRecovery } from "./hls-media-recovery";
 import { createHlsRequestConfig } from "./hls-request-config";
 import type {
   HlsAdapterOptions,
@@ -53,6 +54,7 @@ async function attachManagedHls(
     events: Hls.Events,
     hls,
     internalSeeks,
+    recovery: new ManagedHlsMediaRecovery(hls, session),
     session,
   };
   bindManagedHlsEvents(binding);

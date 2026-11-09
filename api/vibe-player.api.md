@@ -479,6 +479,7 @@ interface ManagedHlsSession {
   onError: (payload: HlsAdapterErrorPayload) => void;
   onLevelLoaded: (isLive: boolean) => void;
   onLevelsChanged: (levels: ManagedHlsLevel[], selectedLevelIndex: number) => void;
+  onMediaRecovery?: (() => (() => void) | undefined) | undefined;
   onReady: () => void;
   video: HTMLVideoElement;
 }

@@ -30,6 +30,9 @@ export class HlsEngineProbe {
   levels = [];
   liveSyncPosition: number | null = null;
   loadedUrl = "";
+  readonly loadedUrls: string[] = [];
+  /** Models the media reset hls.js performs while it recovers. */
+  mediaReset: (() => void) | null = null;
   manualLevel = -1;
   nextLevel = -1;
   /** Media recovery calls, in order. */
@@ -52,12 +55,14 @@ export class HlsEngineProbe {
   }
   recoverMediaError(): void {
     this.recoveries.push("recoverMediaError");
+    this.mediaReset?.();
   }
   swapAudioCodec(): void {
     this.recoveries.push("swapAudioCodec");
   }
   loadSource(url: string): void {
     this.loadedUrl = url;
+    this.loadedUrls.push(url);
   }
   startLoad(seconds: number): void {
     this.startedAt = seconds;

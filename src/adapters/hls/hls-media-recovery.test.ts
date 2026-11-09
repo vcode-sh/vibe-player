@@ -17,9 +17,11 @@ async function loadManagedHls() {
     () => undefined
   );
   const onError = vi.fn();
+  const onEvent = vi.fn();
   const controller = new VibePlayerController({
     adapterFactory: () => createHlsAdapter({ loadHls: loadProbeHls }),
     onError,
+    onEvent,
   });
   controllers.add(controller);
   await controller.mount(document.createElement("div"));
@@ -32,7 +34,11 @@ async function loadManagedHls() {
       fatal: true,
       type,
     });
-  return { controller, engine, fail, onError };
+  const errorEvents = () =>
+    onEvent.mock.calls
+      .map(([event]) => event)
+      .filter((event) => event.type === "error");
+  return { controller, engine, errorEvents, fail, onError };
 }
 
 describe("managed HLS media error recovery", () => {
@@ -46,10 +52,17 @@ describe("managed HLS media error recovery", () => {
   });
 
   it("recovers a fatal media error, then swaps the audio codec, then fails", async () => {
-    const { controller, engine, fail, onError } = await loadManagedHls();
+    const { controller, engine, errorEvents, fail, onError } =
+      await loadManagedHls();
 
     fail();
     expect(engine.recoveries).toEqual(["recoverMediaError"]);
+    expect(errorEvents()).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({ fatal: false, sdkFatal: true }),
+        type: "error",
+      }),
+    ]);
     vi.advanceTimersByTime(2000);
     fail();
     expect(engine.recoveries).toEqual([
@@ -82,6 +95,35 @@ describe("managed HLS media error recovery", () => {
       "recoverMediaError",
       "recoverMediaError",
     ]);
+    expect(controller.getState().error).toBeNull();
+  });
+
+  it("fails a stream that keeps failing after four recoveries in a minute", async () => {
+    const { controller, engine, fail, onError } = await loadManagedHls();
+
+    for (let failure = 0; failure < 4; failure += 1) {
+      fail();
+      vi.advanceTimersByTime(4000);
+    }
+    expect(engine.recoveries).toEqual(new Array(4).fill("recoverMediaError"));
+    expect(controller.getState().error).toBeNull();
+    fail();
+
+    expect(engine.recoveries).toHaveLength(4);
+    expect(controller.getState().error).toMatchObject({ kind: "decode" });
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
+  it("allows a fresh recovery once older ones leave the minute", async () => {
+    const { controller, engine, fail } = await loadManagedHls();
+
+    for (let failure = 0; failure < 4; failure += 1) {
+      fail();
+      vi.advanceTimersByTime(15_000);
+    }
+    fail();
+
+    expect(engine.recoveries).toEqual(new Array(5).fill("recoverMediaError"));
     expect(controller.getState().error).toBeNull();
   });
 

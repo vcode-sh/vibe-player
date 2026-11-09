@@ -95,6 +95,9 @@
   pause when another one takes focus.
 - Media Session `metadata.artwork` can be a function of the current source,
   so signed artwork renews with it.
+- A custom HLS runtime can call the session's optional `onMediaRecovery()`
+  before it resets the media and run the returned function after reattaching,
+  so playing media resumes.
 
 ### Fixed
 
@@ -148,8 +151,10 @@
 - The full-stage bar no longer shows "-0:00" and an empty timeline for live
   streams; the remaining time appears only when the duration is known.
 - hls.js media errors are recovered before playback fails: a fatal media
-  error is retried, a second one shortly after also swaps the audio codec,
-  and only a third fails. The recovered errors are reported as nonfatal.
+  error is retried, a second one within 3 seconds also swaps the audio codec,
+  and a third one, or a fifth recovery within a minute, fails. Playing media
+  resumes after the recovery (or reports `playblocked`); recovered errors are
+  reported as nonfatal with `sdkFatal: true`.
 
 ## [0.7.1] - 2026-11-09
 
