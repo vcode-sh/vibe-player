@@ -17,19 +17,26 @@ export class VibePlayerStateSettle {
   private readonly latest: () => VibePlayerControllerState;
   private readonly listeners: VibePlayerStateListeners<VibePlayerControllerState>;
   private readonly reporter: VibePlayerIntegrationReporter;
+  private readonly active: () => boolean;
 
+  /** `active` turns false when the controller retires: settling stops. */
   constructor(
     listeners: VibePlayerStateListeners<VibePlayerControllerState>,
     reporter: VibePlayerIntegrationReporter,
-    latest: () => VibePlayerControllerState
+    latest: () => VibePlayerControllerState,
+    active: () => boolean = () => true
   ) {
     this.listeners = listeners;
     this.reporter = reporter;
     this.latest = latest;
+    this.active = active;
   }
 
   settle(): void {
     this.listeners.settle(this.latest, (listener, state) => {
+      if (!this.active()) {
+        return;
+      }
       const report = this.reporter.reportLater(
         "state-listener",
         state.currentSource

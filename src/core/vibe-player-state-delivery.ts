@@ -26,10 +26,16 @@ export class VibePlayerStateDelivery {
     new VibePlayerStateListeners<VibePlayerControllerState>();
   private readonly reporter: VibePlayerIntegrationReporter;
   private readonly settler: VibePlayerStateSettle;
+  private retired = false;
 
   constructor({ budget, latest, reporter, reportRunaway }: StateDeliveryInput) {
     this.reporter = reporter;
-    this.settler = new VibePlayerStateSettle(this.listeners, reporter, latest);
+    this.settler = new VibePlayerStateSettle(
+      this.listeners,
+      reporter,
+      latest,
+      () => !this.retired
+    );
     this.delivery = new VibePlayerOrderedDelivery(
       (state) => this.deliver(state),
       {
@@ -44,7 +50,12 @@ export class VibePlayerStateDelivery {
   }
 
   subscribe(listener: StateListener): () => void {
-    return this.listeners.add(listener);
+    return this.retired ? () => undefined : this.listeners.add(listener);
+  }
+
+  /** No subscriber hears anything more, even mid-delivery or mid-settle. */
+  retire(): void {
+    this.retired = true;
   }
 
   /**
@@ -58,9 +69,18 @@ export class VibePlayerStateDelivery {
   private deliver(state: VibePlayerControllerState): void {
     this.reporter.runAll(
       "state-listener",
-      this.listeners.current(),
+      this.live(this.listeners.current()),
       state,
       state.currentSource
     );
+  }
+
+  private *live(listeners: Iterable<StateListener>): Iterable<StateListener> {
+    for (const listener of listeners) {
+      if (this.retired) {
+        return;
+      }
+      yield listener;
+    }
   }
 }

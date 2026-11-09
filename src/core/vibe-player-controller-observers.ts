@@ -37,7 +37,10 @@ export class VibePlayerControllerObservers {
   readonly deliveryBudget = new VibePlayerDeliveryBudget();
   private readonly eventListeners = new VibePlayerEventListeners();
   private readonly options: VibePlayerControllerOptions;
+  private readonly onSource: (source: VibePlayerSource | null) => void;
   private currentState = createInitialControllerState();
+  /** Set by `retire()`: nothing reaches the host from then on. */
+  private retired = false;
   private readonly reporter = new VibePlayerIntegrationReporter({
     emit: (event) => this.emitEvent(event),
     source: () => this.currentState.currentSource,
@@ -61,8 +64,13 @@ export class VibePlayerControllerObservers {
   ) => this.run(operation, execute, fallback);
   private readonly callbacks: VibePlayerHostCallbacks;
 
-  constructor(options: VibePlayerControllerOptions) {
+  /** `onSource` hears every change of the current source. */
+  constructor(
+    options: VibePlayerControllerOptions,
+    onSource: (source: VibePlayerSource | null) => void = () => undefined
+  ) {
     this.options = options;
+    this.onSource = onSource;
     this.callbacks = new VibePlayerHostCallbacks(options, this.hostRun);
   }
 
@@ -84,7 +92,15 @@ export class VibePlayerControllerObservers {
     type: K,
     listener: (event: VibePlayerEventOfType<K>) => void
   ): () => void {
-    return this.eventListeners.add(type, listener);
+    return this.retired
+      ? () => undefined
+      : this.eventListeners.add(type, listener);
+  }
+
+  /** Silences listeners, callbacks, analytics, watched ranges and saves. */
+  retire(): void {
+    this.retired = true;
+    this.states.retire();
   }
 
   emitAdapterEvent(
@@ -114,7 +130,7 @@ export class VibePlayerControllerObservers {
   }
 
   reset(isMounted = false): void {
-    this.currentState = { ...createInitialControllerState(), isMounted };
+    this.setState({ ...createInitialControllerState(), isMounted });
     this.notify(this.currentState);
   }
 
@@ -124,7 +140,7 @@ export class VibePlayerControllerObservers {
   ): VibePlayerControllerState {
     const previousError = this.currentState.error;
     const state = { ...this.currentState, ...next };
-    this.currentState = state;
+    this.setState(state);
     this.notify(state);
     if (
       next.error &&
@@ -158,6 +174,9 @@ export class VibePlayerControllerObservers {
   }
 
   emitError(error: VibePlayerError): void {
+    if (this.retired) {
+      return;
+    }
     try {
       observeHostRejection(this.options.onError?.(error), () => undefined);
     } catch {
@@ -189,7 +208,18 @@ export class VibePlayerControllerObservers {
     fallback?: T,
     source = this.currentState.currentSource
   ): T | undefined {
+    if (this.retired) {
+      return fallback;
+    }
     return this.reporter.run(operation, execute, fallback, source);
+  }
+
+  private setState(state: VibePlayerControllerState): void {
+    const previous = this.currentState.currentSource;
+    this.currentState = state;
+    if (state.currentSource !== previous) {
+      this.onSource(state.currentSource);
+    }
   }
 
   private deliverEvent(event: VibePlayerEvent): void {
@@ -198,6 +228,10 @@ export class VibePlayerControllerObservers {
       const listeners = this.eventListeners.matching(event);
       this.run("event", () => this.options.onEvent?.(event));
       for (const listener of listeners) {
+        // Retiring from inside a listener stops the rest of the delivery.
+        if (this.retired) {
+          return;
+        }
         this.run("event-listener", listener);
       }
     };

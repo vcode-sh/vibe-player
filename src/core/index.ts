@@ -1,8 +1,15 @@
 export {
   createVibePlayerAudioFocusParticipant,
+  getVibePlayerAudioFocusOwner,
+  subscribeVibePlayerAudioFocus,
   type VibePlayerAudioFocusParticipant,
+  type VibePlayerAudioFocusParticipantOptions,
 } from "./vibe-player-audio-focus";
 export { VibePlayerController } from "./vibe-player-controller";
+export {
+  getVibePlayerControllers,
+  subscribeVibePlayerControllers,
+} from "./vibe-player-controller-registry";
 export {
   getVibePlayerProgressMilestone,
   type VibePlayerProgressEventName,

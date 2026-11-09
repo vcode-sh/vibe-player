@@ -1,7 +1,12 @@
+import {
+  getVibePlayerAudioFocusOwner,
+  subscribeVibePlayerAudioFocus,
+  type VibePlayerAudioFocusParticipant,
+} from "./vibe-player-audio-focus";
 import type { VibePlayerController } from "./vibe-player-controller";
+import { onVibePlayerControllerRetire } from "./vibe-player-controller-retirement";
 import { createVibePlayerMediaSession } from "./vibe-player-media-session";
 import type { UseVibePlayerMediaSessionOptions } from "./vibe-player-media-session-types";
-import type { VibePlayerControllerState } from "./vibe-player-types";
 
 /** Ownership decided from player state, used by the React binding. */
 export interface VibePlayerMediaSessionConnection {
@@ -15,7 +20,16 @@ export type VibePlayerMediaSessionSetting =
   | UseVibePlayerMediaSessionOptions
   | undefined;
 
+type Decision = "claim" | "keep" | "release";
+
+/** The focus owner when the player joins a group; `undefined` when not. */
+type FocusOwner = VibePlayerAudioFocusParticipant | null | undefined;
+
 const noOptions: UseVibePlayerMediaSessionOptions = {};
+const inert: VibePlayerMediaSessionConnection = {
+  disconnect: () => undefined,
+  update: () => undefined,
+};
 
 function normalize(
   setting: VibePlayerMediaSessionSetting
@@ -23,40 +37,69 @@ function normalize(
   return typeof setting === "object" ? setting : noOptions;
 }
 
+/** A player in a focus group claims when it owns focus and yields to media without a session. */
+function decideFromFocus(
+  controller: VibePlayerController,
+  owner: VibePlayerAudioFocusParticipant | null
+): Decision {
+  if (owner?.controller === controller) {
+    return "claim";
+  }
+  return owner && !owner.mediaSession ? "release" : "keep";
+}
+
 function decide(
-  { currentSource, snapshot }: VibePlayerControllerState,
-  active: boolean | undefined
-) {
+  controller: VibePlayerController,
+  active: boolean | undefined,
+  owner: FocusOwner
+): Decision {
+  const { currentSource, snapshot } = controller.getState();
   const { muted, paused, readyState, volume } = snapshot;
   const inactive =
     !currentSource || readyState === "idle" || readyState === "error";
+  if (inactive || active === false) {
+    return "release";
+  }
+  if (active === true) {
+    return "claim";
+  }
+  if (owner !== undefined) {
+    return decideFromFocus(controller, owner);
+  }
   const audible =
     !(paused || muted) &&
     volume > 0 &&
     (readyState === "playing" ||
       readyState === "buffering" ||
       readyState === "ready");
-  if (inactive || active === false) {
-    return "release";
-  }
-  return (active ?? audible) ? "claim" : "keep";
+  return audible ? "claim" : "keep";
 }
 
 /**
  * Claims when the player becomes audible (or the host marks it `active`) and
- * releases when it stops, closes, fails or the host clears `active`. Acting
- * only on changes lets another audible player keep a session it took over.
+ * releases when it stops, closes, fails or the host clears `active`. A
+ * player in an audio focus group (`focusGroup`) claims when it takes focus
+ * instead and releases when media without a Media Session takes it. Acting
+ * only on changes lets another player keep a session it took over. Retiring
+ * the controller disconnects for good.
  */
 export function connectVibePlayerMediaSession(
   controller: VibePlayerController,
-  setting: VibePlayerMediaSessionSetting
+  setting: VibePlayerMediaSessionSetting,
+  focusGroup: string | false = false
 ): VibePlayerMediaSessionConnection {
+  if (controller.retired) {
+    return inert;
+  }
   let options = normalize(setting);
-  let last = "keep";
+  let last: Decision = "keep";
+  let connected = true;
   const session = createVibePlayerMediaSession(controller, options);
-  const evaluate = (state: VibePlayerControllerState) => {
-    const next = decide(state, options.active);
-    if (next === last) {
+  const owner = () =>
+    focusGroup === false ? undefined : getVibePlayerAudioFocusOwner(focusGroup);
+  const evaluate = () => {
+    const next = decide(controller, options.active, owner());
+    if (!connected || next === last) {
       return;
     }
     last = next;
@@ -67,16 +110,28 @@ export function connectVibePlayerMediaSession(
     }
   };
   const unsubscribe = controller.subscribe(evaluate);
-  evaluate(controller.getState());
+  const unfocus =
+    focusGroup === false
+      ? () => undefined
+      : subscribeVibePlayerAudioFocus(evaluate, focusGroup);
+  const disconnect = () => {
+    connected = false;
+    unsubscribe();
+    unfocus();
+    stopWatching();
+    session.release();
+  };
+  const stopWatching = onVibePlayerControllerRetire(controller, disconnect);
+  evaluate();
   return {
-    disconnect() {
-      unsubscribe();
-      session.release();
-    },
+    disconnect,
     update(next) {
+      if (!connected) {
+        return;
+      }
       options = normalize(next);
       session.setOptions(options);
-      evaluate(controller.getState());
+      evaluate();
     },
   };
 }

@@ -14,7 +14,10 @@ import {
 import { VibePlayerRawFeed } from "./vibe-player-raw-feed";
 import type { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
 import { VibePlayerSourceSession } from "./vibe-player-source-session";
-import type { VibePlayerControllerOptions } from "./vibe-player-types";
+import type {
+  VibePlayerControllerOptions,
+  VibePlayerSource,
+} from "./vibe-player-types";
 import type { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
 
 /** The collaborators one controller owns, wired to each other. */
@@ -32,10 +35,12 @@ export interface VibePlayerControllerParts {
   watched: VibePlayerWatchedRangesTracker | null;
 }
 
+/** `onSource` hears every change of the current source. */
 export function createVibePlayerControllerParts(
-  options: VibePlayerControllerOptions
+  options: VibePlayerControllerOptions,
+  onSource?: (source: VibePlayerSource | null) => void
 ): VibePlayerControllerParts {
-  const observers = new VibePlayerControllerObservers(options);
+  const observers = new VibePlayerControllerObservers(options, onSource);
   const feed = new VibePlayerRawFeed(observers.deliveryBudget, (first) =>
     observers.reportRunaway("provider-events", first)
   );

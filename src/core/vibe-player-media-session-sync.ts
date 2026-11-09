@@ -1,4 +1,8 @@
-import type { VibePlayerMediaSessionOptions } from "./vibe-player-media-session-types";
+import type {
+  VibePlayerMediaSessionArtwork,
+  VibePlayerMediaSessionMetadata,
+  VibePlayerMediaSessionOptions,
+} from "./vibe-player-media-session-types";
 import type {
   VibePlayerCapabilities,
   VibePlayerSnapshot,
@@ -68,7 +72,8 @@ export function createMediaSessionMetadataInit(
 ): MediaMetadataInit {
   const { album, artist, artwork, title } = options.metadata ?? {};
   const poster = source?.posterUrl;
-  const images = artwork ?? (poster ? [{ src: poster }] : []);
+  const images =
+    resolveArtwork(artwork, source) ?? (poster ? [{ src: poster }] : []);
   return {
     album: album ?? "",
     artist: artist ?? "",
@@ -79,6 +84,24 @@ export function createMediaSessionMetadataInit(
     })),
     title: title ?? source?.title ?? "",
   };
+}
+
+/** A function is asked for the current source; a failure means no artwork. */
+function resolveArtwork(
+  artwork: VibePlayerMediaSessionMetadata["artwork"],
+  source: VibePlayerSource | null
+): readonly VibePlayerMediaSessionArtwork[] | undefined {
+  if (typeof artwork !== "function") {
+    return artwork;
+  }
+  if (!source) {
+    return;
+  }
+  try {
+    return artwork(source);
+  } catch {
+    // Host artwork failed; the poster stands in.
+  }
 }
 
 export function clearMediaSessionPosition(session: PageMediaSession): void {

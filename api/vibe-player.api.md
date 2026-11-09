@@ -41,7 +41,10 @@ type VibePlayerAmbientPreviewSource
 type VibePlayerAnalyticsEvent
 type VibePlayerAnalyticsEventName
 type VibePlayerAudioFocusBinding
+type VibePlayerAudioFocusOptions
 type VibePlayerAudioFocusParticipant
+type VibePlayerAudioFocusParticipantOptions
+type VibePlayerAudioFocusSetting
 value VibePlayerBackgroundPreview
 type VibePlayerBackgroundPreviewProps
 type VibePlayerCapabilities
@@ -178,6 +181,8 @@ value getActiveVibePlayerCaptionLines
 value getFiniteVibePlayerDuration
 value getNextVibePlayerPlaybackRate
 value getSelectedVibePlayerQualityOption
+value getVibePlayerAudioFocusOwner
+value getVibePlayerControllers
 value getVibePlayerProgressMilestone
 value getVibePlayerShortcutAction
 value getVibePlayerVolumePercent
@@ -185,6 +190,8 @@ value parseVibePlayerSeekThumbnailsVtt
 value parseWebVtt
 value shouldRestoreVibePlayerResumePosition
 value shouldRevealVibePlayerChromeForKey
+value subscribeVibePlayerAudioFocus
+value subscribeVibePlayerControllers
 value useVibePlayer
 value useVibePlayerAudioFocus
 value useVibePlayerCaptions
@@ -258,7 +265,10 @@ type UseVibePlayerMediaSessionOptions
 type UseVibePlayerOptions
 type VibePlayerAdapterOptions
 type VibePlayerAudioFocusBinding
+type VibePlayerAudioFocusOptions
 type VibePlayerAudioFocusParticipant
+type VibePlayerAudioFocusParticipantOptions
+type VibePlayerAudioFocusSetting
 type VibePlayerCommandErrorEvent
 value VibePlayerController
 type VibePlayerControllerOptions
@@ -293,6 +303,10 @@ value createLocalStorageVibePlayerResumeStore
 value createMemoryVibePlayerResumeStore
 value createVibePlayerAudioFocusParticipant
 value formatVibePlayerTime
+value getVibePlayerAudioFocusOwner
+value getVibePlayerControllers
+value subscribeVibePlayerAudioFocus
+value subscribeVibePlayerControllers
 value useVibePlayer
 value useVibePlayerAudioFocus
 value useVibePlayerController
@@ -477,7 +491,9 @@ interface ShouldRestoreVibePlayerResumePositionInput {
 }
 
 interface UseVibePlayerAudioFocusOptions {
+  controller?: VibePlayerController | undefined;
   group?: string | false | undefined;
+  mediaSession?: boolean | undefined;
   onPause: () => void | Promise<void>;
 }
 
@@ -516,7 +532,7 @@ interface UseVibePlayerMediaSessionOptions extends VibePlayerMediaSessionOptions
 }
 
 interface UseVibePlayerOptions extends UseVibePlayerControllerOptions, VibePlayerVisibilityOptions {
-  audioFocus?: string | false | undefined;
+  audioFocus?: VibePlayerAudioFocusSetting;
   autoPlay?: boolean | undefined;
   autoPlayMutedBootstrap?: boolean | undefined;
   load?: VibePlayerLoadMode | undefined;
@@ -600,11 +616,26 @@ interface VibePlayerAudioFocusBinding {
   release(): void;
 }
 
+interface VibePlayerAudioFocusOptions {
+  group?: string | undefined;
+  onLose?: "pause" | "stop" | undefined;
+}
+
 interface VibePlayerAudioFocusParticipant {
   claim(): void;
+  readonly controller: VibePlayerController | null;
   dispose(): void;
+  readonly group: string;
+  readonly mediaSession: boolean;
   release(): void;
 }
+
+interface VibePlayerAudioFocusParticipantOptions {
+  controller?: VibePlayerController | null | undefined;
+  mediaSession?: boolean | undefined;
+}
+
+type VibePlayerAudioFocusSetting = string | false | VibePlayerAudioFocusOptions | undefined;
 
 declare function VibePlayerBackgroundPreview({ paused, preserveKey, preservePreviousLayer, source }: VibePlayerBackgroundPreviewProps): import("react").JSX.Element;
 
@@ -735,7 +766,10 @@ declare class VibePlayerController {
   private readonly poster;
   private readonly resume;
   private readonly watched;
+  private isRetired;
+  private retirement;
   constructor(options: VibePlayerControllerOptions);
+  get retired(): boolean;
   getState(): VibePlayerControllerState;
   subscribe(listener: (state: VibePlayerControllerState) => void): () => void;
   on<K extends VibePlayerEventType | "*">(type: K, listener: (event: VibePlayerEventOfType<K>) => void): () => void;
@@ -761,6 +795,8 @@ declare class VibePlayerController {
   exitPictureInPicture(): Promise<void>;
   closeSource(): Promise<void>;
   teardown(): Promise<void>;
+  retire(): Promise<void>;
+  private live;
 }
 
 interface VibePlayerControllerOptions {
@@ -1000,7 +1036,7 @@ interface VibePlayerMediaSessionArtwork {
 interface VibePlayerMediaSessionMetadata {
   album?: string | undefined;
   artist?: string | undefined;
-  artwork?: readonly VibePlayerMediaSessionArtwork[] | undefined;
+  artwork?: readonly VibePlayerMediaSessionArtwork[] | ((source: VibePlayerSource) => readonly VibePlayerMediaSessionArtwork[] | undefined) | undefined;
   title?: string | undefined;
 }
 
@@ -1432,7 +1468,7 @@ declare function createMemoryVibePlayerResumeStore(options?: VibePlayerMemoryRes
 
 declare function createVibePlayerAdapter(source: VibePlayerSource, options?: VibePlayerAdapterOptions): VibePlayerAdapter;
 
-declare function createVibePlayerAudioFocusParticipant(group: string, onPause: () => void | Promise<void>): VibePlayerAudioFocusParticipant;
+declare function createVibePlayerAudioFocusParticipant(group: string, onPause: () => void | Promise<void>, { controller, mediaSession }?: VibePlayerAudioFocusParticipantOptions): VibePlayerAudioFocusParticipant;
 
 declare function createVibePlayerSeekThumbnails({ columns, count, duration, height, interval, url, width }: VibePlayerSeekThumbnailGrid): VibePlayerSeekThumbnail[];
 
@@ -1449,6 +1485,10 @@ declare function getFiniteVibePlayerDuration(source: DurationSource, fallback: n
 declare function getNextVibePlayerPlaybackRate(currentRate: number, availableRates?: readonly number[]): number;
 
 declare function getSelectedVibePlayerQualityOption(options: VibePlayerQualityOption[] | undefined): VibePlayerQualityOption | null;
+
+declare function getVibePlayerAudioFocusOwner(group?: string): VibePlayerAudioFocusParticipant | null;
+
+declare function getVibePlayerControllers(sourceId?: string): readonly VibePlayerController[];
 
 declare function getVibePlayerProgressMilestone(percent: number, sentEvents: ReadonlySet<string>): VibePlayerProgressMilestone | null;
 
@@ -1467,13 +1507,17 @@ declare function shouldRevealVibePlayerChromeForKey(input: {
   key: string;
 }): boolean;
 
+declare function subscribeVibePlayerAudioFocus(listener: (owner: VibePlayerAudioFocusParticipant | null) => void, group?: string): () => void;
+
+declare function subscribeVibePlayerControllers(listener: (controllers: readonly VibePlayerController[]) => void): () => void;
+
 declare function useVibePlayer({ audioFocus, autoPlay, autoPlayMutedBootstrap, autoplayWhenVisible, load, mediaSession, offscreenThreshold, open, pauseWhenHidden, presentationTarget, seekStep, source: nextSource, stopWhenOffscreen, ...options }: UseVibePlayerOptions): {
   controller: VibePlayerController;
   state: VibePlayerControllerState;
   setTarget: import("react").Dispatch<import("react").SetStateAction<HTMLElement | null>>;
 };
 
-declare function useVibePlayerAudioFocus({ group, onPause }: UseVibePlayerAudioFocusOptions): VibePlayerAudioFocusBinding;
+declare function useVibePlayerAudioFocus({ controller, group, mediaSession, onPause }: UseVibePlayerAudioFocusOptions): VibePlayerAudioFocusBinding;
 
 declare function useVibePlayerCaptions({ currentTime, enabled, loadCaptionText, source }: UseVibePlayerCaptionsOptions): VibePlayerCaptionsState;
 

@@ -86,8 +86,15 @@ export {
 } from "./core";
 export {
   createVibePlayerAudioFocusParticipant,
+  getVibePlayerAudioFocusOwner,
+  subscribeVibePlayerAudioFocus,
   type VibePlayerAudioFocusParticipant,
+  type VibePlayerAudioFocusParticipantOptions,
 } from "./core/vibe-player-audio-focus";
+export {
+  getVibePlayerControllers,
+  subscribeVibePlayerControllers,
+} from "./core/vibe-player-controller-registry";
 export type {
   VibePlayerMediaSessionArtwork,
   VibePlayerMediaSessionMetadata,
@@ -118,6 +125,8 @@ export {
   VIBE_PLAYER_CHROME_IDLE_DELAY_MS,
   VIBE_PLAYER_OVERLAY_EXIT_MS,
   type VibePlayerAudioFocusBinding,
+  type VibePlayerAudioFocusOptions,
+  type VibePlayerAudioFocusSetting,
   type VibePlayerCaptionStatus,
   type VibePlayerCaptionsState,
   type VibePlayerCaptionTextLoader,

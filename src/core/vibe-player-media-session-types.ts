@@ -1,3 +1,5 @@
+import type { VibePlayerSource } from "./vibe-player-source-types";
+
 /** One artwork image for system media controls. */
 export interface VibePlayerMediaSessionArtwork {
   /** Image dimensions, for example `"512x512"`. */
@@ -13,8 +15,18 @@ export interface VibePlayerMediaSessionMetadata {
   album?: string | undefined;
   /** Author, creator or presenter. */
   artist?: string | undefined;
-  /** Defaults to the source poster. */
-  artwork?: readonly VibePlayerMediaSessionArtwork[] | undefined;
+  /**
+   * Defaults to the source poster. A function receives the current source
+   * and runs again whenever it changes, including a renewal, so signed
+   * artwork can renew with the source. Returning `undefined` (or throwing)
+   * falls back to the poster.
+   */
+  artwork?:
+    | readonly VibePlayerMediaSessionArtwork[]
+    | ((
+        source: VibePlayerSource
+      ) => readonly VibePlayerMediaSessionArtwork[] | undefined)
+    | undefined;
   /** Defaults to the source title. */
   title?: string | undefined;
 }

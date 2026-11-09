@@ -2,6 +2,10 @@ export {
   type UseVibePlayerOptions,
   useVibePlayer,
 } from "./use-vibe-player";
+export type {
+  VibePlayerAudioFocusOptions,
+  VibePlayerAudioFocusSetting,
+} from "./use-vibe-player-audible-focus";
 export {
   type UseVibePlayerAudioFocusOptions,
   useVibePlayerAudioFocus,

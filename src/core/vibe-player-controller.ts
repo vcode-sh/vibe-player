@@ -1,6 +1,8 @@
 import type { VibePlayerControllerActions } from "./vibe-player-controller-actions";
 import type { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
 import { createVibePlayerControllerParts } from "./vibe-player-controller-parts";
+import { trackVibePlayerController } from "./vibe-player-controller-registry";
+import { retireVibePlayerControllerParts } from "./vibe-player-controller-retire";
 import type { VibePlayerControllerRuntime } from "./vibe-player-controller-runtime";
 import type {
   VibePlayerEventOfType,
@@ -28,10 +30,14 @@ export class VibePlayerController {
   private readonly poster: VibePlayerPosterRenewal;
   private readonly resume: VibePlayerResumeWriter | null;
   private readonly watched: VibePlayerWatchedRangesTracker | null;
+  private isRetired = false;
+  private retirement = Promise.resolve();
 
   /** Creates an idle controller; nothing loads until `load()`. */
   constructor(options: VibePlayerControllerOptions) {
-    const parts = createVibePlayerControllerParts(options);
+    const parts = createVibePlayerControllerParts(options, (source) =>
+      trackVibePlayerController(this, source)
+    );
     this.observers = parts.observers;
     this.actions = parts.actions;
     this.session = parts.session;
@@ -42,6 +48,10 @@ export class VibePlayerController {
     this.watched = parts.watched;
   }
 
+  /** True once `retire()` was called; the controller is inert from then on. */
+  get retired(): boolean {
+    return this.isRetired;
+  }
   /** The latest normalized state. */
   getState(): VibePlayerControllerState {
     return this.observers.state;
@@ -77,13 +87,15 @@ export class VibePlayerController {
 
   /** Mounts media in `target`; fullscreen presents `presentationTarget`. */
   mount(target: HTMLElement, presentationTarget = target): Promise<void> {
-    return this.runtime.mount(target, presentationTarget);
+    return this.live(() => this.runtime.mount(target, presentationTarget));
   }
   /** Releases media and the mount target; the source stays selected. */
   unmount(): Promise<void> {
-    this.poster.reset();
-    this.session.cancel();
-    return this.runtime.unmount();
+    return this.live(() => {
+      this.poster.reset();
+      this.session.cancel();
+      return this.runtime.unmount();
+    });
   }
 
   /**
@@ -94,39 +106,45 @@ export class VibePlayerController {
     source: VibePlayerSource,
     mode: VibePlayerLoadMode = "eager"
   ): Promise<void> {
-    this.poster.reset();
-    this.playback.load(source);
-    return this.session.load(source, mode);
+    return this.live(() => {
+      this.poster.reset();
+      this.playback.load(source);
+      return this.session.load(source, mode);
+    });
   }
   /** Creates and attaches the playback engine of a lazily loaded source. */
   activate(): Promise<void> {
-    return this.session.activate();
+    return this.live(() => this.session.activate());
   }
   /** Plays, attaching a lazy source or renewing an expiring delivery first. */
   play(): Promise<void> {
-    return this.poster.whenSettled(() => this.session.play());
+    return this.live(() => this.poster.whenSettled(() => this.session.play()));
   }
   /**
    * Renews an idle delivery once per load without loading media, e.g. when a
    * private poster grant expired. Play then uses the renewed delivery.
    */
   renewPoster(): Promise<void> {
-    return this.poster.renew();
+    return this.live(() => this.poster.renew());
   }
   /** Pauses; state stays paused while the provider catches up. */
   pause(): Promise<void> {
-    this.poster.cancelWaits();
-    this.session.pause();
-    return this.actions.playback("pause");
+    return this.live(() => {
+      this.poster.cancelWaits();
+      this.session.pause();
+      return this.actions.playback("pause");
+    });
   }
   /** Releases media but keeps the source and position for a later play. */
   stop(): Promise<void> {
-    this.poster.cancelWaits();
-    return this.session.stop();
+    return this.live(() => {
+      this.poster.cancelWaits();
+      return this.session.stop();
+    });
   }
   /** Reattaches a failed source, renewing it first when `renewSource` is set. */
   retry(): Promise<void> {
-    return this.session.retry();
+    return this.live(() => this.session.retry());
   }
   /** Alias of `seekTo`. */
   seek(seconds: number): Promise<void> {
@@ -137,13 +155,16 @@ export class VibePlayerController {
    * Pending watched ranges are delivered first (reason `seek`).
    */
   seekTo(seconds: number): Promise<void> {
-    return this.actions.seekTo(seconds);
+    return this.live(() => this.actions.seekTo(seconds));
   }
   /**
    * Delivers pending watched ranges now, e.g. before the host navigates.
    * `hidden` (the page was hidden) also saves the resume position.
    */
   flushWatchedRanges(reason: "flush" | "hidden" = "flush"): void {
+    if (this.retired) {
+      return;
+    }
     this.watched?.flush(reason);
     if (reason === "hidden") {
       this.resume?.hidden();
@@ -151,47 +172,76 @@ export class VibePlayerController {
   }
   /** Mutes or unmutes; the choice carries over to later sources. */
   setMuted(value: boolean): Promise<void> {
-    return this.actions.setMuted(value);
+    return this.live(() => this.actions.setMuted(value));
   }
   /** Sets the volume (0 to 1); the choice carries over to later sources. */
   setVolume(value: number): Promise<void> {
-    return this.actions.setVolume(value);
+    return this.live(() => this.actions.setVolume(value));
   }
   /** Sets the playback rate; the choice carries over to later sources. */
   setPlaybackRate(value: number): Promise<void> {
-    return this.actions.setPlaybackRate(value);
+    return this.live(() => this.actions.setPlaybackRate(value));
   }
   /** Selects a quality option by id where the adapter supports it. */
   setQuality(value: string): Promise<void> {
-    return this.actions.setQuality(value);
+    return this.live(() => this.actions.setQuality(value));
   }
   /** Enters fullscreen where the adapter supports it. */
   enterFullscreen(): Promise<void> {
-    return this.actions.presentation("enterFullscreen");
+    return this.live(() => this.actions.presentation("enterFullscreen"));
   }
   /** Exits fullscreen. */
   exitFullscreen(): Promise<void> {
-    return this.actions.presentation("exitFullscreen");
+    return this.live(() => this.actions.presentation("exitFullscreen"));
   }
   /** Enters picture-in-picture where the adapter supports it. */
   enterPictureInPicture(): Promise<void> {
-    return this.actions.presentation("enterPictureInPicture");
+    return this.live(() => this.actions.presentation("enterPictureInPicture"));
   }
   /** Exits picture-in-picture. */
   exitPictureInPicture(): Promise<void> {
-    return this.actions.presentation("exitPictureInPicture");
+    return this.live(() => this.actions.presentation("exitPictureInPicture"));
   }
 
   /** Releases the adapter and clears the source; the mount stays. */
   closeSource(): Promise<void> {
-    this.poster.reset();
-    this.session.clear();
-    return this.runtime.closeSource();
+    return this.live(() => {
+      this.poster.reset();
+      this.session.clear();
+      return this.runtime.closeSource();
+    });
   }
   /** Releases media, the source and the mount target when disposing. */
   teardown(): Promise<void> {
-    this.poster.reset();
-    this.session.clear();
-    return this.runtime.teardown();
+    return this.live(() => {
+      this.poster.reset();
+      this.session.clear();
+      return this.runtime.teardown();
+    });
+  }
+  /**
+   * Ends this controller for good, e.g. when the viewer signs out, without
+   * leaking anything into the next session. From the call on, listeners,
+   * callbacks, analytics (no `closed`), watched ranges (the pending batch is
+   * dropped) and resume saves stay silent; audio focus, the Media Session and
+   * the controller registry are released; media and the source are released
+   * as by `teardown()`; and every later command is a no-op. Idempotent:
+   * later calls return the first call's promise, which never rejects.
+   */
+  retire(): Promise<void> {
+    if (!this.isRetired) {
+      this.isRetired = true;
+      this.retirement = retireVibePlayerControllerParts(this, {
+        observers: this.observers,
+        poster: this.poster,
+        runtime: this.runtime,
+        session: this.session,
+      });
+    }
+    return this.retirement;
+  }
+
+  private live(command: () => Promise<void>): Promise<void> {
+    return this.isRetired ? Promise.resolve() : command();
   }
 }

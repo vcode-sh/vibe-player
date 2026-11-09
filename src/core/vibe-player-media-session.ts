@@ -55,6 +55,8 @@ export function createVibePlayerMediaSession(
   let unsubscribe: (() => void) | null = null;
   let actionsKey = "";
   let metadataKey = "";
+  /** Metadata depends only on the options and the source object. */
+  let metadataFrom: readonly [unknown, unknown] = [null, null];
   let mark: MediaSessionPositionMark | null = null;
   const handlers = createVibePlayerMediaSessionHandlers(
     controller,
@@ -86,6 +88,11 @@ export function createVibePlayerMediaSession(
     session: PageMediaSession,
     state: VibePlayerControllerState
   ) => {
+    const [lastOptions, lastSource] = metadataFrom;
+    if (lastOptions === options && lastSource === state.currentSource) {
+      return;
+    }
+    metadataFrom = [options, state.currentSource];
     const init = createMediaSessionMetadataInit(options, state.currentSource);
     const key = JSON.stringify(init);
     if (key === metadataKey || typeof MediaMetadata !== "function") {
@@ -119,6 +126,7 @@ export function createVibePlayerMediaSession(
     unsubscribe = null;
     actionsKey = "";
     metadataKey = "";
+    metadataFrom = [null, null];
     mark = null;
   };
 

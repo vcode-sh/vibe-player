@@ -6,11 +6,17 @@ import { resolveVibePlayerSeekStep } from "../core/vibe-player-seek-step";
 
 export type { UseVibePlayerMediaSessionOptions } from "../core/vibe-player-media-session-types";
 
+interface MediaSessionBinding {
+  /** The player's audio focus group; the session follows its owner. */
+  focusGroup: string | false;
+  seekStep?: number | undefined;
+}
+
 /** Loads the session integration only for players that opt in. */
 export function useVibePlayerMediaSession(
   controller: VibePlayerController,
   setting: boolean | UseVibePlayerMediaSessionOptions | undefined,
-  seekStep?: number
+  { focusGroup, seekStep }: MediaSessionBinding
 ): void {
   const enabled = Boolean(setting);
   const step = resolveVibePlayerSeekStep(seekStep);
@@ -33,7 +39,8 @@ export function useVibePlayerMediaSession(
         if (!cancelled) {
           connection.current = connectVibePlayerMediaSession(
             controller,
-            latest.current
+            latest.current,
+            focusGroup
           );
         }
       },
@@ -44,7 +51,7 @@ export function useVibePlayerMediaSession(
       connection.current?.disconnect();
       connection.current = null;
     };
-  }, [controller, enabled]);
+  }, [controller, enabled, focusGroup]);
   useEffect(() => {
     latest.current = options;
     connection.current?.update(options);

@@ -39,8 +39,15 @@ export {
 } from "./core";
 export {
   createVibePlayerAudioFocusParticipant,
+  getVibePlayerAudioFocusOwner,
+  subscribeVibePlayerAudioFocus,
   type VibePlayerAudioFocusParticipant,
+  type VibePlayerAudioFocusParticipantOptions,
 } from "./core/vibe-player-audio-focus";
+export {
+  getVibePlayerControllers,
+  subscribeVibePlayerControllers,
+} from "./core/vibe-player-controller-registry";
 export type {
   VibePlayerMediaSessionArtwork,
   VibePlayerMediaSessionMetadata,
@@ -50,6 +57,10 @@ export {
   type UseVibePlayerOptions,
   useVibePlayer,
 } from "./react/use-vibe-player";
+export type {
+  VibePlayerAudioFocusOptions,
+  VibePlayerAudioFocusSetting,
+} from "./react/use-vibe-player-audible-focus";
 export {
   type UseVibePlayerAudioFocusOptions,
   useVibePlayerAudioFocus,

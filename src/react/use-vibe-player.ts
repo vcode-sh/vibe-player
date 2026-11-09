@@ -5,7 +5,11 @@ import type {
   VibePlayerSource,
 } from "../core";
 import { haveEqualVibePlayerSources } from "../core/vibe-player-source-equality";
-import { useVibePlayerAudibleFocus } from "./use-vibe-player-audible-focus";
+import {
+  getVibePlayerAudioFocusGroup,
+  useVibePlayerAudibleFocus,
+  type VibePlayerAudioFocusSetting,
+} from "./use-vibe-player-audible-focus";
 import {
   type UseVibePlayerControllerOptions,
   useVibePlayerController,
@@ -24,8 +28,12 @@ import { startVibePlayerAutoplay } from "./vibe-player-autoplay";
 export interface UseVibePlayerOptions
   extends UseVibePlayerControllerOptions,
     VibePlayerVisibilityOptions {
-  /** One audible player per group. Pass false to let the host coordinate. */
-  audioFocus?: string | false | undefined;
+  /**
+   * One audible player per group: a group name, `{ group, onLose }`, or
+   * `false` to let the host coordinate. Default group `"default"`; a player
+   * that loses focus pauses unless `onLose` is `"stop"`.
+   */
+  audioFocus?: VibePlayerAudioFocusSetting;
   autoPlay?: boolean | undefined;
   autoPlayMutedBootstrap?: boolean | undefined;
   /** The bare hook retains eager loading; inline assemblies default to onPlay. */
@@ -88,8 +96,16 @@ export function useVibePlayer({
   const [loaded, setLoaded] = useState<LoadedSource | null>(null);
   const loadGeneration = useRef(0);
 
-  useVibePlayerAudibleFocus({ controller, group: audioFocus, state });
-  useVibePlayerMediaSession(controller, mediaSession, seekStep);
+  useVibePlayerAudibleFocus({
+    controller,
+    focus: audioFocus,
+    mediaSession: Boolean(mediaSession),
+    state,
+  });
+  useVibePlayerMediaSession(controller, mediaSession, {
+    focusGroup: getVibePlayerAudioFocusGroup(audioFocus),
+    seekStep,
+  });
   useVibePlayerVisibility({
     autoplayWhenVisible,
     controller,
