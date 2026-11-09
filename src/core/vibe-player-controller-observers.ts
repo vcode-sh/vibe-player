@@ -144,16 +144,12 @@ export class VibePlayerControllerObservers {
 
   /**
    * Observers kept changing the player while `operation` notified them;
-   * `first` marks the delivery that reached its limit first.
+   * `first` marks the first (or only) delivery cut off in the cascade.
    */
   reportRunaway(operation: string, first = false): void {
-    this.reporter.report(
-      operation,
-      new Error(runawayMessage),
-      undefined,
-      undefined,
-      first ? { first: true } : {}
-    );
+    this.reporter.report(operation, new Error(runawayMessage), {
+      details: first ? { first: true } : {},
+    });
   }
 
   /** Delivers `state` to every subscriber, in order. */

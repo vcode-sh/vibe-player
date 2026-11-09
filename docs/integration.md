@@ -289,7 +289,8 @@ changing the player during notification are cut off after a bounded number of
 updates per delivery, counted across the whole cascade so nesting cannot
 multiply it. Every delivery that was cut off is reported once
 (`operation` `"state-listener"`, `"event"` or `"provider-events"`), and the
-report of the one that reached its limit first carries `details.first: true`.
+report of the first (or only) delivery cut off in a cascade carries
+`details.first: true`.
 Provider events have a higher limit of their own, and source releases and
 playback starts always reach the controller's own trackers, even during a
 runaway. Afterwards every state subscriber that does not change the state

@@ -2,6 +2,16 @@ import { createVibePlayerError } from "./vibe-player-errors";
 import type { VibePlayerIntegrationEvent } from "./vibe-player-host-events";
 import type { VibePlayerSource } from "./vibe-player-source-types";
 
+/** Overrides for one report. */
+export interface VibePlayerReportOptions {
+  /** Extra error detail fields, next to `operation`. */
+  details?: Record<string, boolean>;
+  /** The session the failure belongs to; it is dropped once that ended. */
+  session?: number;
+  /** The source the failure belongs to; nothing is reported without one. */
+  source?: VibePlayerSource | null;
+}
+
 interface IntegrationReporterHost {
   emit(event: VibePlayerIntegrationEvent): void;
   source(): VibePlayerSource | null;
@@ -36,12 +46,12 @@ export class VibePlayerIntegrationReporter {
       const result = execute();
       observeHostRejection(result, (cause) => {
         if (!reporting) {
-          this.report(operation, cause, source, session);
+          this.report(operation, cause, { session, source });
         }
       });
       return result;
     } catch (cause) {
-      this.report(operation, cause, source, session);
+      this.report(operation, cause, { session, source });
       return fallback;
     }
   }
@@ -59,7 +69,7 @@ export class VibePlayerIntegrationReporter {
       try {
         observeHostRejection(listener(value), (cause) => {
           if (!reporting) {
-            this.report(operation, cause, source, session);
+            this.report(operation, cause, { session, source });
           }
         });
       } catch (cause) {
@@ -67,7 +77,7 @@ export class VibePlayerIntegrationReporter {
       }
     }
     for (const cause of failures) {
-      this.report(operation, cause, source, session);
+      this.report(operation, cause, { session, source });
     }
   }
 
@@ -94,18 +104,23 @@ export class VibePlayerIntegrationReporter {
     const { reporting, session } = this;
     return (cause) => {
       if (source && !reporting) {
-        this.report(operation, cause, source, session);
+        this.report(operation, cause, { session, source });
       }
     };
   }
 
-  /** `details` adds fields next to `operation` in the error details. */
+  /**
+   * Reports `cause` for the current source and session unless `options`
+   * names others; `options.details` adds fields next to `operation`.
+   */
   report(
     operation: string,
     cause: unknown,
-    source = this.host.source(),
-    session = this.session,
-    details: Record<string, boolean> = {}
+    {
+      details = {},
+      session = this.session,
+      source = this.host.source(),
+    }: VibePlayerReportOptions = {}
   ): void {
     if (
       this.reporting ||
