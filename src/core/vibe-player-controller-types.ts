@@ -127,11 +127,35 @@ export interface VibePlayerControllerOptions {
    * and `completed` fire once per playback.
    */
   onAnalyticsEvent?: (event: VibePlayerAnalyticsEvent) => void;
+  /**
+   * Runs once the adapter reported `ended`, with the state that event produced.
+   * Normally `onEvent` and `controller.on()` listeners have already received
+   * the event. When the `ended` happens inside an event listener (for example a
+   * listener that pauses the player), that event waits until the current
+   * one is delivered, so this callback can run first. It is skipped when a
+   * listener changed the state again before it could run.
+   */
   onEnded?: (state: VibePlayerControllerState) => void;
   onError?: (error: VibePlayerError) => void;
   /** Every controller event in order; `controller.on()` filters the same stream. */
   onEvent?: (event: VibePlayerEvent) => void;
+  /**
+   * Runs once the adapter reported `pause`, with the state that event produced.
+   * Normally `onEvent` and `controller.on()` listeners have already received
+   * the event. When the `pause` happens inside an event listener (for example a
+   * listener that pauses the player), that event waits until the current
+   * one is delivered, so this callback can run first. It is skipped when a
+   * listener changed the state again before it could run.
+   */
   onPause?: (state: VibePlayerControllerState) => void;
+  /**
+   * Runs once the adapter reported `play`, with the state that event produced.
+   * Normally `onEvent` and `controller.on()` listeners have already received
+   * the event. When the `play` happens inside an event listener (for example a
+   * listener that pauses the player), that event waits until the current
+   * one is delivered, so this callback can run first. It is skipped when a
+   * listener changed the state again before it could run.
+   */
   onPlay?: (state: VibePlayerControllerState) => void;
   onProgress?: (state: VibePlayerControllerState) => void;
   onQualityChange?: (state: VibePlayerControllerState) => void;

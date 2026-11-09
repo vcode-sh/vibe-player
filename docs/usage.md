@@ -393,7 +393,11 @@ events to refresh the buffered amount and video size, so the time may not have
 moved.
 Convenience callbacks receive normalized controller state for `onPlay`,
 `onPause`, `onEnded`, throttled `onProgress`, and `onQualityChange`; `onRenew`
-receives the refreshed source. Nonfatal engine/integration diagnostics remain
+receives the refreshed source. `onPlay`, `onPause` and `onEnded` normally run
+after `onEvent` and `controller.on()` listeners received the event; when an
+event listener itself causes the play, pause or end, that event is queued
+behind the current one and the callback can run first. A callback is skipped
+when a listener changed the state again before it ran. Nonfatal engine/integration diagnostics remain
 events; terminal playback failures reach `state.error` and `onError`.
 The ready-made UI retains its existing `onError` reporting for exceptions thrown
 by state/caption observers (`phase: "integration"`), without changing playback
@@ -963,7 +967,9 @@ narrowed and typed to one event type, or every event with `"*"`. It returns an
 unsubscribe function. Events and `subscribe()` states arrive in order and none
 are skipped, even when a listener changes the player meanwhile, so a listener
 can receive a state that is already superseded (`getState()` returns the
-latest); a throwing listener becomes a nonfatal `integrationerror`.
+latest); a throwing listener becomes a nonfatal `integrationerror`. A
+listener added while an update is delivered starts with the next one, and one
+removed meanwhile receives nothing more.
 `state.lastEvent` names only the latest event, so use `on()` or `onEvent` when
 every event matters. `onWatchedRanges` runs before the state reflects the
 event that sent the report.

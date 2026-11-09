@@ -36,7 +36,9 @@ export function createVibePlayerControllerParts(
   options: VibePlayerControllerOptions
 ): VibePlayerControllerParts {
   const observers = new VibePlayerControllerObservers(options);
-  const feed = new VibePlayerRawFeed();
+  const feed = new VibePlayerRawFeed(observers.deliveryBudget, () =>
+    observers.reportRunaway("provider-events")
+  );
   // Callbacks reach parts created later, never during setup.
   const integrations = createVibePlayerControllerIntegrations(
     options,

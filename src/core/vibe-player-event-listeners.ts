@@ -28,10 +28,17 @@ export class VibePlayerEventListeners {
     };
   }
 
-  /** Listeners for `event.type` and `"*"`; unsubscribed ones are skipped. */
+  /**
+   * Listeners for `event.type` and `"*"` subscribed when the delivery
+   * started: one added meanwhile starts with the next event, and one
+   * unsubscribed meanwhile is skipped.
+   */
   *matching(event: VibePlayerEvent): Iterable<() => unknown> {
-    for (const subscription of this.subscriptions) {
-      if (subscription.type === "*" || subscription.type === event.type) {
+    for (const subscription of [...this.subscriptions]) {
+      if (
+        this.subscriptions.has(subscription) &&
+        (subscription.type === "*" || subscription.type === event.type)
+      ) {
         yield () => subscription.listener(event);
       }
     }

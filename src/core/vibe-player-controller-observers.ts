@@ -1,4 +1,5 @@
 import { createInitialControllerState } from "./vibe-player-controller-state";
+import { VibePlayerDeliveryBudget } from "./vibe-player-delivery-budget";
 import { VibePlayerEventListeners } from "./vibe-player-event-listeners";
 import type {
   VibePlayerEvent,
@@ -10,6 +11,7 @@ import {
   VibePlayerIntegrationReporter,
 } from "./vibe-player-integration-reporter";
 import { VibePlayerOrderedDelivery } from "./vibe-player-ordered-delivery";
+import { VibePlayerStateListeners } from "./vibe-player-state-listeners";
 import type {
   VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
@@ -21,14 +23,15 @@ import type {
 } from "./vibe-player-types";
 import type { VibePlayerWatchedRangesReport } from "./vibe-player-watched-ranges";
 
-type StateListener = (state: VibePlayerControllerState) => void;
-
 const runawayMessage =
   "Observers kept changing the player while being notified; the remaining notifications were dropped.";
 
 /** Keeps optional host integrations outside playback and disposal control flow. */
 export class VibePlayerControllerObservers {
-  private readonly listeners = new Set<StateListener>();
+  /** Shared by every ordered delivery of this controller, the raw feed too. */
+  readonly deliveryBudget = new VibePlayerDeliveryBudget();
+  private readonly listeners =
+    new VibePlayerStateListeners<VibePlayerControllerState>();
   private readonly eventListeners = new VibePlayerEventListeners();
   private lastProgressAt = Number.NEGATIVE_INFINITY;
   private readonly options: VibePlayerControllerOptions;
@@ -39,11 +42,16 @@ export class VibePlayerControllerObservers {
   });
   private readonly states = new VibePlayerOrderedDelivery(
     (state: VibePlayerControllerState) => this.deliverState(state),
-    () => this.reporter.report("state-listener", new Error(runawayMessage))
+    {
+      report: () => this.reportRunaway("state-listener"),
+      settle: () => this.settleStates(),
+    },
+    this.deliveryBudget
   );
   private readonly events = new VibePlayerOrderedDelivery(
     (event: VibePlayerEvent) => this.deliverEvent(event),
-    () => this.reporter.report("event", new Error(runawayMessage))
+    { report: () => this.reportRunaway("event") },
+    this.deliveryBudget
   );
 
   constructor(options: VibePlayerControllerOptions) {
@@ -136,9 +144,13 @@ export class VibePlayerControllerObservers {
     return this.currentState;
   }
 
-  subscribe(listener: StateListener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+  subscribe(listener: (state: VibePlayerControllerState) => void): () => void {
+    return this.listeners.add(listener);
+  }
+
+  /** Observers kept changing the player while `operation` notified them. */
+  reportRunaway(operation: string): void {
+    this.reporter.report(operation, new Error(runawayMessage));
   }
 
   /**
@@ -198,9 +210,23 @@ export class VibePlayerControllerObservers {
   private deliverState(state: VibePlayerControllerState): void {
     this.reporter.runAll(
       "state-listener",
-      this.listeners,
+      this.listeners.current(),
       state,
       state.currentSource
+    );
+  }
+
+  /** Dropped states never leave a subscriber behind the latest one. */
+  private settleStates(): void {
+    this.listeners.settle(
+      () => this.currentState,
+      (listener, state) =>
+        this.reporter.runAll(
+          "state-listener",
+          [listener],
+          state,
+          state.currentSource
+        )
     );
   }
 

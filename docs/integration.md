@@ -283,8 +283,12 @@ listeners. Every state subscriber and event listener receives every update in
 order: a change made while listeners run waits until all of them received the
 current one, so a subscriber can receive a state that is already superseded.
 `onWatchedRanges` runs before controller state reflects the event that sent
-the report. Listeners that keep changing the player during notification are
-cut off after a bounded number of updates and reported once. Rejected
+the report. A listener added during a delivery starts with the next state or
+event, and one removed meanwhile receives nothing more. Listeners that keep
+changing the player during notification are cut off after a bounded number of
+updates, counted once for the whole cascade of states, events and provider
+events, and reported once (`operation` `"state-listener"`, `"event"` or
+`"provider-events"`); every state subscriber still ends on the latest state. Rejected
 asynchronous observer/write callbacks are contained too. Failure of `onError`
 itself is contained without recursively reporting another error. A failed
 resume read skips restoration; a provider's failed position-restore command

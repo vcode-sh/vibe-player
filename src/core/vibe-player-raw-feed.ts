@@ -1,3 +1,4 @@
+import type { VibePlayerDeliveryBudget } from "./vibe-player-delivery-budget";
 import { VibePlayerOrderedDelivery } from "./vibe-player-ordered-delivery";
 import type { VibePlayerPlayback } from "./vibe-player-playback";
 import type {
@@ -94,12 +95,23 @@ export function getVibePlayerReleaseReason(
  */
 export class VibePlayerRawFeed {
   private readonly consumers = new Set<RawFeedConsumer>();
-  private readonly delivery =
-    new VibePlayerOrderedDelivery<VibePlayerRawFeedEntry>((entry) => {
-      for (const consumer of this.consumers) {
-        consumer(entry);
-      }
-    });
+  private readonly delivery: VibePlayerOrderedDelivery<VibePlayerRawFeedEntry>;
+
+  /**
+   * `budget` is the controller's shared delivery bound; `onRunaway` reports
+   * observers that kept the feed busy until it cut them off.
+   */
+  constructor(budget?: VibePlayerDeliveryBudget, onRunaway?: () => void) {
+    this.delivery = new VibePlayerOrderedDelivery(
+      (entry) => {
+        for (const consumer of this.consumers) {
+          consumer(entry);
+        }
+      },
+      onRunaway ? { report: onRunaway } : {},
+      budget
+    );
+  }
 
   subscribe(consumer: RawFeedConsumer): () => void {
     this.consumers.add(consumer);

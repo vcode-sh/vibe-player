@@ -49,8 +49,11 @@ export class VibePlayerController {
   /**
    * Calls `listener` with every state, in order, even when another subscriber
    * changes state meanwhile, so a listener can receive states that are
-   * already superseded; read `getState()` for the latest. Returns the
-   * unsubscribe function.
+   * already superseded; read `getState()` for the latest. A listener added
+   * while states are delivered starts with the next state; one removed
+   * meanwhile receives nothing more. Subscribers that keep changing state
+   * are cut off and reported once; every subscriber still ends on the latest
+   * state. Returns the unsubscribe function.
    */
   subscribe(listener: (state: VibePlayerControllerState) => void): () => void {
     return this.observers.subscribe(listener);
@@ -58,8 +61,10 @@ export class VibePlayerController {
   /**
    * Listens to the event stream `onEvent` receives, narrowed to one `type`
    * or every event with `"*"`. Events arrive in order; a throwing or
-   * rejecting listener becomes a nonfatal `integrationerror`. Returns the
-   * unsubscribe function.
+   * rejecting listener becomes a nonfatal `integrationerror`. A listener
+   * added while an event is delivered starts with the next event; one
+   * removed meanwhile receives nothing more. Returns the unsubscribe
+   * function.
    */
   on<K extends VibePlayerEventType | "*">(
     type: K,
