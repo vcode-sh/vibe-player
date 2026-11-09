@@ -75,6 +75,14 @@ export type VibePlayerEventName =
 
 /** Event emitted by adapters whenever normalized playback state changes. */
 export interface VibePlayerAdapterEvent {
+  /**
+   * Optional event details. On an `error` event, `kind` (`"network"`, `"decode"`
+   * or `"source"`) becomes `error.kind`; without it the error is `"unknown"`.
+   * `fatal: false` marks a recoverable error: the controller reports it but
+   * does not fail playback or renew the source. `mediaReadyState` (the media
+   * element's numeric `readyState`) lets a `"source"` error at `0` (nothing
+   * loaded) trigger a source renewal. `message` becomes the error message.
+   */
   payload?: Record<string, string | number | boolean | null | undefined>;
   snapshot: VibePlayerSnapshot;
   type: VibePlayerEventName;
