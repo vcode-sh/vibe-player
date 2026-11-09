@@ -244,7 +244,11 @@ its source, tears down or retires, in registration order. Pass a source id to
 find the players of one video. `subscribeVibePlayerControllers(listener)`
 calls `listener` with the new list whenever a controller registers,
 unregisters or changes its source id, and returns an unsubscribe function.
-The registry is read-only; act through each controller.
+The registry is read-only; act through each controller. It holds each listed
+controller strongly: a controller you create yourself stays listed (and in
+memory) until it closes its source, tears down or retires, so release
+hand-built controllers explicitly; the React hooks and assemblies tear down
+on unmount.
 
 ```ts
 import { getVibePlayerControllers } from "vibe-player/hook";
@@ -254,6 +258,10 @@ export async function retireAllPlayers(): Promise<void> {
   await Promise.all(getVibePlayerControllers().map((each) => each.retire()));
 }
 ```
+
+After retiring, unmount the players (for example by rendering the signed-out
+screen) or remount them with a new `key`: a retired player shows its idle
+state, ignores new props and never plays again.
 
 `controller.retire()` is the sign-out primitive: from the call on, listeners,
 callbacks, analytics (no `closed`), watched ranges (the pending batch is

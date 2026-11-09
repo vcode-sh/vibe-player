@@ -45,6 +45,10 @@
   events, so the buffered amount and video size stay current; the time may
   not have moved. Compare `currentTime` if you treat it as elapsed time.
   `onProgress` can therefore run while the video is paused (still throttled).
+- `VibePlayerMediaSessionMetadata.artwork` can now be a function as well as
+  an array, so code that reads it back no longer type-checks unchanged. If you
+  read it, check `typeof artwork === "function"` first; passing arrays is
+  unchanged.
 - The published JavaScript is readable, unminified ESM with stable chunk names
   (`dist/chunks/player.js` and friends), so you can read, debug and patch it.
   Your bundler still minifies it; imports are unchanged.
@@ -84,7 +88,9 @@
 - `getVibePlayerControllers(sourceId?)` and `subscribeVibePlayerControllers()`
   list the page's live controllers, read-only.
 - `getVibePlayerAudioFocusOwner()` and `subscribeVibePlayerAudioFocus()` tell
-  you who holds audio focus; participants expose their `controller`.
+  you who holds audio focus; participants expose their `controller`, `group`
+  and `mediaSession` (optional members, so hand-written participants still
+  compile).
 - `audioFocus={{ group, onLose: "stop" }}` makes a player stop instead of
   pause when another one takes focus.
 - Media Session `metadata.artwork` can be a function of the current source,

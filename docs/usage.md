@@ -286,9 +286,10 @@ declare function playNext(): void;
 - `mediaSession` (or `true`) uses `source.title` and `source.posterUrl`;
   `metadata` overrides any field. Nothing is hard-coded.
 - `metadata.artwork` may be a function of the current source,
-  `(source) => [{ src: ... }]`. It runs again whenever the source changes,
-  including a renewal, so signed artwork renews with the source; returning
-  `undefined` falls back to the poster.
+  `(source) => [{ src: ... }]`. It runs once per source: again when the
+  source changes, including a renewal, so signed artwork renews with the
+  source, but not on re-renders, even with a new inline function. Returning
+  `undefined` (or throwing) falls back to the poster.
 - Play, pause and stop are always offered. Seek backward, forward and to a
   position (offsets default to the player's `seekStep`, 10 s unless set;
   `seekBackwardSeconds` / `seekForwardSeconds` and a system offset win) need a seekable
@@ -814,17 +815,19 @@ export function FeedClip({ source }: { source: VibePlayerMp4Source }) {
   yet), the player moves into a hidden, inert parking element owned by the
   package instead of leaving with it. Media stays alive and keeps its state
   until the next host on the page shows it; the parking element is removed
-  once empty. Parked players are offscreen, so `stopWhenOffscreen` applies
-  to them as anywhere else.
+  once empty. A parked player is neither visible nor offscreen:
+  `stopWhenOffscreen` does not stop it while it waits, and decides again
+  once a host shows it.
 - The player renders nothing on the server and appears after the first client
   commit, inside a `display: contents` wrapper appended to the host. Size the
   host; the player fills it like any other frame.
 - Moves are synchronous, so `<video>` keeps playing in every engine and fires
   no `emptied` or `loadstart`. Where `Element.moveBefore()` exists the move is
-  also state-preserving for focus and embedded frames. Without it, media the
-  engine paused because it was briefly out of the page (for example while
-  its host was removed) resumes after the move; media the viewer paused
-  stays paused.
+  also state-preserving for focus and embedded frames. Parking normally keeps
+  playback alive when a host disappears; as a fallback, media an engine
+  paused because it was briefly out of the page resumes once after the
+  next move (a refused resume is not retried), and media the viewer paused
+  stays paused. Current Chromium and WebKit never reach that fallback.
 - Visibility follows the player: `stopWhenOffscreen` and
   `autoplayWhenVisible` observe it in whichever host shows it. A player that
   floats _because_ its slot scrolled away should pass
@@ -998,7 +1001,9 @@ renews then plays, and `seek()` is an alias for `seekTo()`. `subscribe()` and
 sign-out), call `controller.retire()`: it releases the media, audio focus and
 the Media Session, drops the pending watched batch, reports no `closed`
 analytics and saves no resume position, and every later command is a no-op.
-The package does not own application authorization.
+A mounted player shows its idle state once and then stays inert, ignoring a
+new `source`; unmount it, or remount it with a new `key` for the next
+session. The package does not own application authorization.
 
 `controller.on(type, listener)` listens to the same event stream as `onEvent`,
 narrowed and typed to one event type, or every event with `"*"`. It returns an
