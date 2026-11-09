@@ -7,8 +7,9 @@ import type { VibePlayerLabels } from "./vibe-player-ui-types";
 
 export interface VibePlayerStageStatusProps {
   /**
-   * Announce status changes as a polite live region (default true). The
-   * ready-made players pass false because their own announcer speaks them.
+   * Announce status changes as a polite live region (default true): an
+   * atomic `aria-live` section. Pass false when your UI has its own
+   * announcer, as the ready-made players do.
    */
   live?: boolean | undefined;
   onRetry?: (() => void) | undefined;
@@ -66,8 +67,10 @@ export function VibePlayerStageStatusPanel({
   if (!view) {
     return null;
   }
+  // A plain live section like the announcer, not role="status": Orca 50
+  // drops a status bar's insertions that arrive with other page changes.
   const liveProps = live
-    ? ({ "aria-live": "polite", role: "status" } as const)
+    ? ({ "aria-atomic": true, "aria-live": "polite" } as const)
     : {};
   const className = vibePlayerClassName(
     `vibe-player-stage__status vibe-player-stage__status--${view.tone}`,

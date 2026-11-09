@@ -57,6 +57,11 @@
   Tests that looked for "Exit full screen" can query
   `{ name: "Full screen", pressed: true }`. `labels.exitFullscreen` stays
   available for your own controls.
+- A standalone `VibePlayerStageStatus` is an atomic `aria-live="polite"`
+  section instead of `role="status"`, which Orca 50 could skip when it
+  appeared together with other page changes. Its busy state also carries
+  real text. Tests that found it with `getByRole("status")` can query
+  `.vibe-player-stage__status` or its text.
 - Picture-in-Picture buttons in Glass, Chips and the full stage keep the name
   "Picture in picture" and report the state with `aria-pressed`, instead of
   switching to "Exit picture in picture". Tests can query
@@ -77,7 +82,8 @@
   (`VibePlayerEventType`, `VibePlayerEventOfType`) and `on()` returns an
   unsubscribe function.
 - `VibePlayerStageStatus` accepts `live={false}` for custom UIs that announce
-  status through their own live region; by default it stays a polite status.
+  status through their own live region; by default it is its own polite
+  live region.
 - Watched-range reports carry a `playbackId` and a 1-based `sequence`, so you
   can drop duplicates and add up each viewing. Loading a source or replaying
   after the end starts a new playback; retry and renewal keep it. Reports you

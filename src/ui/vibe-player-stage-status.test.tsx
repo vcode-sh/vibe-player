@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerSnapshot } from "../core";
 import { VibePlayerStageStatus } from "./vibe-player-stage-status";
@@ -19,6 +19,19 @@ function createSnapshot(
   return { ...baseSnapshot, ...patch };
 }
 
+/** The standalone status, which is its own live region by default. */
+function queryStatus(): HTMLElement | null {
+  return document.querySelector<HTMLElement>(".vibe-player-stage__status");
+}
+
+function getStatus(): HTMLElement {
+  const status = queryStatus();
+  if (!status) {
+    throw new Error("Missing stage status.");
+  }
+  return status;
+}
+
 describe("VibePlayerStageStatus", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -37,7 +50,7 @@ describe("VibePlayerStageStatus", () => {
       />
     );
 
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(queryStatus()).toBeNull();
 
     rerender(
       <VibePlayerStageStatus
@@ -51,7 +64,7 @@ describe("VibePlayerStageStatus", () => {
       />
     );
 
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(queryStatus()).toBeNull();
   });
 
   it("delays compact busy chrome for active playback buffers", () => {
@@ -65,17 +78,21 @@ describe("VibePlayerStageStatus", () => {
       <VibePlayerStageStatus playbackBlocked={false} snapshot={snapshot} />
     );
 
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(queryStatus()).toBeNull();
     act(() => {
       vi.advanceTimersByTime(319);
     });
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(queryStatus()).toBeNull();
     act(() => {
       vi.advanceTimersByTime(1);
     });
 
-    const status = screen.getByRole("status");
+    const status = getStatus();
     expect(status).toHaveAttribute("aria-live", "polite");
+    expect(status).toHaveAttribute("aria-atomic", "true");
+    // A plain live section like the announcer: Orca 50 drops a status bar's
+    // insertions that arrive within 100 ms of other page changes.
+    expect(status).not.toHaveAttribute("role");
     // Live regions announce text content; an aria-label alone is not read.
     expect(status).not.toHaveAttribute("aria-label");
     expect(status).toHaveTextContent("Buffering video");
@@ -108,7 +125,7 @@ describe("VibePlayerStageStatus", () => {
     act(() => {
       vi.advanceTimersByTime(100);
     });
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(queryStatus()).toBeNull();
     rerender(
       <VibePlayerStageStatus
         playbackBlocked={false}
@@ -116,9 +133,9 @@ describe("VibePlayerStageStatus", () => {
       />
     );
     act(() => vi.advanceTimersByTime(319));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(queryStatus()).toBeNull();
     act(() => vi.advanceTimersByTime(1));
-    expect(screen.getByRole("status")).toHaveTextContent("Buffering video");
+    expect(getStatus()).toHaveTextContent("Buffering video");
   });
 
   it("clears visible busy chrome as soon as playback pauses", () => {
@@ -136,7 +153,7 @@ describe("VibePlayerStageStatus", () => {
     act(() => {
       vi.advanceTimersByTime(320);
     });
-    expect(screen.getByRole("status")).toHaveTextContent("Buffering video");
+    expect(getStatus()).toHaveTextContent("Buffering video");
 
     rerender(
       <VibePlayerStageStatus
@@ -148,7 +165,7 @@ describe("VibePlayerStageStatus", () => {
       />
     );
 
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(queryStatus()).toBeNull();
   });
 
   it("keeps blocked playback and errors readable", () => {
@@ -159,7 +176,7 @@ describe("VibePlayerStageStatus", () => {
       />
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("Play to start");
+    expect(getStatus()).toHaveTextContent("Play to start");
 
     rerender(
       <VibePlayerStageStatus
@@ -168,8 +185,6 @@ describe("VibePlayerStageStatus", () => {
       />
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Playback unavailable"
-    );
+    expect(getStatus()).toHaveTextContent("Playback unavailable");
   });
 });
