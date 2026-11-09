@@ -78,6 +78,17 @@
   `VibePlayerEventType` and `VibePlayerEventOfType` types too.
 - A custom `ManagedHlsController` can implement `isInternalSeek(time)` so the
   seeks its engine makes itself are not counted as viewer seeks.
+- `controller.retire()` ends a player for good, e.g. at sign-out: no more
+  events, analytics, watched ranges or resume saves, media and audio focus
+  released, and later commands do nothing.
+- `getVibePlayerControllers(sourceId?)` and `subscribeVibePlayerControllers()`
+  list the page's live controllers, read-only.
+- `getVibePlayerAudioFocusOwner()` and `subscribeVibePlayerAudioFocus()` tell
+  you who holds audio focus; participants expose their `controller`.
+- `audioFocus={{ group, onLose: "stop" }}` makes a player stop instead of
+  pause when another one takes focus.
+- Media Session `metadata.artwork` can be a function of the current source,
+  so signed artwork renews with it.
 
 ### Fixed
 
@@ -114,6 +125,12 @@
 - A listener added while an update is delivered starts with the next one.
 - A position captured before a stream turned out to be live is no longer
   saved for resume.
+- The Media Session follows audio focus: a paused player no longer keeps the
+  lock screen while media without a session (`mediaSession: false`, such as a
+  voice note) plays in its group.
+- A detached player whose host leaves the page now waits in a hidden parking
+  element with its media alive and moves to the next host, and playback an
+  engine paused during a move without `moveBefore` resumes.
 
 ## [0.7.1] - 2026-11-09
 

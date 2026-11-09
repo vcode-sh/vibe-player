@@ -193,6 +193,75 @@ function FeedVideo(props: { author: string; source: VibePlayerSource }) {
 other page code set after the player. The package does not pause the app's
 other media for the session: audio focus stays the app's decision.
 
+Apps that use the package's `audioFocus` groups need no `active` flag: the
+session follows the focus owner, and media joined with
+`mediaSession: false` releases a paused player's session when it plays.
+
+## Multiple Players And Audio Focus
+
+Players and host media in one `audioFocus` group take turns being audible.
+The owner is readable and observable, so app UI (a "now playing" pill, a
+voice-note bar) can follow it instead of keeping its own registry:
+
+```tsx
+import {
+  createVibePlayerAudioFocusParticipant,
+  getVibePlayerAudioFocusOwner,
+  subscribeVibePlayerAudioFocus,
+} from "vibe-player/hook";
+
+declare const voiceNote: HTMLAudioElement;
+declare function showNowPlaying(isVideo: boolean): void;
+
+// A voice note joins the players' group; it has no lock-screen controls.
+const voice = createVibePlayerAudioFocusParticipant(
+  "default",
+  () => voiceNote.pause(),
+  { mediaSession: false }
+);
+voiceNote.addEventListener("play", () => voice.claim());
+voiceNote.addEventListener("pause", () => voice.release());
+
+// Returns the unsubscribe function.
+export const unsubscribe = subscribeVibePlayerAudioFocus((owner) => {
+  // `owner.controller` is the player that holds focus; `null` for host media.
+  showNowPlaying(Boolean(owner?.controller));
+});
+export const current = getVibePlayerAudioFocusOwner(); // or `null`
+```
+
+- Both functions default to the `"default"` group, like `audioFocus`.
+- A player that loses focus pauses; `audioFocus={{ onLose: "stop" }}` stops
+  it instead, releasing its media while keeping the source and position.
+- In React, `useVibePlayerAudioFocus({ group, onPause, mediaSession })` gives
+  host media the same participant with stable `claim` / `release`.
+
+### Live controllers
+
+`getVibePlayerControllers(sourceId?)` lists the page's live controllers: every
+controller with a current source, attached or lazily prepared, until it closes
+its source, tears down or retires, in registration order. Pass a source id to
+find the players of one video. `subscribeVibePlayerControllers(listener)`
+calls `listener` with the new list whenever a controller registers,
+unregisters or changes its source id, and returns an unsubscribe function.
+The registry is read-only; act through each controller.
+
+```ts
+import { getVibePlayerControllers } from "vibe-player/hook";
+
+/** At sign-out: end every player without reporting anything further. */
+export async function retireAllPlayers(): Promise<void> {
+  await Promise.all(getVibePlayerControllers().map((each) => each.retire()));
+}
+```
+
+`controller.retire()` is the sign-out primitive: from the call on, listeners,
+callbacks, analytics (no `closed`), watched ranges (the pending batch is
+dropped) and resume saves stay silent; audio focus, the Media Session and the
+registry entry are released; media is released; and every later command is
+a no-op. It is idempotent and never rejects. Unlike `teardown()`, nothing it
+does reaches the next account's telemetry or storage.
+
 ## CORS And Credentials
 
 For managed HLS, `crossOrigin: "use-credentials"` also configures `hls.js`

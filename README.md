@@ -74,8 +74,10 @@ export function Viewer() {
   split at every seek, with a `playbackId` and `sequence` for deduplication.
 - **Errors:** every error has a `kind` (`network`, `decode`, `source`,
   `unknown`), so you can show a friendly message.
-- **Audio and visibility:** `audioFocus` groups, lazy `load` policies, and
-  release when hidden or offscreen.
+- **Audio and visibility:** `audioFocus` groups with an observable owner,
+  lazy `load` policies, and release when hidden or offscreen.
+- **Host integration:** `controller.retire()` for sign-out, a read-only
+  registry of live players, and detached hosts that park media between hosts.
 - **Theming:** scoped CSS variables, including compact sizing variables
   (`--vibe-player-compact-*`) that scale the chrome with container units, plus
   `icons`, `labels` and `classNames`.

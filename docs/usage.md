@@ -235,8 +235,12 @@ for a deliberate Play. Ordinary `autoPlay` remains an explicit startup request.
 Audible players share an `audioFocus` group (`"default"` unless changed). A
 muted source does not interrupt another audible source; unmuting joins focus.
 Use a different group for independent surfaces or `audioFocus={false}` when the
-host owns policy. `useVibePlayerAudioFocus({ group, onPause })` lets voice notes
-claim/release that same group. Hidden tabs and offscreen frames release playback
+host owns policy. `audioFocus={{ group, onLose: "stop" }}` makes a player that
+loses focus stop (releasing its media, keeping the position) instead of pausing.
+`useVibePlayerAudioFocus({ group, onPause })` lets voice notes claim/release
+that same group; see
+[Multiple players](./integration.md#multiple-players-and-audio-focus) for
+reading the owner. Hidden tabs and offscreen frames release playback
 by default. `pauseWhenHidden={false}` and `stopWhenOffscreen={false}` disable
 those policies; `offscreenThreshold` defaults to `0.25`.
 
@@ -281,6 +285,10 @@ declare function playNext(): void;
 
 - `mediaSession` (or `true`) uses `source.title` and `source.posterUrl`;
   `metadata` overrides any field. Nothing is hard-coded.
+- `metadata.artwork` may be a function of the current source,
+  `(source) => [{ src: ... }]`. It runs again whenever the source changes,
+  including a renewal, so signed artwork renews with the source; returning
+  `undefined` falls back to the poster.
 - Play, pause and stop are always offered. Seek backward, forward and to a
   position (offsets default to the player's `seekStep`, 10 s unless set;
   `seekBackwardSeconds` / `seekForwardSeconds` and a system offset win) need a seekable
@@ -295,8 +303,13 @@ declare function playNext(): void;
   live and unknown durations clear the position.
 - A page has one media session. A player claims it when it becomes audible
   and keeps it while paused, so the lock screen can resume it. Stopping,
-  closing, failing or unmounting releases it, clearing only what this player
-  set; another player becoming audible takes it over.
+  closing, failing, unmounting or `controller.retire()` releases it, clearing
+  only what this player set; another player becoming audible takes it over.
+- In an `audioFocus` group the session follows the focus owner: the player
+  claims it when it takes focus. When media that does not use the Media
+  Session takes focus (a player without `mediaSession`, or host media joined
+  with `useVibePlayerAudioFocus({ mediaSession: false })`), the paused player
+  releases it, so the lock screen never shows a video while a voice note plays.
 - Hosts with their own audio focus registry pass `active`: `true` for the
   player that owns the session, `false` for every other one.
 - Where the API is
@@ -797,12 +810,21 @@ export function FeedClip({ source }: { source: VibePlayerMp4Source }) {
   later (as above) causes no gap. Omitting `host` renders in place as before;
   pick the mode when the player mounts, because switching between the two
   modes remounts it.
+- When the current host leaves the page (or the given host is not on it
+  yet), the player moves into a hidden, inert parking element owned by the
+  package instead of leaving with it. Media stays alive and keeps its state
+  until the next host on the page shows it; the parking element is removed
+  once empty. Parked players are offscreen, so `stopWhenOffscreen` applies
+  to them as anywhere else.
 - The player renders nothing on the server and appears after the first client
   commit, inside a `display: contents` wrapper appended to the host. Size the
   host; the player fills it like any other frame.
 - Moves are synchronous, so `<video>` keeps playing in every engine and fires
   no `emptied` or `loadstart`. Where `Element.moveBefore()` exists the move is
-  also state-preserving for focus and embedded frames.
+  also state-preserving for focus and embedded frames. Without it, media the
+  engine paused because it was briefly out of the page (for example while
+  its host was removed) resumes after the move; media the viewer paused
+  stays paused.
 - Visibility follows the player: `stopWhenOffscreen` and
   `autoplayWhenVisible` observe it in whichever host shows it. A player that
   floats _because_ its slot scrolled away should pass
@@ -972,8 +994,11 @@ helpers remain available for controls that follow normalized capabilities.
 `stop()` destroys the engine and releases requests while retaining the source
 and current position. `play()` creates a new engine when needed, `retry()`
 renews then plays, and `seek()` is an alias for `seekTo()`. `subscribe()` and
-`getState()` work outside React. Close/unmount a player as well as stopping it
-when a host session ends; the package does not own application authorization.
+`getState()` work outside React. When a host session ends (for example at
+sign-out), call `controller.retire()`: it releases the media, audio focus and
+the Media Session, drops the pending watched batch, reports no `closed`
+analytics and saves no resume position, and every later command is a no-op.
+The package does not own application authorization.
 
 `controller.on(type, listener)` listens to the same event stream as `onEvent`,
 narrowed and typed to one event type, or every event with `"*"`. It returns an
