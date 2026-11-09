@@ -187,4 +187,31 @@ describe("player announcements", () => {
     await settle(600);
     expect(heard).toEqual(["Playing", "Playing"]);
   });
+
+  it("leaves positions on a focused scrubber to its own value text", async () => {
+    const { adapterFactory } = createStageAdapterFactory();
+    const { container, getByRole } = render(
+      <VibePlayerCompact
+        adapterFactory={adapterFactory}
+        source={stageFileSource}
+      />
+    );
+    fireEvent.click(getByRole("button", { name: "Play" }));
+    await settle(100);
+    fireEvent.click(getByRole("button", { name: "Pause" }));
+    await settle(600);
+    const heard = recordAnnouncements(getAnnouncer(container));
+    const scrubber = getByRole("slider", { name: "Seek" });
+    scrubber.focus();
+    fireEvent.keyDown(scrubber, { code: "ArrowRight", key: "ArrowRight" });
+    await settle(600);
+    // The slider's aria-valuetext already speaks the new position.
+    expect(heard).toEqual([]);
+
+    const root = getRoot(container);
+    root.focus();
+    fireEvent.keyDown(root, { code: "ArrowRight", key: "ArrowRight" });
+    await settle(600);
+    expect(heard).toEqual(["0:20 of 1:40"]);
+  });
 });

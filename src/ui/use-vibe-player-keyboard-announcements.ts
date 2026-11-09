@@ -36,6 +36,14 @@ function describePosition(
   return labels.seekValue(time, formatTime(snapshot.duration));
 }
 
+/** A focused slider speaks its own `aria-valuetext` after a seek. */
+function isSliderFocused(): boolean {
+  const active = document.activeElement;
+  return (
+    active instanceof Element && active.closest('[role="slider"]') !== null
+  );
+}
+
 function getPlaybackAnnouncement(
   snapshot: VibePlayerSnapshot,
   labels: Required<VibePlayerLabels>
@@ -66,7 +74,7 @@ export function useVibePlayerKeyboardAnnouncements(
   return useCallback(
     (action: VibePlayerShortcutAction) => {
       const kind = getAnnouncedKind(action);
-      if (!kind) {
+      if (!kind || (kind === "position" && isSliderFocused())) {
         return;
       }
       stop();
