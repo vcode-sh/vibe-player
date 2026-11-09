@@ -62,7 +62,10 @@ export const packageSizeBudgets = [
     // 2026-11-08: 76 -> 86 KiB (measured 83,531 B) for heatmap variants, seek
     // thumbnails and Media Session options.
     // 2026-11-09: 86 -> 99 KiB (measured 86,316 B) to restore ~15 % headroom.
-    limit: 99 * kib,
+    // 2026-11-09: 99 -> 107 KiB (measured 99,321 B) for 0.8.0 platform, host
+    // primitives and accessibility announcements (~+13,000 B); 2.0 % headroom
+    // warned on every run.
+    limit: 107 * kib,
     mode: "raw",
   },
 ];
