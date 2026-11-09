@@ -79,6 +79,20 @@ describe("native video fullscreen fallback", () => {
     expect(events).toEqual(["fullscreenchange", "fullscreenchange"]);
   });
 
+  it("offers video fullscreen only once WebKit says the video supports it", async () => {
+    const { adapter, video } = await createPlayer();
+    let supported = false;
+    Object.defineProperty(video, "webkitSupportsFullscreen", {
+      configurable: true,
+      get: () => supported,
+    });
+    expect(adapter.capabilities.canFullscreen).toBe(false);
+
+    supported = true;
+
+    expect(adapter.capabilities.canFullscreen).toBe(true);
+  });
+
   it("hides fullscreen when neither the container nor the video can go fullscreen", async () => {
     const adapter = adapterScope.track(createFileAdapter());
     const target = document.createElement("div");
