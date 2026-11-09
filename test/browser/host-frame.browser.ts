@@ -5,6 +5,7 @@ import {
   hostOf,
   instrument,
   player,
+  readOutput,
   readProbe,
   readSeeks,
   startPlayback,
@@ -98,6 +99,44 @@ test("a controller seek reports once and a replay after the end is a new playbac
     "controller",
     "controller",
   ]);
+  // Only about a fifth of the file played before the end: milestones follow
+  // watched coverage, not the position, and the replay is its own playback.
+  const analytics = await readOutput<string[]>(page, "Analytics");
+  const replay = analytics.lastIndexOf("started");
+  expect(analytics.filter((type) => type === "opened")).toHaveLength(1);
+  expect(analytics.filter((type) => type === "completed")).toHaveLength(1);
+  expect(analytics.indexOf("started")).toBeLessThan(replay);
+  expect(analytics.slice(0, replay)).not.toContain("progress_50");
+  expect(analytics).not.toContain("closed");
+  // One save per settled seek despite the echoes, a clear at the end, no
+  // save for the replay rewind, and progress saves 2 s apart at least.
+  const saves = await readOutput<{ reason: string; seconds: number }[]>(
+    page,
+    "Resume saves"
+  );
+  const seekSaves = saves.filter(({ reason }) => reason === "seek");
+  expect(seekSaves).toHaveLength(2);
+  for (const [index, save] of seekSaves.entries()) {
+    expect(save.seconds).toBeCloseTo(seeks[index]?.currentTime ?? -1, 1);
+  }
+  const reasons = saves.map(({ reason }) => reason);
+  const cleared = reasons.indexOf("clear");
+  expect(cleared).toBeGreaterThan(reasons.lastIndexOf("seek"));
+  const afterEnd = reasons.slice(cleared + 1);
+  expect(afterEnd).not.toContain("seek");
+  expect(afterEnd.at(-1)).toBe("pause");
+  for (const [index, save] of saves.entries()) {
+    const previous = saves[index - 1];
+    if (save.reason === "seek" && previous) {
+      // The provider's report at the new position is not saved as progress.
+      expect(Math.abs(save.seconds - previous.seconds)).toBeGreaterThan(0.5);
+    }
+    if (save.reason === "progress" && previous) {
+      expect(Math.abs(save.seconds - previous.seconds)).toBeGreaterThanOrEqual(
+        2
+      );
+    }
+  }
 });
 
 for (const provider of ["file", "hls"] as const) {

@@ -1,10 +1,11 @@
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   type VibePlayerAnalyticsEvent,
   VibePlayerCompact,
   type VibePlayerCompactSkin,
   VibePlayerHeatmap,
+  type VibePlayerResumeStore,
   type VibePlayerSource,
   type VibePlayerWatchedRangesReport,
 } from "vibe-player";
@@ -37,6 +38,25 @@ function createFixtureSource(): VibePlayerSource {
 
 const source = createFixtureSource();
 
+interface ResumeSave {
+  reason: string;
+  seconds: number;
+}
+
+const resumeSaves: ResumeSave[] = [];
+let showResumeSaves: (saves: ResumeSave[]) => void = () => undefined;
+const recordResume = (save: ResumeSave) => {
+  resumeSaves.push(save);
+  showResumeSaves([...resumeSaves]);
+};
+/** Records what the store hears; it stores nothing, so nothing resumes. */
+const resumeStore: VibePlayerResumeStore = {
+  clear: () => recordResume({ reason: "clear", seconds: 0 }),
+  get: () => null,
+  set: (_sourceId, seconds, context) =>
+    recordResume({ reason: context?.reason ?? "none", seconds }),
+};
+
 function App() {
   const [inline, setInline] = useState<HTMLElement | null>(null);
   const [floating, setFloating] = useState<HTMLElement | null>(null);
@@ -45,7 +65,13 @@ function App() {
     null
   );
   const [seeks, setSeeks] = useState<VibePlayerAnalyticsEvent[]>([]);
-  const recordSeek = (event: VibePlayerAnalyticsEvent) => {
+  const [analytics, setAnalytics] = useState<string[]>([]);
+  const [saves, setSaves] = useState<ResumeSave[]>([]);
+  useEffect(() => {
+    showResumeSaves = setSaves;
+  }, []);
+  const recordAnalytics = (event: VibePlayerAnalyticsEvent) => {
+    setAnalytics((list) => [...list, event.type]);
     if (event.type === "seek") {
       setSeeks((list) => [...list, event]);
     }
@@ -61,8 +87,9 @@ function App() {
         controls={{ pictureInPicture: true }}
         host={docked ? inline : floating}
         load="onPlay"
-        onAnalyticsEvent={recordSeek}
+        onAnalyticsEvent={recordAnalytics}
         onWatchedRanges={setReport}
+        resumeStore={resumeStore}
         skin={skin}
         source={source}
         stopWhenOffscreen={false}
@@ -72,6 +99,8 @@ function App() {
         {report ? JSON.stringify(report) : "none"}
       </output>
       <output aria-label="Seek analytics">{JSON.stringify(seeks)}</output>
+      <output aria-label="Analytics">{JSON.stringify(analytics)}</output>
+      <output aria-label="Resume saves">{JSON.stringify(saves)}</output>
     </main>
   );
 }

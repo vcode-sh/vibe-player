@@ -92,6 +92,14 @@ export async function readSeeks(page: Page) {
   }[];
 }
 
+/** Parses a fixture's JSON `<output>` readout. */
+export async function readOutput<T>(page: Page, name: string): Promise<T> {
+  const text = await page
+    .getByRole("status", { exact: true, name })
+    .textContent();
+  return JSON.parse(text ?? "null") as T;
+}
+
 export function hostOf(page: Page) {
   return page
     .locator("video")
