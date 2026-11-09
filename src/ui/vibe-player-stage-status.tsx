@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import type { VibePlayerSnapshot } from "../core";
 import { useVibePlayerDelayedFlag } from "../react/use-vibe-player-delayed-flag";
 import { RetryIcon } from "./vibe-player-icons";
@@ -43,9 +44,25 @@ export function VibePlayerStageStatus({
   onRetry,
   playbackBlocked,
   snapshot,
-}: VibePlayerStageStatusProps) {
-  const { classNames, labels } = useVibePlayerUI();
+}: VibePlayerStageStatusProps): JSX.Element | null {
   const view = useVibePlayerStageStatusView({ playbackBlocked, snapshot });
+  return (
+    <VibePlayerStageStatusPanel live={live} onRetry={onRetry} view={view} />
+  );
+}
+
+interface VibePlayerStageStatusPanelProps
+  extends Pick<VibePlayerStageStatusProps, "live" | "onRetry"> {
+  view: VibePlayerStageStatusView | null;
+}
+
+/** Draws a status view computed once by its owner (the full stage). */
+export function VibePlayerStageStatusPanel({
+  live = true,
+  onRetry,
+  view,
+}: VibePlayerStageStatusPanelProps) {
+  const { classNames, labels } = useVibePlayerUI();
   if (!view) {
     return null;
   }

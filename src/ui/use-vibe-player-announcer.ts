@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVibePlayerCommitEffect } from "./use-vibe-player-commit-effect";
 
 /** How long an announcement stays in the live region before it clears. */
 export const VIBE_PLAYER_ANNOUNCEMENT_CLEAR_MS = 5000;
@@ -40,12 +41,15 @@ export function useVibePlayerAnnouncer(): VibePlayerAnnouncer {
   return { announce, message };
 }
 
-/** Announces a player status once each time it starts (busy, error). */
+/**
+ * Announces a player status once each time it starts (busy, error). It runs
+ * in the commit that shows the status, so text and announcement land together.
+ */
 export function useVibePlayerStatusAnnouncement(
   announce: (text: string) => void,
   status: string | null
 ): void {
-  useEffect(() => {
+  useVibePlayerCommitEffect(() => {
     if (status) {
       announce(status);
     }

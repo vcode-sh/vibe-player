@@ -46,58 +46,74 @@ export function VibePlayerGlassSkip({
   );
 }
 
-/** The capsule's end: Picture-in-Picture, fullscreen and mute. */
-export function VibePlayerGlassEndButtons({
+function GlassPictureInPicture({
   button,
   surface,
 }: VibePlayerGlassButtonProps) {
   const { labels } = useVibePlayerUI();
-  const { actions, controls, state } = surface;
+  const { state } = surface;
+  return (
+    <button
+      aria-label={
+        state.pictureInPicture
+          ? labels.exitPictureInPicture
+          : labels.pictureInPicture
+      }
+      aria-pressed={state.pictureInPicture}
+      className={button}
+      data-part="picture-in-picture"
+      onClick={surface.actions.togglePictureInPicture}
+      type="button"
+    >
+      <PictureInPictureIcon />
+    </button>
+  );
+}
+
+function GlassFullscreen({ button, surface }: VibePlayerGlassButtonProps) {
+  const { labels } = useVibePlayerUI();
+  return (
+    <button
+      {...getCompactFullscreenProps(surface.state, labels)}
+      className={`${button} vibe-player-glass__expand`}
+      data-part="fullscreen"
+      onClick={surface.actions.toggleFullscreen}
+      type="button"
+    >
+      <VibePlayerCompactFullscreenIcon state={surface.state} />
+    </button>
+  );
+}
+
+function GlassMute({ button, surface }: VibePlayerGlassButtonProps) {
+  const { labels } = useVibePlayerUI();
+  const { muted } = surface.state;
+  return (
+    <button
+      aria-label={muted ? labels.unmute : labels.mute}
+      className={button}
+      data-part="mute"
+      onClick={surface.actions.toggleMute}
+      type="button"
+    >
+      <VibePlayerSwap
+        items={[
+          { icon: <VolumeIcon />, key: "on", visible: !muted },
+          { icon: <MuteIcon />, key: "off", visible: muted },
+        ]}
+      />
+    </button>
+  );
+}
+
+/** The capsule's end: Picture-in-Picture, fullscreen and mute. */
+export function VibePlayerGlassEndButtons(props: VibePlayerGlassButtonProps) {
+  const { controls } = props.surface;
   return (
     <>
-      {controls.pictureInPicture ? (
-        <button
-          aria-label={
-            state.pictureInPicture
-              ? labels.exitPictureInPicture
-              : labels.pictureInPicture
-          }
-          aria-pressed={state.pictureInPicture}
-          className={button}
-          data-part="picture-in-picture"
-          onClick={actions.togglePictureInPicture}
-          type="button"
-        >
-          <PictureInPictureIcon />
-        </button>
-      ) : null}
-      {controls.fullscreen ? (
-        <button
-          {...getCompactFullscreenProps(state, labels)}
-          className={`${button} vibe-player-glass__expand`}
-          data-part="fullscreen"
-          onClick={actions.toggleFullscreen}
-          type="button"
-        >
-          <VibePlayerCompactFullscreenIcon state={state} />
-        </button>
-      ) : null}
-      {controls.mute ? (
-        <button
-          aria-label={state.muted ? labels.unmute : labels.mute}
-          className={button}
-          data-part="mute"
-          onClick={actions.toggleMute}
-          type="button"
-        >
-          <VibePlayerSwap
-            items={[
-              { icon: <VolumeIcon />, key: "on", visible: !state.muted },
-              { icon: <MuteIcon />, key: "off", visible: state.muted },
-            ]}
-          />
-        </button>
-      ) : null}
+      {controls.pictureInPicture ? <GlassPictureInPicture {...props} /> : null}
+      {controls.fullscreen ? <GlassFullscreen {...props} /> : null}
+      {controls.mute ? <GlassMute {...props} /> : null}
     </>
   );
 }

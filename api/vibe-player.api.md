@@ -1293,7 +1293,7 @@ interface VibePlayerStageProps extends VibePlayerPlaybackOptions {
   title?: string | undefined;
 }
 
-declare function VibePlayerStageStatus({ live, onRetry, playbackBlocked, snapshot }: VibePlayerStageStatusProps): import("react").JSX.Element | null;
+declare function VibePlayerStageStatus({ live, onRetry, playbackBlocked, snapshot }: VibePlayerStageStatusProps): JSX.Element | null;
 
 interface VibePlayerStageStatusProps {
   live?: boolean | undefined;

@@ -90,10 +90,8 @@ describe("VibePlayerStage", () => {
     await waitFor(() =>
       expect(visibleStatus()).toHaveTextContent("Play to start")
     );
-    // The announcer speaks it once the status has committed.
-    await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("Play to start")
-    );
+    // The announcer speaks in the same commit that shows the status.
+    expect(screen.getByRole("status")).toHaveTextContent("Play to start");
     getStageAdapter(adapters).playError = null;
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
 

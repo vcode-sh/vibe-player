@@ -51,19 +51,24 @@ export function VibePlayerGlassBar({
       </button>
       <VibePlayerGlassSkip button={button} side={1} surface={surface} />
       <VibePlayerGlassTrack surface={surface} time={time} />
-      {controls.time ? (
-        <span
-          className={vibePlayerClassName(
-            "vibe-player-glass__time",
-            classNames.time
-          )}
-          data-part="time"
-        >
-          {time}
-        </span>
-      ) : null}
+      {controls.time ? <VibePlayerGlassTime time={time} /> : null}
       <VibePlayerGlassEndButtons button={button} surface={surface} />
     </div>
+  );
+}
+
+function VibePlayerGlassTime({ time }: { time: string }) {
+  const { classNames } = useVibePlayerUI();
+  return (
+    <span
+      className={vibePlayerClassName(
+        "vibe-player-glass__time",
+        classNames.time
+      )}
+      data-part="time"
+    >
+      {time}
+    </span>
   );
 }
 
