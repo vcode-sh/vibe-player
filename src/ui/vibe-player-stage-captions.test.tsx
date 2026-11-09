@@ -50,12 +50,16 @@ describe("stage caption availability", () => {
         "Captions unavailable"
       )
     );
-    expect(onCaptionStatusChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        error: cause,
-        loading: false,
-        track: expect.objectContaining({ id: "en" }),
-      })
+    // The status observer runs in a passive effect after the commit that
+    // rendered the status, so it is awaited rather than read synchronously.
+    await waitFor(() =>
+      expect(onCaptionStatusChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          error: cause,
+          loading: false,
+          track: expect.objectContaining({ id: "en" }),
+        })
+      )
     );
     expect(onError).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
@@ -67,8 +71,10 @@ describe("stage caption availability", () => {
       expect(screen.getByText("Recovered caption")).toBeVisible()
     );
     expect(screen.queryByText("Captions unavailable")).toBeNull();
-    expect(onCaptionStatusChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ error: null, loading: false })
+    await waitFor(() =>
+      expect(onCaptionStatusChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ error: null, loading: false })
+      )
     );
     expect(adapters).toHaveLength(1);
   });
