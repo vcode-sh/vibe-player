@@ -9,6 +9,7 @@ import type {
 } from "./vibe-player-runtime-types";
 import type { VibePlayerSource } from "./vibe-player-source-types";
 import { VibePlayerWatchedBatch } from "./vibe-player-watched-batch";
+import { VibePlayerWatchedCoverage } from "./vibe-player-watched-coverage";
 
 /** A span of media time, in seconds, that played continuously. */
 export interface VibePlayerWatchedRange {
@@ -87,6 +88,7 @@ export class VibePlayerWatchedRangesTracker {
   private last: Sample | null = null;
   private seeking = false;
   private readonly batch: VibePlayerWatchedBatch;
+  private readonly coverage = new VibePlayerWatchedCoverage();
   private readonly now: () => number;
 
   constructor(
@@ -95,6 +97,11 @@ export class VibePlayerWatchedRangesTracker {
   ) {
     this.batch = new VibePlayerWatchedBatch(emit);
     this.now = now;
+  }
+
+  /** Unique seconds the current playback watched, delivered or not. */
+  get watchedSeconds(): number {
+    return this.coverage.seconds;
   }
 
   observe(entry: VibePlayerRawFeedEntry): void {
@@ -109,6 +116,7 @@ export class VibePlayerWatchedRangesTracker {
       this.last = null;
       this.flush("close");
       this.batch.begin(entry.playback.id);
+      this.coverage.reset();
     } else if (entry.kind === "event") {
       this.observeEvent(entry.source, entry.event);
     }
@@ -224,6 +232,7 @@ export class VibePlayerWatchedRangesTracker {
     const allowed = ((at - last.at) / 1000) * Math.max(1, rate) + jitterSeconds;
     if (delta > 0 && delta <= allowed) {
       this.batch.add(last.time, time);
+      this.coverage.add(last.time, time);
     }
   }
 }

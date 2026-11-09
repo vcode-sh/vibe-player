@@ -1,4 +1,4 @@
-import { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
+import type { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
 import { loadVibePlayerControllerSource } from "./vibe-player-controller-load";
 import { handleVibePlayerLoadError } from "./vibe-player-controller-load-error";
 import { mountVibePlayerControllerAdapter } from "./vibe-player-controller-mount";
@@ -18,6 +18,7 @@ import type {
 } from "./vibe-player-types";
 
 interface ControllerRuntimeOptions {
+  analytics: VibePlayerAnalyticsSession;
   applyPreferences(): Promise<void>;
   clearIntent(): void;
   event(event: VibePlayerAdapterEvent): void;
@@ -46,9 +47,7 @@ export class VibePlayerControllerRuntime {
     this.observers = hooks.observers;
     this.adapterFactory = hooks.options.adapterFactory;
     this.resumeStore = hooks.resumeStore;
-    this.analyticsSession = new VibePlayerAnalyticsSession(
-      this.observers.emitAnalytics
-    );
+    this.analyticsSession = hooks.analytics;
   }
   async mount(target: HTMLElement, presentationTarget = target): Promise<void> {
     const targetChanged =

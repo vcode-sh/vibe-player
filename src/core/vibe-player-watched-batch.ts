@@ -1,4 +1,5 @@
 import type { VibePlayerSource } from "./vibe-player-source-types";
+import { insertVibePlayerWatchedRange } from "./vibe-player-watched-coverage";
 import type {
   VibePlayerWatchedRange,
   VibePlayerWatchedRangesReason,
@@ -49,25 +50,13 @@ export class VibePlayerWatchedBatch {
 
   /** Merges `start..end` into the sorted, non-overlapping batch. */
   add(start: number, end: number): void {
-    let merged = { end, start };
-    const next: VibePlayerWatchedRange[] = [];
-    for (const range of this.ranges) {
-      if (range.end < merged.start || range.start > merged.end) {
-        next.push(range);
-      } else {
-        merged = {
-          end: Math.max(range.end, merged.end),
-          start: Math.min(range.start, merged.start),
-        };
-      }
-    }
-    if (next.length >= VIBE_PLAYER_WATCHED_RANGES_LIMIT) {
+    const next = insertVibePlayerWatchedRange(this.ranges, start, end);
+    if (next.length > VIBE_PLAYER_WATCHED_RANGES_LIMIT) {
       // A new separate range would exceed the bound: deliver the full batch.
       this.deliver("limit");
-      this.ranges = [merged];
+      this.ranges = [{ end, start }];
       return;
     }
-    next.push(merged);
-    this.ranges = next.sort((a, b) => a.start - b.start);
+    this.ranges = next;
   }
 }

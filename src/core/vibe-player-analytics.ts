@@ -1,26 +1,26 @@
 import { getVibePlayerProgressMilestone } from "./vibe-player-events";
 import type {
-  VibePlayerAdapterEvent,
   VibePlayerAnalyticsEvent,
   VibePlayerAnalyticsEventName,
   VibePlayerControllerState,
+  VibePlayerSnapshot,
   VibePlayerSource,
 } from "./vibe-player-types";
 
-interface ProgressAnalyticsInput {
-  sentEvents: ReadonlySet<VibePlayerAnalyticsEventName>;
-  snapshot: VibePlayerAdapterEvent["snapshot"];
-  source: VibePlayerSource;
+export interface VibePlayerAnalyticsSessionHost {
+  emit(event: VibePlayerAnalyticsEvent): void;
+  /** Unique seconds the current playback watched. */
+  watchedSeconds(): number;
 }
 
-type VibePlayerAnalyticsEmitter = (event: VibePlayerAnalyticsEvent) => void;
-
 export class VibePlayerAnalyticsSession {
-  private readonly emit: VibePlayerAnalyticsEmitter;
+  private readonly emit: (event: VibePlayerAnalyticsEvent) => void;
   private readonly sentEvents = new Set<VibePlayerAnalyticsEventName>();
+  private readonly watchedSeconds: () => number;
 
-  constructor(emit: VibePlayerAnalyticsEmitter) {
-    this.emit = emit;
+  constructor(host: VibePlayerAnalyticsSessionHost) {
+    this.emit = (event) => host.emit(event);
+    this.watchedSeconds = () => host.watchedSeconds();
   }
 
   clear(): void {
@@ -42,17 +42,29 @@ export class VibePlayerAnalyticsSession {
     this.emit(event);
   }
 
+  /**
+   * Reports each milestone the playback's watched coverage (unique watched
+   * seconds over the duration) reached; an unknown duration reports none.
+   */
   recordProgress(
     source: VibePlayerSource,
-    snapshot: VibePlayerAdapterEvent["snapshot"]
+    { currentTime, duration }: VibePlayerSnapshot,
+    isCurrent: () => boolean
   ): void {
-    const event = createProgressAnalyticsEvent({
-      sentEvents: this.sentEvents,
-      snapshot,
-      source,
-    });
-    if (event) {
-      this.emitOnce(event);
+    if (!(Number.isFinite(duration) && duration > 0)) {
+      return;
+    }
+    const percent = (this.watchedSeconds() / duration) * 100;
+    let milestone = getVibePlayerProgressMilestone(percent, this.sentEvents);
+    while (milestone && isCurrent()) {
+      this.emitOnce({
+        currentTime,
+        duration,
+        provider: source.type,
+        sourceId: source.id,
+        type: milestone.event,
+      });
+      milestone = getVibePlayerProgressMilestone(percent, this.sentEvents);
     }
   }
 }
@@ -70,29 +82,5 @@ export function createClosedAnalyticsEvent(
     provider: source.type,
     sourceId: source.id,
     type: "closed",
-  };
-}
-
-export function createProgressAnalyticsEvent({
-  sentEvents,
-  snapshot,
-  source,
-}: ProgressAnalyticsInput): VibePlayerAnalyticsEvent | null {
-  if (!(Number.isFinite(snapshot.duration) && snapshot.duration > 0)) {
-    return null;
-  }
-
-  const percent = Math.floor((snapshot.currentTime / snapshot.duration) * 100);
-  const milestone = getVibePlayerProgressMilestone(percent, sentEvents);
-  if (!milestone) {
-    return null;
-  }
-
-  return {
-    currentTime: snapshot.currentTime,
-    duration: snapshot.duration,
-    provider: source.type,
-    sourceId: source.id,
-    type: milestone.event,
   };
 }

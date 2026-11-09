@@ -51,8 +51,9 @@ export function handleVibePlayerAdapterEvent({
   if (stateEvent !== event || !currentSource || !isCurrent()) {
     return;
   }
-  if (event.type === "timeupdate") {
-    analyticsSession.recordProgress(currentSource, event.snapshot);
+  // Watched coverage can grow with every event: playing, pausing, ending.
+  analyticsSession.recordProgress(currentSource, event.snapshot, isCurrent);
+  if (!isCurrent()) {
     return;
   }
   if (event.type === "play") {

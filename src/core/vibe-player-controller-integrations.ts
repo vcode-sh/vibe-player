@@ -1,3 +1,4 @@
+import { VibePlayerAnalyticsSession } from "./vibe-player-analytics";
 import type { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
 import type { VibePlayerRawFeed } from "./vibe-player-raw-feed";
 import { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
@@ -10,6 +11,7 @@ import { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
 
 /** Host integrations that read the controller's raw adapter feed. */
 export interface VibePlayerControllerIntegrations {
+  analytics: VibePlayerAnalyticsSession;
   resume: VibePlayerResumeWriter | null;
   /** The host store with its failures contained; restores read it. */
   resumeStore: VibePlayerResumeStore | undefined;
@@ -28,6 +30,10 @@ export function createVibePlayerControllerIntegrations(
   isLive: () => boolean
 ): VibePlayerControllerIntegrations {
   const watched = createWatchedRanges(options, observers, feed);
+  const analytics = new VibePlayerAnalyticsSession({
+    emit: observers.emitAnalytics,
+    watchedSeconds: () => watched?.watchedSeconds ?? 0,
+  });
   if (options.onAnalyticsEvent) {
     const seeks = new VibePlayerSeekAnalytics(observers.emitAnalytics);
     feed.subscribe((entry) => seeks.observe(entry));
@@ -39,16 +45,19 @@ export function createVibePlayerControllerIntegrations(
   if (resume) {
     feed.subscribe((entry) => resume.observe(entry));
   }
-  return { resume, resumeStore, watched };
+  return { analytics, resume, resumeStore, watched };
 }
 
-/** Opt-in: the tracker reads the raw feed, never rewritten controller state. */
+/**
+ * Opt-in: the tracker reads the raw feed, never rewritten controller state.
+ * Analytics milestones need its watched coverage too.
+ */
 function createWatchedRanges(
   options: VibePlayerControllerOptions,
   observers: VibePlayerControllerObservers,
   feed: VibePlayerRawFeed
 ): VibePlayerWatchedRangesTracker | null {
-  if (!options.onWatchedRanges) {
+  if (!(options.onWatchedRanges || options.onAnalyticsEvent)) {
     return null;
   }
   const watched = new VibePlayerWatchedRangesTracker(

@@ -1,6 +1,9 @@
 import { VibePlayerControllerActions } from "./vibe-player-controller-actions";
 import { dispatchVibePlayerAdapterEvent } from "./vibe-player-controller-dispatch";
-import { createVibePlayerControllerIntegrations } from "./vibe-player-controller-integrations";
+import {
+  createVibePlayerControllerIntegrations,
+  type VibePlayerControllerIntegrations,
+} from "./vibe-player-controller-integrations";
 import { VibePlayerControllerObservers } from "./vibe-player-controller-observers";
 import { VibePlayerControllerRuntime } from "./vibe-player-controller-runtime";
 import { VibePlayerPlaybackLifecycle } from "./vibe-player-playback";
@@ -11,10 +14,7 @@ import {
 import { VibePlayerRawFeed } from "./vibe-player-raw-feed";
 import type { VibePlayerResumeWriter } from "./vibe-player-resume-writer";
 import { VibePlayerSourceSession } from "./vibe-player-source-session";
-import type {
-  VibePlayerControllerOptions,
-  VibePlayerResumeStore,
-} from "./vibe-player-types";
+import type { VibePlayerControllerOptions } from "./vibe-player-types";
 import type { VibePlayerWatchedRangesTracker } from "./vibe-player-watched-ranges";
 
 /** The collaborators one controller owns, wired to each other. */
@@ -38,15 +38,18 @@ export function createVibePlayerControllerParts(
   const observers = new VibePlayerControllerObservers(options);
   const feed = new VibePlayerRawFeed();
   // Callbacks reach parts created later, never during setup.
-  const { resume, resumeStore, watched } =
-    createVibePlayerControllerIntegrations(options, observers, feed, () =>
-      isLive(parts)
-    );
+  const integrations = createVibePlayerControllerIntegrations(
+    options,
+    observers,
+    feed,
+    () => isLive(parts)
+  );
+  const { resume, watched } = integrations;
   const runtime = createRuntime(
     options,
     observers,
     feed,
-    resumeStore,
+    integrations,
     () => parts
   );
   const actions = createActions(observers, feed, runtime, resume);
@@ -78,10 +81,11 @@ function createRuntime(
   options: VibePlayerControllerOptions,
   observers: VibePlayerControllerObservers,
   feed: VibePlayerRawFeed,
-  resumeStore: VibePlayerResumeStore | undefined,
+  { analytics, resumeStore }: VibePlayerControllerIntegrations,
   parts: () => VibePlayerControllerParts
 ): VibePlayerControllerRuntime {
   return new VibePlayerControllerRuntime({
+    analytics,
     applyPreferences: () => parts().actions.applyPreferences(),
     clearIntent: () => parts().actions.clear(),
     event: (event) => dispatchVibePlayerAdapterEvent(parts(), event),

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { VibePlayerController } from "./vibe-player-controller";
 import { fileSource, TestAdapter } from "./vibe-player-controller-test-helpers";
+import { playTestAdapter } from "./vibe-player-watched-test-helpers";
 
 function createStore() {
   return { clear: vi.fn(), get: () => null, set: vi.fn() };
@@ -65,13 +66,18 @@ describe("controller host integration isolation", () => {
         resumeStore: store,
       });
       await controller.load(fileSource);
+      adapter.emit("durationchange", { duration: 8 });
 
-      adapter.emit(operation === "set" ? "timeupdate" : "ended", {
-        currentTime: operation === "set" ? 30 : 100,
-        duration: 100,
-        paused: false,
-        readyState: operation === "set" ? "playing" : "ended",
-      });
+      // Watching a quarter saves at 2 s; the end clears the position.
+      vi.useFakeTimers();
+      try {
+        playTestAdapter(adapter, 0, 2);
+      } finally {
+        vi.useRealTimers();
+      }
+      if (operation === "clear") {
+        adapter.emit("ended", { currentTime: 8, readyState: "ended" });
+      }
 
       expect(onError).not.toHaveBeenCalled();
       expect(controller.getState().error).toBeNull();
