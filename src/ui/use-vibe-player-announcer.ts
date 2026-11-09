@@ -8,16 +8,36 @@ export const VIBE_PLAYER_ANNOUNCEMENT_CLEAR_MS = 5000;
 export interface VibePlayerAnnouncer {
   announce: (text: string) => void;
   message: string;
-  /** Clears the region if it still holds `text` (a status that ended). */
+  /**
+   * Clears the region if it still holds exactly `text` (a status that
+   * ended); a joined message is left to the timed clear.
+   */
   withdraw: (text: string) => void;
 }
 
 const repeatMarker = " ";
+const separator = ". ";
 
 /**
- * Owns one live-region message. A repeated text gets a trailing no-break
- * space so assistive technology hears it again, and every message clears
- * after a while so a stale status is not read twice while browsing.
+ * The next region text. Texts announced in the same task (two statuses that
+ * start in one render) are joined, without repeating a part; otherwise the
+ * new text replaces the old, with a marker when it is the same text.
+ */
+function getNextMessage(current: string, text: string, joining: boolean) {
+  const shown = current.endsWith(repeatMarker) ? current.slice(0, -1) : current;
+  if (joining && shown) {
+    return shown.split(separator).includes(text)
+      ? current
+      : `${shown}${separator}${text}`;
+  }
+  return current === text ? text + repeatMarker : text;
+}
+
+/**
+ * Owns one live-region message. Texts announced in the same task are joined,
+ * a repeated text gets a trailing no-break space so assistive technology
+ * hears it again, and every message clears after a while so a stale status
+ * is not read twice while browsing.
  */
 export function useVibePlayerAnnouncer(): VibePlayerAnnouncer {
   const [message, setMessage] = useState("");
@@ -28,10 +48,19 @@ export function useVibePlayerAnnouncer(): VibePlayerAnnouncer {
       clearTimer.current = null;
     }
   }, []);
+  const sameTask = useRef(false);
   const announce = useCallback(
     (text: string) => {
       stopClearTimer();
-      setMessage((current) => (current === text ? text + repeatMarker : text));
+      const joining = sameTask.current;
+      if (!joining) {
+        sameTask.current = true;
+        // Batched updates in one task must not drop the earlier text.
+        Promise.resolve().then(() => {
+          sameTask.current = false;
+        });
+      }
+      setMessage((current) => getNextMessage(current, text, joining));
       clearTimer.current = window.setTimeout(() => {
         clearTimer.current = null;
         setMessage("");
