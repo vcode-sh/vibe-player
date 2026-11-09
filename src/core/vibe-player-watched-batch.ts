@@ -28,7 +28,7 @@ export class VibePlayerWatchedBatch {
     this.sequence = 0;
   }
 
-  /** Reports the pending ranges, if any, and starts an empty batch. */
+  /** Reports the pending ranges, when there are some, and empties the batch. */
   deliver(reason: VibePlayerWatchedRangesReason): void {
     const { ranges, source } = this;
     if (!(source && ranges.length > 0)) {

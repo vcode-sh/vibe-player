@@ -22,7 +22,7 @@ export interface VibePlayerPlayback {
  * a source (even the same one again), when the playing source id changes,
  * and when media plays again after it ended. Retry, renewal, stop, pause,
  * seeking and remounting keep the current playback. Each start reaches
- * `begin` before any later provider activity is observed.
+ * `begin` before later provider activity is observed.
  */
 export class VibePlayerPlaybackLifecycle {
   private current: VibePlayerPlayback | null = null;
@@ -43,7 +43,7 @@ export class VibePlayerPlaybackLifecycle {
     this.start(source, "load");
   }
 
-  /** Sees each provider event before any raw-feed consumer does. */
+  /** Sees each provider event before raw-feed consumers do. */
   observe(
     source: VibePlayerSource,
     { snapshot, type }: VibePlayerAdapterEvent

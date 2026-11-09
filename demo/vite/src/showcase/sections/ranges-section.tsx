@@ -50,7 +50,7 @@ export function RangesSection() {
   return (
     <ShowcaseSection
       api={["onWatchedRanges", "controller.flushWatchedRanges()"]}
-      description="Play, skip ahead, scrub back, pause. Each report holds the merged ranges that actually played since the last one and why it was sent: pause, ended, close, hidden (switch tabs), limit, or flush. The package sends and stores nothing; the host aggregates."
+      description="Play, skip ahead, scrub back, pause. Each report holds the merged ranges that actually played since the last one and why it was sent: pause, ended, seek, reload, close, hidden (switch tabs), limit, or flush. The package sends and stores nothing; the host aggregates."
       meta={rangesMeta}
     >
       <div className="sc-split">

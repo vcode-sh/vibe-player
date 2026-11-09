@@ -67,7 +67,8 @@ export function Viewer() {
   keys.
 - **Detached hosts:** `host` (or `VibePlayerHostFrame`) moves one playing
   player into a mini player or dock without restarting it.
-- **Watched ranges:** opt-in `onWatchedRanges` reports what actually played.
+- **Watched ranges:** opt-in `onWatchedRanges` reports what actually played,
+  with a `playbackId` and `sequence` for deduplication.
 - **Events:** an ordered, typed event stream through `onEvent` or
   `controller.on("seeked", listener)`.
 - **Audio and visibility:** `audioFocus` groups, lazy `load` policies, and

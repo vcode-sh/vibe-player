@@ -1,85 +1,16 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { readMedia } from "./helpers";
-
-interface Probe {
-  events: string[];
-  posters: number;
-  states: string[];
-}
-
-const player = ".vibe-player-compact";
-
-/** Records media reloads, poster insertions and chrome phases from now on. */
-async function instrument(page: Page) {
-  await page.evaluate((selector) => {
-    const probe: Probe = { events: [], posters: 0, states: [] };
-    const root = document.querySelector(selector);
-    const video = root?.querySelector("video");
-    if (!(root && video)) {
-      throw new Error("Missing player media.");
-    }
-    for (const type of ["abort", "emptied", "loadstart"]) {
-      video.addEventListener(type, () => probe.events.push(type));
-    }
-    new MutationObserver((records) => {
-      for (const record of records) {
-        if (record.attributeName === "data-state") {
-          probe.states.push(root.getAttribute("data-state") ?? "");
-        }
-        for (const node of record.addedNodes) {
-          if (node instanceof HTMLImageElement) {
-            probe.posters += 1;
-          }
-        }
-      }
-    }).observe(root, {
-      attributeFilter: ["data-state"],
-      attributes: true,
-      childList: true,
-    });
-    Object.assign(window, { vibePlayerProbe: probe });
-  }, player);
-}
-
-function readProbe(page: Page): Promise<Probe> {
-  return page.evaluate(
-    () => (window as unknown as { vibePlayerProbe: Probe }).vibePlayerProbe
-  );
-}
-
-async function expectAdvancing(page: Page) {
-  const from = (await readMedia(page)).currentTime;
-  await expect
-    .poll(async () => (await readMedia(page)).currentTime)
-    .toBeGreaterThan(from + 0.4);
-  expect((await readMedia(page)).paused).toBe(false);
-}
-
-async function startPlayback(page: Page, query = "") {
-  await page.goto(`/host-frame.html${query}`);
-  await expect(page.locator(`${player} [data-part="poster"]`)).toBeVisible();
-  await page.getByRole("button", { exact: true, name: "Play" }).click();
-  await expect(page.locator(player)).toHaveAttribute("data-state", "playing");
-  await expectAdvancing(page);
-}
-
-async function togglePlayback(page: Page, name: "Pause" | "Play") {
-  await page.locator(player).hover();
-  await page
-    .locator(`${player} [data-part="controls"]`)
-    .getByRole("button", { exact: true, name })
-    .click();
-}
-
-function hostOf(page: Page) {
-  return page
-    .locator("video")
-    .evaluate((video) =>
-      video
-        .closest("[aria-label]:is(section, aside):not(.vibe-player-compact)")
-        ?.getAttribute("aria-label")
-    );
-}
+import {
+  expectAdvancing,
+  hostOf,
+  instrument,
+  player,
+  readProbe,
+  readSeeks,
+  startPlayback,
+  stepForward,
+  togglePlayback,
+} from "./host-frame-helpers";
 
 test("resuming from a pause keeps the paused frame instead of the poster", async ({
   page,
@@ -116,7 +47,7 @@ test("native seeks flush observed playback and leave skipped time out of the nex
   const output = page.getByRole("status", { name: "Watched ranges" });
   await expect(output).not.toHaveText("none");
   const before = JSON.parse((await output.textContent()) ?? "null");
-  expect(before.reason).toBe("seek");
+  expect(before).toMatchObject({ reason: "seek", sequence: 1 });
   expect(before.ranges.at(-1).end).toBeLessThan(target - 0.45);
 
   await expect
@@ -128,6 +59,45 @@ test("native seeks flush observed playback and leave skipped time out of the nex
   await expect(output).toContainText('"reason":"pause"');
   const after = JSON.parse((await output.textContent()) ?? "null");
   expect(after.ranges[0].start).toBeGreaterThanOrEqual(target - 0.05);
+  expect(after).toMatchObject({ playbackId: before.playbackId, sequence: 2 });
+  const seeks = await readSeeks(page);
+  expect(seeks).toHaveLength(1);
+  expect(seeks[0]).toMatchObject({ initiator: "media", type: "seek" });
+  expect(seeks[0]?.currentTime).toBeCloseTo(target, 1);
+  expect(seeks[0]?.from).toBeLessThan(target);
+});
+
+test("a controller seek reports once and a replay after the end is a new playback", async ({
+  page,
+}) => {
+  await startPlayback(page);
+  await page.locator(player).focus();
+  // Two 10 s steps through the 24 s file, each followed by real progress.
+  await stepForward(page, 10);
+  await stepForward(page, 20);
+  await expect(page.locator(player)).toHaveAttribute("data-state", "ended", {
+    timeout: 10_000,
+  });
+  const output = page.getByRole("status", { name: "Watched ranges" });
+  const ended = JSON.parse((await output.textContent()) ?? "null");
+  expect(ended).toMatchObject({ reason: "ended", sequence: 3 });
+
+  await page
+    .locator(player)
+    .getByRole("button", { exact: true, name: "Replay" })
+    .click();
+  await expectAdvancing(page);
+  await togglePlayback(page, "Pause");
+  await expect(output).toContainText('"reason":"pause"');
+  const replayed = JSON.parse((await output.textContent()) ?? "null");
+  expect(replayed.sequence).toBe(1);
+  expect(replayed.playbackId).not.toBe(ended.playbackId);
+  // The media echoed both seeks; neither the echoes nor the replay rewind count.
+  const seeks = await readSeeks(page);
+  expect(seeks.map(({ initiator }) => initiator)).toEqual([
+    "controller",
+    "controller",
+  ]);
 });
 
 for (const provider of ["file", "hls"] as const) {

@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fileSource } from "./vibe-player-controller-test-helpers";
 import { createWatchedPlayer } from "./vibe-player-watched-test-helpers";
 
+/** A playback id is a non-empty string. */
+const playbackIdPattern = /\S/;
+
 describe("VibePlayerController watched ranges across media release", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -27,7 +30,7 @@ describe("VibePlayerController watched ranges across media release", () => {
       expect(reports).toEqual([
         {
           duration: 100,
-          playbackId: expect.any(String),
+          playbackId: expect.stringMatching(playbackIdPattern),
           provider: "file",
           ranges: [{ end: 3, start: 0 }],
           reason,

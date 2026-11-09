@@ -1,6 +1,7 @@
 import { type CSSProperties, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  type VibePlayerAnalyticsEvent,
   VibePlayerCompact,
   type VibePlayerCompactSkin,
   VibePlayerHeatmap,
@@ -43,6 +44,12 @@ function App() {
   const [report, setReport] = useState<VibePlayerWatchedRangesReport | null>(
     null
   );
+  const [seeks, setSeeks] = useState<VibePlayerAnalyticsEvent[]>([]);
+  const recordSeek = (event: VibePlayerAnalyticsEvent) => {
+    if (event.type === "seek") {
+      setSeeks((list) => [...list, event]);
+    }
+  };
   return (
     <main>
       <button onClick={() => setDocked((value) => !value)} type="button">
@@ -54,6 +61,7 @@ function App() {
         controls={{ pictureInPicture: true }}
         host={docked ? inline : floating}
         load="onPlay"
+        onAnalyticsEvent={recordSeek}
         onWatchedRanges={setReport}
         skin={skin}
         source={source}
@@ -63,6 +71,7 @@ function App() {
       <output aria-label="Watched ranges">
         {report ? JSON.stringify(report) : "none"}
       </output>
+      <output aria-label="Seek analytics">{JSON.stringify(seeks)}</output>
     </main>
   );
 }

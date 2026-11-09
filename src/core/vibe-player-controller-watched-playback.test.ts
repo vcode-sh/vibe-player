@@ -5,6 +5,9 @@ import {
   type WatchedPlayer,
 } from "./vibe-player-watched-test-helpers";
 
+/** A playback id is a non-empty string. */
+const playbackIdPattern = /\S/;
+
 function identities({ reports }: WatchedPlayer) {
   return reports.map(({ playbackId, reason, sequence }) => ({
     playbackId,
@@ -45,7 +48,9 @@ describe("VibePlayerController watched-range playback identity", () => {
       player.play(5, 7);
       player.pause();
       const [first] = identities(player);
-      expect(first?.playbackId).toEqual(expect.any(String));
+      expect(first?.playbackId).toEqual(
+        expect.stringMatching(playbackIdPattern)
+      );
       expect(identities(player)).toEqual([
         { playbackId: first?.playbackId, reason: "pause", sequence: 1 },
         { playbackId: first?.playbackId, reason: "reload", sequence: 2 },

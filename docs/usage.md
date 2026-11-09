@@ -402,14 +402,22 @@ provider details. Updating these callbacks does not restart the player.
 />;
 ```
 
+Every seek sends one `seek` event, whoever started it. `initiator` is
+`controller` for `seekTo()` (the package controls, shortcuts, Media Session or
+your code) and `media` for a seek the media made itself (native controls,
+Picture-in-Picture, the browser). `from` is the position the seek left and
+`currentTime` the position it went to. Restoring a resume or recovery position
+and rewinding to replay are not seeks.
+
 `onWatchedRanges` (opt-in) reports which parts of the media actually played,
 for "most replayed" data or completion that ignores skipping. Each report holds
 the merged, sorted ranges (seconds) since the previous one and why it was
-sent: `pause` (including stop and offscreen release), `ended`, `close` (source
-changed, closed or unmounted), `hidden` (page hidden or `pagehide`), `limit`
-(64 separate ranges) or `flush` (native seek boundaries or
-`controller.flushWatchedRanges()`). Native seeks begin a fresh batch so replayed
-stretches retain their playback time. Only
+sent: `pause` (including stop and offscreen release), `ended`, `seek` (a seek
+started, from `seekTo()` or the media), `reload` (retry or renewal reattached
+the source), `close` (source changed, loaded again, closed or unmounted),
+`hidden` (page hidden or `pagehide`), `limit` (64 separate ranges) or `flush`
+(`controller.flushWatchedRanges()`). Every seek begins a fresh batch so
+replayed stretches retain their playback time. Only
 unpaused media progress counts, and only as fast as the wall clock allows, so
 seeks, scrubs, loops and stalls never do. Nothing is sent or stored by the
 package; use `navigator.sendBeacon` or your API client:
@@ -423,6 +431,37 @@ import { VibePlayerCompact } from "vibe-player/compact";
   }
   source={source}
 />;
+```
+
+Each report names its playback. `playbackId` is unique within the page: a new
+playback starts when a source loads (even the same one again) and when media
+plays again after it ended, while pause, seek, stop, retry and renewal keep
+it. `sequence` numbers a playback's reports from 1. Together they identify a
+report, so store it under `playbackId` + `sequence` (a unique key makes a
+retried delivery harmless), add up one viewing per `playbackId`, and combine
+playbacks per `sourceId` for "most replayed":
+
+```ts
+import type { VibePlayerWatchedRangesReport } from "vibe-player";
+
+/** Unique seconds the reports cover; a duplicate delivery counts once. */
+export function getWatchedSeconds(
+  reports: readonly VibePlayerWatchedRangesReport[]
+): number {
+  const unique = new Map(
+    reports.map((report) => [`${report.playbackId}:${report.sequence}`, report])
+  );
+  const ranges = [...unique.values()]
+    .flatMap((report) => report.ranges)
+    .sort((a, b) => a.start - b.start);
+  let total = 0;
+  let reached = Number.NEGATIVE_INFINITY;
+  for (const { end, start } of ranges) {
+    total += Math.max(0, end - Math.max(start, reached));
+    reached = Math.max(reached, end);
+  }
+  return total;
+}
 ```
 
 `VibePlayerInline` and `VibePlayerModal` accept the same playback options,

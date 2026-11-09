@@ -19,9 +19,10 @@ export interface VibePlayerWatchedRange {
 /**
  * Why a batch was delivered: the viewer paused or playback stopped
  * (`pause`), media `ended`, a seek started (`seek`), retry or renewal
- * reattached the same source (`reload`), the source closed or changed
- * (`close`), the page was `hidden`, the batch reached its range `limit`, or
- * the host called `flushWatchedRanges()` (`flush`).
+ * reattached the same source (`reload`), the playback closed because the
+ * source closed, changed or loaded again or the media unmounted (`close`),
+ * the page was `hidden`, the batch reached its range `limit`, or the host
+ * called `flushWatchedRanges()` (`flush`).
  */
 export type VibePlayerWatchedRangesReason =
   | "close"

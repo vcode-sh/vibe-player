@@ -222,12 +222,17 @@ duplicate host-owned lifecycle events.
 
 Watched ranges are opt-in through `onWatchedRanges`: merged media ranges that
 played since the last report, delivered on pause, end, close, page hide, at 64
-ranges, at native seek boundaries, or on `controller.flushWatchedRanges()`.
-Native `seeking` and `seeked` events keep seek jumps out of watched time and
-separate replayed ranges. Watched time follows the provider's own events, so a
-seek that finishes during a pending pause still ends, and a seek the provider
-never finishes ends at the next pause, end, error or reload. The host owns
-transport, identity, sampling and aggregation (for example into the normalized
+ranges, when a seek starts (`seek`), when retry or renewal reattaches the
+source (`reload`), or on `controller.flushWatchedRanges()`. `seekTo()` delivers
+the batch before it seeks, for every provider; native `seeking` and `seeked`
+events keep seek jumps out of watched time and separate replayed ranges.
+Watched time follows the provider's own events, so a seek that finishes during
+a pending pause still ends, and a seek the provider never finishes ends at the
+next pause, end, error or reload. Each report carries `playbackId` (unique
+within the page; a new one per load and per replay after `ended`, kept across
+retry and renewal) and a 1-based `sequence` within that playback, so the host
+can deduplicate by `playbackId` + `sequence` and aggregate per playback. The
+host owns transport, sampling and aggregation (for example into the normalized
 values that `VibePlayerHeatmap` draws on hover and scrub). Callback failures
 report as nonfatal `integrationerror` events with
 `operation: "watched-ranges"`.
@@ -266,7 +271,10 @@ playback failures. Integration diagnostics are emitted as `onEvent` events with
 
 The package normalizes seek requests to the adapter's duration and `canSeek`
 capability before dispatch. Resume and seek analytics use that accepted target;
-provider getters can lag immediately after an asynchronous seek. Pending pause
+provider getters can lag immediately after an asynchronous seek. Seek analytics
+also cover seeks the media starts itself (`initiator: "media"`, from native
+`seeking`); a `seekTo()` the media echoes as `seeking`/`seeked` is reported
+once, and restoring a resume, recovery or replay position is not a seek. Pending pause
 intent suppresses stale active events until a provider pause acknowledgment;
 a later provider-initiated play can then update normalized state. That intent
 shapes `state.lastEvent`; `onEvent`, `controller.on()` and watched ranges see

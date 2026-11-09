@@ -94,7 +94,8 @@ export interface VibePlayerControllerOptions {
   onRenew?: (source: VibePlayerSource) => void;
   /**
    * Opt-in: merged media ranges that actually played since the last report,
-   * delivered on pause, end, close, page hide or `flushWatchedRanges()`.
+   * delivered on pause, end, seek, reload, close, page hide or
+   * `flushWatchedRanges()`, numbered by `sequence` within a `playbackId`.
    * Seeks and scrubbing never count. The host owns delivery and storage.
    */
   onWatchedRanges?: (report: VibePlayerWatchedRangesReport) => void;

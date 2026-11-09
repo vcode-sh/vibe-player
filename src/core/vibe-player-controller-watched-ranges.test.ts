@@ -4,6 +4,9 @@ import {
   type WatchedPlayer,
 } from "./vibe-player-watched-test-helpers";
 
+/** A playback id is a non-empty string. */
+const playbackIdPattern = /\S/;
+
 describe("VibePlayerController watched ranges", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -19,7 +22,7 @@ describe("VibePlayerController watched ranges", () => {
     expect(reports).toEqual([
       {
         duration: 100,
-        playbackId: expect.any(String),
+        playbackId: expect.stringMatching(playbackIdPattern),
         provider: "file",
         ranges: [{ end: 20, start: 10 }],
         reason: "pause",

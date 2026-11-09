@@ -13,11 +13,27 @@
   capability fields, which only the YouTube adapter used. Controls always draw
   over the media. If a custom adapter set them, simply drop them.
 
+### Changed
+
+- Watched-range reports use the new reason `"seek"` when a seek starts
+  (instead of `"flush"`, which now only means `flushWatchedRanges()`) and
+  `"reload"` when retry or renewal reattaches the source (instead of
+  `"pause"`). If you filter by reason, handle `"seek"` where you handled
+  `"flush"`.
+- `controller.seekTo()` delivers the pending watched ranges before it seeks,
+  for every provider, so a rewatched stretch is reported on its own.
+
 ### Added
 
 - `controller.on(type, listener)` listens to one event type, or every event
   with `"*"`, from the stream `onEvent` receives. Listeners are fully typed
   (`VibePlayerEventOfType`) and `on()` returns an unsubscribe function.
+- Watched-range reports carry a `playbackId` and a 1-based `sequence`, so you
+  can drop duplicates and add up each viewing. Loading a source or replaying
+  after the end starts a new playback; retry and renewal keep it.
+- The analytics `seek` event now fires once for every seek, including native
+  controls and Picture-in-Picture, with `from` (where it left) and
+  `initiator` (`"controller"` or `"media"`).
 
 ### Fixed
 
