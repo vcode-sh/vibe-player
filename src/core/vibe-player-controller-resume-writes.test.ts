@@ -140,6 +140,19 @@ describe("controller resume writes", () => {
     expect(player.set).not.toHaveBeenCalled();
   });
 
+  it("never saves a position captured before the source turned out live", async () => {
+    const player = await createResumePlayer();
+    // Too little progress to save yet; the position is held for a boundary.
+    player.play(0, 1);
+    // The provider detects the live stream late, e.g. from its first playlist.
+    player.adapter.capabilities.isLive = true;
+    player.adapter.emit("durationchange", {});
+    player.controller.flushWatchedRanges("hidden");
+    await player.controller.closeSource();
+
+    expect(player.set).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       after: (controller: VibePlayerController) => {

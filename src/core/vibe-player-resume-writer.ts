@@ -49,6 +49,8 @@ export class VibePlayerResumeWriter {
   /** After a pause, progress waits for the provider's next play. */
   private held = false;
   private latest: ResumePosition | null = null;
+  /** A source the attached adapter reported live; it stays live once closed. */
+  private liveSourceId: string | null = null;
   private mark: ResumeMark | null = null;
   private seeking = false;
   private readonly isLive: () => boolean;
@@ -61,6 +63,9 @@ export class VibePlayerResumeWriter {
 
   observe(entry: VibePlayerRawFeedEntry): void {
     if (entry.kind === "event") {
+      if (this.isLive()) {
+        this.liveSourceId = entry.source.id;
+      }
       this.observeEvent(entry.source, entry.event);
     } else if (entry.kind === "command") {
       this.pause(entry.source, entry.snapshot);
@@ -164,6 +169,7 @@ export class VibePlayerResumeWriter {
     }
     if (reason === "close") {
       this.latest = null;
+      this.liveSourceId = null;
     }
   }
 
@@ -203,8 +209,16 @@ export class VibePlayerResumeWriter {
     };
   }
 
+  /**
+   * Live sources never save, including a position captured before the
+   * adapter detected the live stream and saved after it, or after release.
+   */
   private write(position: ResumePosition, reason: ResumeReason): void {
-    if (position.live) {
+    if (
+      position.live ||
+      this.isLive() ||
+      position.source.id === this.liveSourceId
+    ) {
       return;
     }
     const { duration, seconds, source } = position;
