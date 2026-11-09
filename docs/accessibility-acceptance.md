@@ -42,7 +42,13 @@ Volume 100%
 
 That transcript predates 0.8.0, when the full stage toggle still switched to
 "Exit full screen"; it now keeps "Full screen" and reports its pressed state.
-The native probe waits for that pressed state, but was not re-run for 0.8.0.
+On 2026-11-09, with Google Chrome 157.0.8103.38 and Orca 50.3, the native
+probe's fullscreen and popover steps pass: on focus Orca says "Full screen,
+toggle button not pressed", and after Enter only "pressed". Its caption step
+fails on the 0.8.0 branch and on the commit it started from alike. Orca
+receives the caption notice's text but does not speak it, so the caption
+utterance above is not reproduced with these versions; that needs separate
+investigation.
 
 Caption failure was included in Orca's initial content utterance. This alone
 does not prove the timing or uniqueness of a later live-region announcement.
@@ -55,8 +61,8 @@ this fix and pass afterward.
 
 ## Announcements, reachable controls and fullscreen state
 
-Added for 0.8.0 and covered by the Chromium lane only; the Linux native and
-Orca probes above were not re-run for them.
+Added for 0.8.0 and covered by the Chromium lane; of the native checks, only
+the fullscreen pressed state was re-run (see above).
 - Each player has one always-mounted, visually hidden polite announcer
   (`role="status"`, `aria-atomic="true"`, `data-part="announcer"`) for its
   playback status. It announces delayed loading/buffering, a failure once, and
