@@ -74,7 +74,9 @@ rows.push(
       // (seek thumbnails without a heatmap).
       // 2026-11-09: 22,360 -> 24,600 B (measured 21,418 B + 15 %) to restore
       // headroom after native seek boundaries.
-      limit: 24_600,
+      // 2026-11-09: 24,600 -> 27,700 B (measured 24,074 B + 15 %); 2.1 %
+      // headroom tripped the new 5 % warning on every run.
+      limit: 27_700,
       mode: "gzip",
     },
     initial.map((chunk) => chunk.code)

@@ -107,7 +107,6 @@
     "package:surface": "bun scripts/assert-public-surface.mjs",
     "package:tarball": "bun scripts/assert-package-tarball.mjs",
     "release:publish": "changeset publish",
-    "release:version": "changeset version && bun install",
     "test": "vitest run",
     "test:accessibility:native": "node test/browser/accessibility-native.mjs",
     "test:browser": "playwright test",
