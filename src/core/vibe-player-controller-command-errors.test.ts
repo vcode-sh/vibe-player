@@ -10,7 +10,36 @@ class FullscreenAdapter extends TestAdapter {
   }
 }
 
+class PictureInPictureAdapter extends TestAdapter {
+  enterPictureInPicture(): Promise<void> {
+    return Promise.reject(
+      new DOMException("Picture-in-Picture is disabled.", "NotSupportedError")
+    );
+  }
+}
+
 describe("controller command diagnostics", () => {
+  it("does not report a refused Picture-in-Picture request as an unloadable source", async () => {
+    const onEvent = vi.fn();
+    const controller = new VibePlayerController({
+      adapterFactory: () => new PictureInPictureAdapter(),
+      onEvent,
+    });
+    await controller.load(fileSource);
+
+    await expect(controller.enterPictureInPicture()).rejects.toMatchObject({
+      name: "NotSupportedError",
+    });
+
+    const failures = onEvent.mock.calls
+      .map(([event]) => event)
+      .filter((event) => event.type === "commanderror");
+    expect(failures).toMatchObject([
+      { command: "enterPictureInPicture", error: { kind: "unknown" } },
+    ]);
+    await controller.teardown();
+  });
+
   it("reports failed playback and restores the provider snapshot for a retry", async () => {
     const adapter = new TestAdapter();
     const cause = new Error("Decoder unavailable");

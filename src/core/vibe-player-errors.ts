@@ -38,7 +38,11 @@ export function createVibePlayerError({
   };
 }
 
-/** Adapters report a kind in their payload; a rejected play() only by name. */
+/**
+ * Adapters report a kind in their payload. A rejected play() reports only a
+ * name, and `NotSupportedError` there means the media cannot be played. Other
+ * commands (Picture-in-Picture, fullscreen) reject with it for unrelated reasons.
+ */
 function getErrorKind(
   cause: unknown,
   details: VibePlayerAdapterEvent["payload"]
@@ -47,7 +51,11 @@ function getErrorKind(
   if (isErrorKind(kind)) {
     return kind;
   }
-  return cause instanceof Error && cause.name === "NotSupportedError"
+  const command = details?.command;
+  const isPlayback = command === undefined || command === "play";
+  return isPlayback &&
+    cause instanceof Error &&
+    cause.name === "NotSupportedError"
     ? "source"
     : "unknown";
 }
