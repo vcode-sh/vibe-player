@@ -83,23 +83,24 @@ function decide(
  * only on changes lets another player keep a session it took over. Retiring
  * the controller disconnects for good.
  */
-export function connectVibePlayerMediaSession(
-  controller: VibePlayerController,
-  setting: VibePlayerMediaSessionSetting,
-  focusGroup: string | false = false
-): VibePlayerMediaSessionConnection {
-  if (controller.retired) {
-    return inert;
-  }
-  let options = normalize(setting);
+function getFocusOwner(focusGroup: string | false) {
+  return focusGroup === false
+    ? undefined
+    : getVibePlayerAudioFocusOwner(focusGroup);
+}
+
+/** Claims or releases the session only when the decision changes. */
+function createSessionEvaluator(
+  getDecision: () => Decision | null,
+  session: Pick<
+    ReturnType<typeof createVibePlayerMediaSession>,
+    "claim" | "release"
+  >
+): () => void {
   let last: Decision = "keep";
-  let connected = true;
-  const session = createVibePlayerMediaSession(controller, options);
-  const owner = () =>
-    focusGroup === false ? undefined : getVibePlayerAudioFocusOwner(focusGroup);
-  const evaluate = () => {
-    const next = decide(controller, options.active, owner());
-    if (!connected || next === last) {
+  return () => {
+    const next = getDecision();
+    if (next === null || next === last) {
       return;
     }
     last = next;
@@ -109,6 +110,26 @@ export function connectVibePlayerMediaSession(
       session.release();
     }
   };
+}
+
+export function connectVibePlayerMediaSession(
+  controller: VibePlayerController,
+  setting: VibePlayerMediaSessionSetting,
+  focusGroup: string | false = false
+): VibePlayerMediaSessionConnection {
+  if (controller.retired) {
+    return inert;
+  }
+  let options = normalize(setting);
+  let connected = true;
+  const session = createVibePlayerMediaSession(controller, options);
+  const evaluate = createSessionEvaluator(
+    () =>
+      connected
+        ? decide(controller, options.active, getFocusOwner(focusGroup))
+        : null,
+    session
+  );
   const unsubscribe = controller.subscribe(evaluate);
   const unfocus =
     focusGroup === false

@@ -61,6 +61,24 @@ function getServerState(): VibePlayerControllerState {
 }
 
 /** Low-level binding; use `useVibePlayer` for package-managed source lifecycle. */
+/** A hidden page may never come back; deliver watched ranges while it can. */
+function useVibePlayerHiddenPageFlush(controller: VibePlayerController): void {
+  useEffect(() => {
+    const flush = () => controller.flushWatchedRanges("hidden");
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flush();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, [controller]);
+}
+
 export function useVibePlayerController(
   options: UseVibePlayerControllerOptions = {}
 ) {
@@ -102,21 +120,7 @@ export function useVibePlayerController(
     [controller]
   );
 
-  // A hidden page may never come back; deliver watched ranges while it can.
-  useEffect(() => {
-    const flush = () => controller.flushWatchedRanges("hidden");
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        flush();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("pagehide", flush);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("pagehide", flush);
-    };
-  }, [controller]);
+  useVibePlayerHiddenPageFlush(controller);
 
   // Retiring silences subscribers; the binding still renders the idle state once.
   const subscribe = useCallback(

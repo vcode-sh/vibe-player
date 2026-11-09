@@ -38,6 +38,41 @@ export function resolveConsumerBase(root, env) {
   return base;
 }
 
+/** Packs the package into `directory` and returns the archive file name. */
+async function packArchive(root, directory) {
+  const packOutput = await runConsumerCommand(
+    "npm",
+    ["pack", "--ignore-scripts", "--json", "--pack-destination", directory],
+    root
+  );
+  const packed = JSON.parse(packOutput);
+  const [archive] = Array.isArray(packed) ? packed : Object.values(packed);
+  if (!archive?.filename) {
+    throw new Error("npm pack did not return an archive filename.");
+  }
+  return archive.filename;
+}
+
+/** The consumer's package.json: the packed archive plus pinned peers. */
+async function createConsumerManifest(root, archiveName, reactVersion) {
+  return {
+    dependencies: {
+      "hls.js": await installedVersion(root, "hls.js"),
+      react: reactVersion,
+      "react-dom": reactVersion,
+      "vibe-player": `file:./${archiveName}`,
+    },
+    devDependencies: {
+      "@tabler/icons-react": "3.50.0",
+      "@types/react": await installedVersion(root, "@types/react"),
+      "@types/react-dom": await installedVersion(root, "@types/react-dom"),
+    },
+    name: "vibe-player-packed-consumer",
+    private: true,
+    type: "module",
+  };
+}
+
 export async function createPackedConsumer(
   root,
   reactVersion,
@@ -48,33 +83,9 @@ export async function createPackedConsumer(
   const directory = await mkdtemp(join(base, "consumer-"));
   try {
     await cp(join(root, "test/consumer"), directory, { recursive: true });
-    const packOutput = await runConsumerCommand(
-      "npm",
-      ["pack", "--ignore-scripts", "--json", "--pack-destination", directory],
-      root
-    );
-    const packed = JSON.parse(packOutput);
-    const [archive] = Array.isArray(packed) ? packed : Object.values(packed);
-    if (!archive?.filename) {
-      throw new Error("npm pack did not return an archive filename.");
-    }
+    const archive = await packArchive(root, directory);
     const version = reactVersion ?? (await installedVersion(root, "react"));
-    const manifest = {
-      dependencies: {
-        "hls.js": await installedVersion(root, "hls.js"),
-        react: version,
-        "react-dom": version,
-        "vibe-player": `file:./${archive.filename}`,
-      },
-      devDependencies: {
-        "@tabler/icons-react": "3.50.0",
-        "@types/react": await installedVersion(root, "@types/react"),
-        "@types/react-dom": await installedVersion(root, "@types/react-dom"),
-      },
-      name: "vibe-player-packed-consumer",
-      private: true,
-      type: "module",
-    };
+    const manifest = await createConsumerManifest(root, archive, version);
     await writeFile(
       join(directory, "package.json"),
       `${JSON.stringify(manifest, null, 2)}\n`

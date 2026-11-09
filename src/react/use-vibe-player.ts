@@ -73,6 +73,29 @@ function useStableSource(source: VibePlayerSource | null) {
   return current;
 }
 
+/** Mounts media in `target` (fullscreen shows `presentationTarget`). */
+function useVibePlayerTargetMount(
+  controller: VibePlayerController,
+  target: HTMLElement | null,
+  presentationTarget: HTMLElement | null | undefined
+): void {
+  useMountEffect(() => {
+    if (!target) {
+      return;
+    }
+    return () => {
+      controller.unmount().catch(() => undefined);
+    };
+  }, [controller, target]);
+  useMountEffect(() => {
+    if (target) {
+      controller
+        .mount(target, presentationTarget ?? target)
+        .catch(() => undefined);
+    }
+  }, [controller, presentationTarget, target]);
+}
+
 export function useVibePlayer({
   audioFocus = "default",
   autoPlay = false,
@@ -118,22 +141,7 @@ export function useVibePlayer({
     target: presentationTarget ?? target,
   });
 
-  useMountEffect(() => {
-    if (!target) {
-      return;
-    }
-    return () => {
-      controller.unmount().catch(() => undefined);
-    };
-  }, [controller, target]);
-
-  useMountEffect(() => {
-    if (target) {
-      controller
-        .mount(target, presentationTarget ?? target)
-        .catch(() => undefined);
-    }
-  }, [controller, presentationTarget, target]);
+  useVibePlayerTargetMount(controller, target, presentationTarget);
 
   useMountEffect(() => {
     loadGeneration.current += 1;

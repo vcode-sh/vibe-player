@@ -153,13 +153,22 @@ export async function handleVibePlayerControllerSeek({
   if (!isCurrent()) {
     return;
   }
-  emitAnalytics({
-    currentTime: acceptedTime,
+  emitAnalytics(createSeekEvent(currentSource, from, acceptedTime, duration));
+}
+
+function createSeekEvent(
+  source: VibePlayerSource,
+  from: number,
+  currentTime: number,
+  duration: number
+): VibePlayerAnalyticsEvent {
+  return {
+    currentTime,
     duration,
     from,
     initiator: "controller",
-    provider: currentSource.type,
-    sourceId: currentSource.id,
+    provider: source.type,
+    sourceId: source.id,
     type: "seek",
-  });
+  };
 }

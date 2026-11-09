@@ -53,8 +53,7 @@ export function VibePlayerBottomControls({
   seekThumbnails,
   snapshot,
 }: VibePlayerBottomControlsProps) {
-  const { classNames, formatTime } = useVibePlayerUI();
-  const remaining = Math.max(0, snapshot.duration - snapshot.currentTime);
+  const { classNames } = useVibePlayerUI();
   return (
     <div
       aria-hidden={chromeHidden}
@@ -89,25 +88,12 @@ export function VibePlayerBottomControls({
           snapshot={snapshot}
         />
       </div>
-      <div className="vibe-player-controls__progress">
-        <span className="vibe-player-controls__time">
-          {formatTime(snapshot.currentTime)}
-        </span>
-        {capabilities.isLive ? null : (
-          <VibePlayerTimeline
-            currentTime={snapshot.currentTime}
-            disabled={!(capabilities.canSeek && capabilities.supportsDuration)}
-            duration={snapshot.duration}
-            onSeek={onSeek}
-            seekThumbnails={seekThumbnails}
-          />
-        )}
-        {!capabilities.isLive && snapshot.duration > 0 ? (
-          <span className="vibe-player-controls__time">
-            -{formatTime(remaining)}
-          </span>
-        ) : null}
-      </div>
+      <VibePlayerBottomProgress
+        capabilities={capabilities}
+        onSeek={onSeek}
+        seekThumbnails={seekThumbnails}
+        snapshot={snapshot}
+      />
       <div className="vibe-player-controls__options">
         <VibePlayerRateControl
           capabilities={capabilities}
@@ -135,6 +121,41 @@ export function VibePlayerBottomControls({
           onTogglePictureInPicture={onTogglePictureInPicture}
         />
       </div>
+    </div>
+  );
+}
+
+/** Elapsed time, the timeline and the remaining time (none for live). */
+function VibePlayerBottomProgress({
+  capabilities,
+  onSeek,
+  seekThumbnails,
+  snapshot,
+}: Pick<
+  VibePlayerBottomControlsProps,
+  "capabilities" | "onSeek" | "seekThumbnails" | "snapshot"
+>) {
+  const { formatTime } = useVibePlayerUI();
+  const remaining = Math.max(0, snapshot.duration - snapshot.currentTime);
+  return (
+    <div className="vibe-player-controls__progress">
+      <span className="vibe-player-controls__time">
+        {formatTime(snapshot.currentTime)}
+      </span>
+      {capabilities.isLive ? null : (
+        <VibePlayerTimeline
+          currentTime={snapshot.currentTime}
+          disabled={!(capabilities.canSeek && capabilities.supportsDuration)}
+          duration={snapshot.duration}
+          onSeek={onSeek}
+          seekThumbnails={seekThumbnails}
+        />
+      )}
+      {!capabilities.isLive && snapshot.duration > 0 ? (
+        <span className="vibe-player-controls__time">
+          -{formatTime(remaining)}
+        </span>
+      ) : null}
     </div>
   );
 }

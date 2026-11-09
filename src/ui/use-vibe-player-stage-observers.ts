@@ -22,6 +22,20 @@ interface StageObserversInput
 const useCommitEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
+/** Delivers a nonfatal integration error; a failing reporter is ignored. */
+function reportIntegrationError(
+  onError: VibePlayerPlaybackOptions["onError"],
+  input: Parameters<typeof createVibePlayerError>[0]
+): void {
+  try {
+    Promise.resolve(onError?.(createVibePlayerError(input))).catch(
+      () => undefined
+    );
+  } catch {
+    // A failing error reporter must not start a reporting loop.
+  }
+}
+
 /** Optional host observers cannot interrupt the mounted playback surface. */
 export function useVibePlayerStageObservers({
   captionStatus,
@@ -56,20 +70,12 @@ export function useVibePlayerStageObservers({
       ) {
         return;
       }
-      try {
-        Promise.resolve(
-          onError?.(
-            createVibePlayerError({
-              cause,
-              details: { operation },
-              phase: "integration",
-              source: expectedSource ?? source,
-            })
-          )
-        ).catch(() => undefined);
-      } catch {
-        // A failing error reporter must not start a reporting loop.
-      }
+      reportIntegrationError(onError, {
+        cause,
+        details: { operation },
+        phase: "integration",
+        source: expectedSource ?? source,
+      });
     }
   );
   const notify = useEffectEvent(
