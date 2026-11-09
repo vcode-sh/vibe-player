@@ -1,11 +1,9 @@
-import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { VibePlayerCompact } from "./vibe-player-compact";
-import { VibePlayerStage } from "./vibe-player-stage";
 import {
-  createStageAdapterFactory,
-  stageFileSource,
-} from "./vibe-player-stage-test-helpers";
+  renderHiddenCompact,
+  renderHiddenStage,
+} from "./vibe-player-focus-test-helpers";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -15,53 +13,6 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
 });
-
-const settle = (ms = 0) => act(() => vi.advanceTimersByTimeAsync(ms));
-
-function getRoot(container: HTMLElement): HTMLElement {
-  const root = container.querySelector<HTMLElement>(".vibe-player-stage");
-  if (!root) {
-    throw new Error("Missing player root.");
-  }
-  return root;
-}
-
-async function renderHiddenStage() {
-  const { adapterFactory } = createStageAdapterFactory();
-  const { container } = render(
-    <VibePlayerStage
-      adapterFactory={adapterFactory}
-      autoPlay
-      controlsHideDelay={100}
-      source={stageFileSource}
-    />
-  );
-  await settle();
-  const root = getRoot(container);
-  // A mouse move starts the idle timer that hides playing chrome.
-  fireEvent.pointerMove(root, { pointerType: "mouse" });
-  await settle(150);
-  expect(root).toHaveAttribute("data-chrome-hidden", "true");
-  return root;
-}
-
-async function renderHiddenCompact() {
-  const { adapterFactory } = createStageAdapterFactory();
-  const { container } = render(
-    <VibePlayerCompact
-      adapterFactory={adapterFactory}
-      autoPlay
-      controlsHideDelay={100}
-      source={stageFileSource}
-    />
-  );
-  await settle();
-  const root = getRoot(container);
-  fireEvent.pointerMove(root, { pointerType: "mouse" });
-  await settle(150);
-  expect(root).toHaveAttribute("data-controls", "hidden");
-  return root;
-}
 
 describe("chrome reveal on focus", () => {
   it("reveals hidden Stage chrome when focus enters the player region", async () => {

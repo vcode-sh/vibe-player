@@ -166,7 +166,8 @@
   announces loading, buffering, a failure once, and keyboard play, pause and
   seek results. Translate the new words with `labels.playing` and `labels.paused`.
 - Hidden controls are reachable for assistive technology: focus entering the
-  player now reveals them, not only a key press.
+  player now reveals them, not only a key press, and focus resting on a
+  control keeps them open. Returning to the browser tab no longer flashes them.
 - Fullscreen toggles in the Glass, Chips and full stage chrome expose
   `aria-pressed` and the "Exit full screen" label; overlays read
   `surface.state.fullscreen`.

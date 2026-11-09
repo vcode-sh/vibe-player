@@ -2,7 +2,6 @@ import { type FocusEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { VibePlayerCapabilities, VibePlayerShortcutAction } from "../core";
 import { useVibePlayerDelayedFlag } from "../react/use-vibe-player-delayed-flag";
 import { useVibePlayerStagePlayback } from "./use-vibe-player-stage-playback";
-import { isKeyboardControlFocus } from "./use-vibe-player-stage-root-events";
 import { useVibePlayerSurfaceInput } from "./use-vibe-player-surface-input";
 import { useVibePlayerSurfaceScrub } from "./use-vibe-player-surface-scrub";
 import { useVibePlayerTapSeek } from "./use-vibe-player-tap-seek";
@@ -219,8 +218,7 @@ export function useVibePlayerSurface(
       }
     },
     onFocusCapture: (event: FocusEvent<HTMLElement>) => {
-      rootEvents.onFocusCapture(event);
-      setKeyboardHold(isKeyboardControlFocus(event));
+      setKeyboardHold(rootEvents.onFocusCapture(event));
     },
   };
   return { events, indicator: tapSeek.indicator, playback, surface };

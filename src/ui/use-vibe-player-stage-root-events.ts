@@ -1,15 +1,17 @@
 import {
-  type FocusEvent,
   type KeyboardEvent,
   type PointerEvent,
   type RefObject,
   useCallback,
-  useRef,
 } from "react";
 import { flushSync } from "react-dom";
 import { shouldRevealVibePlayerChromeForKey } from "../core";
 import type { VibePlayerChromeState } from "../react";
 import { useVibePlayerStageClick } from "./use-vibe-player-stage-click";
+import {
+  useVibePlayerStageFocus,
+  type VibePlayerStageFocusEvents,
+} from "./use-vibe-player-stage-focus";
 
 export interface UseVibePlayerStageRootEventsInput {
   chrome: VibePlayerChromeState;
@@ -21,57 +23,12 @@ export interface UseVibePlayerStageRootEventsInput {
   togglePlay: () => void;
 }
 
-export interface VibePlayerStageRootEvents {
-  onBlurCapture: (event: FocusEvent<HTMLElement>) => void;
+export interface VibePlayerStageRootEvents extends VibePlayerStageFocusEvents {
   onClick: ReturnType<typeof useVibePlayerStageClick>;
-  onFocusCapture: (event: FocusEvent<HTMLElement>) => void;
   onKeyDownCapture: (event: KeyboardEvent<HTMLElement>) => void;
   onPointerDown: (event: PointerEvent<HTMLElement>) => void;
-  onPointerDownCapture: () => void;
   onPointerLeave: (event: PointerEvent<HTMLElement>) => void;
   onPointerMove: (event: PointerEvent<HTMLElement>) => void;
-}
-
-/**
- * Only keyboard focus on a control pins the chrome. A pressed button keeps
- * pointer focus, which must not stop playing media from clearing its controls.
- */
-export function isKeyboardControlFocus(
-  event: FocusEvent<HTMLElement>
-): boolean {
-  const { currentTarget, target } = event;
-  if (target === currentTarget) {
-    return false;
-  }
-  try {
-    return target.matches(":focus-visible");
-  } catch {
-    return true;
-  }
-}
-
-/** Focus this soon after a press came from the pointer, not from navigation. */
-const pointerFocusWindowMs = 1000;
-
-/**
- * Focus arriving by keyboard or assistive technology reveals hidden chrome,
- * which is inert until then. Pointer presses keep their own policy (a touch
- * tap toggles), and the player returning focus to its region from an inner
- * control that just hid must not bring the chrome back.
- */
-function shouldRevealOnFocus(
-  event: FocusEvent<HTMLElement>,
-  lastPointerDown: number
-): boolean {
-  if (performance.now() - lastPointerDown < pointerFocusWindowMs) {
-    return false;
-  }
-  const { currentTarget, relatedTarget, target } = event;
-  return !(
-    target === currentTarget &&
-    relatedTarget instanceof Node &&
-    currentTarget.contains(relatedTarget)
-  );
 }
 
 export function useVibePlayerStageRootEvents({
@@ -86,34 +43,7 @@ export function useVibePlayerStageRootEvents({
     rootElement,
     togglePlay,
   });
-  const onBlurCapture = useCallback(
-    (event: FocusEvent<HTMLElement>) => {
-      const nextTarget = event.relatedTarget;
-      if (
-        nextTarget instanceof Node &&
-        event.currentTarget.contains(nextTarget)
-      ) {
-        return;
-      }
-      chrome.releaseChrome();
-    },
-    [chrome]
-  );
-  const lastPointerDown = useRef(Number.NEGATIVE_INFINITY);
-  const onFocusCapture = useCallback(
-    (event: FocusEvent<HTMLElement>) => {
-      if (isKeyboardControlFocus(event)) {
-        chrome.holdChrome();
-        return;
-      }
-      // A removed control fires no blur; later focus must not stay pinned.
-      chrome.releaseChrome();
-      if (shouldRevealOnFocus(event, lastPointerDown.current)) {
-        chrome.showChrome();
-      }
-    },
-    [chrome]
-  );
+  const focus = useVibePlayerStageFocus(chrome);
   const onKeyDownCapture = useCallback(
     (event: KeyboardEvent<HTMLElement>) => {
       if (
@@ -129,16 +59,12 @@ export function useVibePlayerStageRootEvents({
     [chrome]
   );
   return {
-    onBlurCapture,
+    ...focus,
     onClick,
-    onFocusCapture,
     onKeyDownCapture,
     onPointerDown: (event) => {
       pointerType.current = event.pointerType;
       chrome.showChrome();
-    },
-    onPointerDownCapture: () => {
-      lastPointerDown.current = performance.now();
     },
     onPointerLeave: (event) => {
       if (hideOnPointerLeave && event.pointerType !== "touch") {

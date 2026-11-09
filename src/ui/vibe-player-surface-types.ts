@@ -29,7 +29,10 @@ export interface VibePlayerSurfaceState {
   error: VibePlayerError | null;
   /** The player is presented in fullscreen. */
   fullscreen: boolean;
-  /** Why controls are held open: phase, keyboard focus on a control, or scrub. */
+  /**
+   * Why controls are held open: phase, scrub, or keyboard or
+   * assistive-technology focus on a control (`"keyboard-focus"`).
+   */
   hold: "keyboard-focus" | "phase" | "scrub" | null;
   muted: boolean;
   phase: VibePlayerSurfacePhase;
