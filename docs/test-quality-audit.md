@@ -19,7 +19,6 @@ assertions within retained files.
 | ------------------------------------ | -------------: | ------------------------------------------------------ |
 | Controller and core                  |             23 | [core](test-quality-audit/core.md)                     |
 | Native, file and HLS adapters        |             14 | [media adapters](test-quality-audit/media-adapters.md) |
-| YouTube adapter/runtime              |             12 | [YouTube](test-quality-audit/youtube.md)               |
 | React hooks and captions             |             15 | [React/captions](test-quality-audit/react-captions.md) |
 | UI and ambient previews              |             24 | [UI/preview](test-quality-audit/ui-preview.md)         |
 | Media-audit and package scripts      |             23 | [scripts](test-quality-audit/scripts.md)               |
@@ -27,7 +26,7 @@ assertions within retained files.
 
 No entire original test file needed deletion. Redundant individual cases and
 assertions were removed where replacement protection was identified, including
-one caption rejection case, a duplicate YouTube origin/referrer case and repeated
+one caption rejection case, a duplicate provider-option case and repeated
 media-audit finding/action payload checks. A duplicated Inline adapter fixture was
 replaced by the existing focused assembly fixture. Structural package checks,
 meaningful mock interactions, valid presence assertions and complementary browser
@@ -41,8 +40,6 @@ checks were retained. There was no count-reduction or coverage-score target.
   resume positions do not reach the adapter.
 - Native file/HLS playback preserves the latest play intent when an earlier
   promise resolves. HLS quality selection accepts only advertised option IDs.
-- YouTube publishes readiness after the player handle is committed. Cancellation
-  clears the creation deadline promptly and still destroys a handle arriving late.
 - WebVTT parsing preserves valid prefixed cue IDs and payload whitespace while
   rejecting malformed timestamp components. Intentional comma compatibility was
   retained. A suspected malformed-NOTE issue was not treated as a proven defect.
@@ -87,7 +84,6 @@ The final code tree passed `bun run ci` on Node 26.13.0 with Bun 1.4.4.
 | Source and packaged demo builds                                                | Passed, including demo typecheck.                                                                                                         |
 | Installed consumer, Node 26.13.0 / React 19.3.1                                | Isolated archive install, 17 shipped recipes, types, ESM, SSR, CSS, CLI and consumer build passed.                                        |
 | Deterministic Playwright                                                       | All 52 Chromium/WebKit tests passed, including the new tooltip regression, real local decoding and credentialed HLS.                      |
-| Live YouTube, `bun run test:youtube`                                           | All 4 tests passed in Chrome 157.0.8103.38 with official SDK/public media and no network stubs.                                           |
 | Minimum Node 22.0.0 / React 19.2.7                                             | Installed consumer and all 17 recipes passed with compatible npm 10.9.9; consumer build intentionally skipped as in the release workflow. |
 | Native accessibility, `bun run test:accessibility:native`                      | Isolated Xvfb/D-Bus, native XTest input, AT-SPI and Orca generated-speech checks passed in Chrome 157.0.8103.38.                          |
 
@@ -118,7 +114,6 @@ live-provider evidence and selected native accessibility transcripts/trees.
 
 This audit does not prove the absence of all defects or establish general latency
 improvements. Physical Safari/iOS, VoiceOver, NVDA, hardware keyboard input and
-human listening remain separate acceptance boundaries. Live YouTube evidence is
-specific to the tested samples and provider state. Public API shape, provider
+human listening remain separate acceptance boundaries. Public API shape, provider
 separation, dependencies and CI budgets remain intact. Nothing was committed,
 pushed, published or deployed.

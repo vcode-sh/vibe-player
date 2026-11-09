@@ -52,7 +52,7 @@ export function PlayerShell({
       <div className="vp-player-shell__stage">
         <VibePlayerStage
           autoHideControls={false}
-          autoPlay={source.type !== "youtube"}
+          autoPlay
           autoPlayMutedBootstrap
           onAnalyticsEvent={onAnalyticsEvent}
           onStateChange={onStateChange}

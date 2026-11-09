@@ -94,10 +94,7 @@ export function useVibePlayerSurface(
   });
   const playing = isVibePlayerSurfacePlaying(phase);
   const controlsVisible =
-    scrub.scrubbing ||
-    phase === "paused" ||
-    capabilities.controlsPresentation === "outside" ||
-    (playing && !chrome.chromeHidden);
+    scrub.scrubbing || phase === "paused" || (playing && !chrome.chromeHidden);
   const live = scrub.previewTime ?? snapshot.currentTime;
   const shownTime = useRef(live);
   if (controlsVisible || !playing) {

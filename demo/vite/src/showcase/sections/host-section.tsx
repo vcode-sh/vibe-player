@@ -15,8 +15,6 @@ export const hostMeta = {
 };
 
 const source = withId(landscapeSource, "host-feed");
-const canMoveIframes =
-  typeof Element !== "undefined" && "moveBefore" in Element.prototype;
 
 interface HostStats {
   moves: number;
@@ -53,15 +51,7 @@ export function HostSection() {
       ]}
       description="Play the clip, then float it. The same media element, chrome and buffer move into the corner and back: the time keeps counting and nothing reloads. Custom UI built on useVibePlayer gets the same move with VibePlayerHostFrame."
       meta={hostMeta}
-      notes={
-        <p>
-          File and HLS media move in every engine. A YouTube iframe survives the
-          move only where <code>Element.moveBefore()</code> exists (Chromium);
-          elsewhere it reloads. This browser:{" "}
-          <strong>{canMoveIframes ? "has moveBefore" : "no moveBefore"}</strong>
-          .
-        </p>
-      }
+      notes={<p>File and HLS media move in every engine without reloading.</p>}
     >
       <article className="sc-card">
         <header className="sc-card__head">

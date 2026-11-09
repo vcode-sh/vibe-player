@@ -121,38 +121,6 @@ Use HLS for long videos, adaptive delivery, or assets where progressive MP4
 startup is unreliable. HLS sources can expose package quality selection when
 managed `hls.js` playback is available.
 
-YouTube sources stay iframe-provider owned. The package exposes normalized
-playback shell behavior, but does not fake YouTube captions, PiP, or quality
-menus as package controls.
-
-Use the default `presentation: "iframe"` for in-player YouTube playback. The
-package sets the IFrame API `origin` parameter from the current page origin by
-default and lets hosts override `origin` or pass `widgetReferrer` on the source
-when embedding from wrapper or WebView environments.
-
-Embedded YouTube uses package controls by default (`controls: "custom"`). The
-adapter reports `controlsPresentation: "outside"`, and the ready-made UI lays
-out the header, the video and the playback bar as separate rows so no package
-surface overlaps the iframe. `controls: "native"` reports
-`controlsPresentation: "provider"`: YouTube shows its own controls, including
-its caption and quality menus, and `hasNativeCaptionsMenu` is `true`. Commands
-stay available in both modes (`supportsPlayback` is `true`), so host shortcuts
-and buttons keep working. `captionLanguage` and `showCaptionsByDefault` are
-startup requests to YouTube; see the YouTube rules in [usage.md](./usage.md)
-for what they do and do not guarantee.
-
-Custom UIs built on `useVibePlayer` should read
-`state.capabilities.controlsPresentation`: omitted or `"overlay"` allows controls
-over the media; `"outside"` means keep every control, menu and notice outside
-the media rectangle; `"provider"` means the provider draws playback controls,
-so render none of your own. The value is known as soon as a source starts
-loading, before the provider is ready.
-
-Use `presentation: "external"` for a compliant headless-style YouTube surface.
-That mode renders a package-owned handoff card, does not mount a YouTube iframe,
-does not expose playback controls, and opens the YouTube watch URL. It is a
-handoff mode, not hidden/background/raw-stream playback.
-
 ## Autoplay And Audio
 
 `VibePlayerStage autoPlay` requests package playback after the selected source
@@ -264,7 +232,7 @@ identity, sampling and aggregation (for example into the normalized values that
 Offscreen and hidden-tab release never stops a player that is in
 Picture-in-Picture; the policy applies again after the window closes.
 
-Top-level product actions, such as "Watch on YouTube", should be passed as
+Top-level product actions, such as "Open in app", should be passed as
 host-owned UI through player composition props rather than hardcoded in the
 package.
 
@@ -334,7 +302,7 @@ otherwise it propagates to the host dialog untouched.
 
 ## Advanced Adapter Integration
 
-The root API exports the built-in factories and named HLS and YouTube runtime
+The root API exports the built-in factories and named HLS runtime
 contracts. Override one provider while retaining package defaults for the rest:
 
 ```ts
@@ -366,26 +334,19 @@ start `preload="none"` elements. Inline HLS defaults cap quality to frame size,
 use small forward/back buffers, reuse a recent bandwidth estimate for five
 minutes and start conservatively for data saver. Host `hlsConfig` can override
 those defaults.
-YouTube runtime injection uses `YouTubeAdapterRuntime`; provider SDK objects
-remain behind that bridge. A custom runtime must return a usable player handle,
-or resolve only after its player is ready. Honor `session.signal` to release
-pending creation when a source is replaced, unmounted, or times out. The default
-runtime waits for the official `onReady` event.
 
 For direct adapter use, subscribe, mount the target, then load the source and
 await commands. Unsubscribe and unmount when the owner disposes the adapter.
-Repeating a mount on the same target is idempotent. YouTube target relocation
-uses `Element.moveBefore` when available to retain the iframe browsing context;
-the legacy node-move fallback can reload embedded content. Unmount releases
+Repeating a mount on the same target is idempotent. Unmount releases
 media and owned fullscreen/PiP; subscriptions survive until their returned
 unsubscribe function is called. The controller owns this sequence for ordinary package use
-and creates a fresh adapter per source load. Built-in HLS and YouTube adapters
+and creates a fresh adapter per source load. Built-in file and HLS adapters
 discard or clean up superseded asynchronous load completions.
 
 ## Verification Checklist
 
 Before replacing an existing product player, verify:
-- file, HLS, and YouTube sources render through the same package shell;
+- file and HLS sources render through the same package shell;
 - CSS is present in the app bundle;
 - opening and closing removes the active media element;
 - re-opening creates exactly one active media element;

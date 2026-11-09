@@ -2,8 +2,6 @@ export {
   createFileAdapter,
   createHlsAdapter,
   createVibePlayerAdapter,
-  createYouTubeAdapter,
-  createYouTubeExternalAdapter,
   type HlsAdapterErrorPayload,
   type HlsAdapterOptions,
   type HlsAdapterRuntime,
@@ -12,11 +10,6 @@ export {
   type ManagedHlsLevel,
   type ManagedHlsSession,
   type VibePlayerAdapterOptions,
-  type YouTubeAdapterErrorPayload,
-  type YouTubeAdapterRuntime,
-  type YouTubePlayerHandle,
-  type YouTubePlayerSession,
-  type YouTubePlayerState,
 } from "./adapters";
 export {
   getActiveVibePlayerCaptionLines,
@@ -32,7 +25,6 @@ export {
   createLocalStorageVibePlayerResumeStore,
   createMemoryVibePlayerResumeStore,
   createVibePlayerVolumeState,
-  createVibePlayerYouTubeWatchUrl,
   formatVibePlayerPlaybackRate,
   formatVibePlayerTime,
   getFiniteVibePlayerDuration,
@@ -41,7 +33,6 @@ export {
   getVibePlayerProgressMilestone,
   getVibePlayerShortcutAction,
   getVibePlayerVolumePercent,
-  getVibePlayerYouTubePresentation,
   type ShouldRestoreVibePlayerResumePositionInput,
   shouldRestoreVibePlayerResumePosition,
   shouldRevealVibePlayerChromeForKey,
@@ -87,8 +78,6 @@ export {
   type VibePlayerWatchedRange,
   type VibePlayerWatchedRangesReason,
   type VibePlayerWatchedRangesReport,
-  type VibePlayerYouTubeSource,
-  type VibePlayerYouTubeUrlInput,
   vibePlayerPlaybackRates,
 } from "./core";
 export {

@@ -15,7 +15,6 @@ const requiredMarkers = [
   ".vibe-player-timeline",
   ".vibe-player-tooltip",
   ".vibe-player-volume-control",
-  ".vibe-player-youtube-external",
   ".vibe-player-glass",
 ];
 

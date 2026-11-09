@@ -44,8 +44,7 @@ function releasePage(session: PageMediaSession, positioned: boolean): void {
 
 /**
  * Connects a controller to `navigator.mediaSession` while it owns the page
- * session. Without the API every call is a no-op. YouTube sources never claim:
- * their media plays in YouTube's own frame, which owns its own session.
+ * session. Without the API every call is a no-op.
  */
 export function createVibePlayerMediaSession(
   controller: VibePlayerController,
@@ -103,10 +102,6 @@ export function createVibePlayerMediaSession(
       stop();
       return;
     }
-    if (state.currentSource?.type === "youtube") {
-      release();
-      return;
-    }
     syncMetadata(session, state);
     syncActions(session, state);
     session.playbackState = state.snapshot.paused ? "paused" : "playing";
@@ -139,11 +134,7 @@ export function createVibePlayerMediaSession(
   return {
     claim() {
       const state = controller.getState();
-      if (
-        page.owner === token ||
-        !getPageMediaSession() ||
-        state.currentSource?.type === "youtube"
-      ) {
+      if (page.owner === token || !getPageMediaSession()) {
         return;
       }
       stop();

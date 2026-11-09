@@ -159,7 +159,7 @@ describe("VibePlayerControls", () => {
         onTogglePlay={vi.fn()}
         snapshot={snapshot}
         title="External video"
-        topActions={<a href="https://youtube.com/watch?v=demo">Open</a>}
+        topActions={<a href="https://example.com/watch">Open</a>}
       />
     );
 

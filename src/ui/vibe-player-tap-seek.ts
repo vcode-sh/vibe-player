@@ -41,7 +41,7 @@ export function getVibePlayerTapSide(fraction: number): VibePlayerTapSide {
 }
 
 /**
- * YouTube-style double tap: a second tap on the same side within 300 ms
+ * Double tap: a second tap on the same side within 300 ms
  * starts a burst, and every further side tap within 700 ms of the last adds a
  * step (switching sides restarts the count). A lone side tap runs `single`
  * after 300 ms; a centre tap runs it at once and ends the current burst.

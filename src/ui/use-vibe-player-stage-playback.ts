@@ -58,7 +58,7 @@ export function useVibePlayerStagePlayback(
   const { controller, state } = playback;
   const capabilities = state.capabilities ?? createIdleCapabilities();
   const chrome = useVibePlayerChrome({
-    autoHide: !capabilities.keepsControlsVisible && (autoHideControls ?? true),
+    autoHide: autoHideControls ?? true,
     idleDelayMs: controlsHideDelay ?? policy.hideDelayMs,
     open,
     playing:

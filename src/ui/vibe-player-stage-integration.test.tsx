@@ -1,10 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VibePlayerFileSource } from "../core";
@@ -139,25 +133,6 @@ describe("package player integration", () => {
     );
     expect(previous).not.toHaveBeenCalled();
     expect(adapters).toHaveLength(1);
-  });
-
-  it("obeys normalized visibility requirements even for a custom file adapter", async () => {
-    vi.useFakeTimers();
-    const { adapterFactory } = createStageAdapterFactory({
-      configure: (adapter) => {
-        adapter.capabilities.keepsControlsVisible = true;
-      },
-    });
-    await act(async () => {
-      render(
-        <VibePlayerStage
-          adapterFactory={adapterFactory}
-          source={stageFileSource}
-        />
-      );
-    });
-    act(() => vi.advanceTimersByTime(10_000));
-    expect(screen.getByRole("button", { name: "Play" })).toBeVisible();
   });
 
   it("supports StrictMode ref replay and still plays the mounted source", async () => {

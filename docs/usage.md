@@ -96,52 +96,6 @@ const source = {
 } satisfies VibePlayerSource;
 ```
 
-YouTube iframe with package controls (the default, `controls: "custom"`):
-
-```ts
-import type { VibePlayerSource } from "vibe-player";
-
-const source = {
-  id: "youtube-demo",
-  title: "Official iframe playback",
-  type: "youtube",
-  youtubeVideoId: "M7lc1UVf-VE",
-} satisfies VibePlayerSource;
-```
-
-YouTube iframe with YouTube's own controls, for its caption and quality menus:
-
-```ts
-import type { VibePlayerSource } from "vibe-player";
-
-const source = {
-  captionLanguage: "en",
-  controls: "native",
-  id: "youtube-native-demo",
-  showCaptionsByDefault: true,
-  title: "Native YouTube controls",
-  type: "youtube",
-  youtubeVideoId: "8S0FDjFBj8o",
-} satisfies VibePlayerSource;
-```
-
-YouTube external handoff:
-
-```ts
-import type { VibePlayerSource } from "vibe-player";
-
-const source = {
-  externalActionLabel: "Watch on YouTube",
-  id: "youtube-external-demo",
-  posterUrl: "/video/youtube-poster.jpg",
-  presentation: "external",
-  startSeconds: 12,
-  title: "Compliant handoff",
-  type: "youtube",
-  youtubeVideoId: "M7lc1UVf-VE",
-} satisfies VibePlayerSource;
-```
-
 Source collections accept both ordinary arrays and readonly arrays, including
 values declared with `as const`. The package reads source and caption collections
 without mutating them. Replace the source value when media changes instead of
@@ -345,8 +299,7 @@ declare function playNext(): void;
   set; another player becoming audible takes it over.
 - Hosts with their own audio focus registry pass `active`: `true` for the
   player that owns the session, `false` for every other one.
-- YouTube sources never claim the session: their media plays in YouTube's own
-  frame, and YouTube's embed controls that frame's session. Where the API is
+- Where the API is
   missing (server rendering, older browsers) the option does nothing; its code
   loads only for players that opt in.
 
@@ -405,7 +358,7 @@ import { VibePlayerStage } from "vibe-player/stage";
   - Only taps count: a scroll or a chips drag never fires it, a double tap
     never zooms the page (`touch-action: manipulation`), and taps on controls
     keep their own meaning.
-  - A mouse never seeks this way. Following YouTube, a mouse double-click on
+  - A mouse never seeks this way. A mouse double-click on
     the full-stage picture toggles full screen; compact players keep a click as
     play/pause.
   - Reduced motion shows the same wash and total without the travelling wave.
@@ -541,7 +494,7 @@ Options:
   buttons and `gestures={{ doubleTapSeek: true }}` to double-tap seeking; both
   move by `seekStep` (see [Seeking](#seeking)). `pictureInPicture: true` opts in to a
   Picture-in-Picture button where the provider supports it (file and HLS in
-  browsers with the API; never YouTube). The compact skins have no volume
+  browsers with the API). The compact skins have no volume
   slider. `centerButton: "except-paused"` hides the glass centre button while
   paused, when the capsule already offers Play, so a small player shows one
   Play; idle, loading and ended keep it (`"always"`, the default, shows it
@@ -716,11 +669,7 @@ export function FeedClip({ source }: { source: VibePlayerMp4Source }) {
   host; the player fills it like any other frame.
 - Moves are synchronous, so `<video>` keeps playing in every engine and fires
   no `emptied` or `loadstart`. Where `Element.moveBefore()` exists the move is
-  also state-preserving for focus and iframes.
-- **YouTube:** the iframe survives a move only with `moveBefore()` (Chromium).
-  Other engines reload a moved iframe, which restarts the YouTube player.
-  Offer a floating YouTube player only when
-  `"moveBefore" in Element.prototype`, or keep YouTube inline.
+  also state-preserving for focus and embedded frames.
 - Visibility follows the player: `stopWhenOffscreen` and
   `autoplayWhenVisible` observe it in whichever host shows it. A player that
   floats _because_ its slot scrolled away should pass
@@ -836,7 +785,7 @@ Frame ratios follow source dimensions or decoded metadata and default to a
 9:16–16:9 clamp. No minimum height is imposed.
 
 `VibePlayerHeadless` renders a bare video for HLS, MP4 and legacy file sources;
-use `useVibePlayer` with a container target for iframe providers such as YouTube.
+use `useVibePlayer` with a container target for custom media surfaces.
 The component accepts `videoProps` for native
 video attributes/events. It owns `src`, `poster`, `preload`, `autoPlay`, media
 children and its mount ref; put host playback-policy callbacks on the top level and native DOM
@@ -916,56 +865,6 @@ The default UI intentionally stays dependency-light. Base UI is a good host
 layer for custom sliders, menus, and popovers, but it is not a required runtime
 dependency of the package.
 
-## YouTube Rules
-
-`presentation: "iframe"` uses the official YouTube IFrame Player API.
-`presentation: "external"` renders a package-owned handoff surface and opens
-YouTube. It does not fake hidden YouTube playback, raw streams, captions, PiP,
-or quality controls.
-
-Embedded YouTube defaults to `controls: "custom"`: the player is created with
-`controls=0`, so YouTube's control bar is hidden and the package playback bar
-drives play, pause, seek, mute, volume, supported speeds and fullscreen. The
-Stage places its header above the video and the playback bar, tooltips, menus,
-seek previews and notices below it. Nothing the package renders covers the
-iframe, and the video area keeps at least 200 CSS pixels of height.
-
-`controls: "native"` shows YouTube's own controls instead, including its
-caption and quality menus when the selected video offers them. The Stage then
-omits its playback bar but keeps the header and close action above the video;
-controller commands and keyboard shortcuts still work. Switching between the
-two modes is a source change and starts a new player session.
-
-Startup caption options are requests to YouTube, not package captions:
-- `captionLanguage` sets the preferred caption language (`cc_lang_pref`);
-- `showCaptionsByDefault: true` asks YouTube to show captions at start
-  (`cc_load_policy=1`). Omitting it or passing `false` leaves the viewer's and
-  the video's own caption settings in effect; it does not force captions off.
-
-YouTube may render captions inside the video in either mode. In custom mode
-there is no package captions button or caption-language menu, and no quality
-menu: the IFrame API has no supported caption-track or quality selection, so
-the package reports `canShowCaptions: false` and
-`supportsQualitySelection: false` rather than offering controls that do nothing.
-Use native mode when viewers need those menus. Package WebVTT captions apply to
-file and HLS sources only.
-
-YouTube still draws some of its own elements inside the iframe in custom mode,
-such as the video title, share and "Watch on YouTube" links, a pause indicator
-and related-video suggestions. YouTube does not offer a way to remove its
-branding; `rel=0` only limits suggestions to the same channel.
-
-Hosts that give `.vibe-player-stage` a fixed `aspect-ratio` should scope it to
-`[data-controls-presentation="overlay"]`. Outside and provider presentations
-add header and control rows around a 16:9 video area.
-
-Autoplay blocking follows the official SDK event; slow buffering alone does not
-produce a policy warning. Repeating a mount on the same target preserves the
-live iframe. Moving it to another target preserves its browsing context when
-`Element.moveBefore` is available; older browsers fall back to moving the node
-and may reload embedded content. After SDK initialization fails, a later load
-can retry without refreshing the page.
-
 ## Bundle Size
 
 `bun run package:size` measures built output and enforces an initial combined
@@ -1012,4 +911,4 @@ seek" section with a `seekStep` switch (10, 15, 30 s), skip buttons in glass,
 chips and the full stage, and compact players showing seek frames without a
 heatmap. Its clips are generated: run `bun run test:browser:host:media` once
 after a fresh clone. `?demo=workbench` is the provider workbench (remote file,
-HLS, Bunny Stream, YouTube iframe and YouTube handoff).
+HLS and Bunny Stream).

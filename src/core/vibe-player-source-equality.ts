@@ -74,17 +74,5 @@ export function haveEqualVibePlayerSources(
       haveEqualCaptions(left.captions, right.captions)
     );
   }
-  return (
-    left.type === "youtube" &&
-    right.type === "youtube" &&
-    left.youtubeVideoId === right.youtubeVideoId &&
-    left.origin === right.origin &&
-    left.widgetReferrer === right.widgetReferrer &&
-    left.presentation === right.presentation &&
-    left.externalActionLabel === right.externalActionLabel &&
-    left.controls === right.controls &&
-    left.captionLanguage === right.captionLanguage &&
-    left.showCaptionsByDefault === right.showCaptionsByDefault &&
-    Object.is(left.startSeconds, right.startSeconds)
-  );
+  return false;
 }

@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Removed
+
+- YouTube support. The `youtube` source type, `createYouTubeAdapter`,
+  `createYouTubeExternalAdapter`, `createVibePlayerYouTubeWatchUrl`,
+  `getVibePlayerYouTubePresentation` and the related YouTube types are gone, so
+  the package now plays files and HLS. To show a YouTube video, render your own
+  iframe or the official embed next to the player.
+- The `controlsPresentation`, `keepsControlsVisible` and `hasNativeCaptionsMenu`
+  capability fields, which only the YouTube adapter used. Controls always draw
+  over the media. If a custom adapter set them, simply drop them.
+
 ## [0.7.1] - 2026-11-09
 
 ### Fixed

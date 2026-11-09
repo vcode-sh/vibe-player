@@ -123,11 +123,3 @@
     transform: scale(1);
   }
 }
-
-.vibe-player-compact[data-controls-presentation="outside"]
-  .vibe-player-glass__bar {
-  position: relative;
-  inset: auto;
-  grid-row: 4;
-  margin: var(--_vp-inset);
-}

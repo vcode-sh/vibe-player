@@ -16,7 +16,6 @@ const rootFiles = [
   "biome.json",
   "package.json",
   "playwright.config.ts",
-  "playwright.youtube.config.ts",
   "playwright.host.config.ts",
   "tsdown.config.ts",
   "tsconfig.json",

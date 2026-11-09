@@ -67,9 +67,6 @@ export function VibePlayerFullStage(props: VibePlayerStageProps) {
         classNames.root
       )}
       data-chrome-hidden={chrome.chromeHidden}
-      data-controls-presentation={
-        capabilities.controlsPresentation ?? "overlay"
-      }
       data-fit={props.fit === "cover" ? "cover" : undefined}
       data-seek-thumbnails={props.seekThumbnails?.length ? true : undefined}
       data-state={state.snapshot.readyState}

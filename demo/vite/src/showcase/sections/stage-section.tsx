@@ -44,7 +44,7 @@ export function StageSection() {
           The quality menu appears where hls.js manages the stream. Browsers
           with only ManagedMediaSource (iOS Safari) play native HLS, which picks
           renditions itself, so the menu stays hidden there. Remote file, HLS
-          and YouTube sources live in the{" "}
+          and Bunny sources live in the{" "}
           <a href="?demo=workbench">provider workbench</a>.
         </p>
       }

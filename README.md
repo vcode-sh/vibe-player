@@ -5,8 +5,8 @@
 [![React](https://img.shields.io/badge/react-19-61dafb?style=flat-square&logo=react&logoColor=111)](https://react.dev/)
 [![Sponsor vcode-sh](https://img.shields.io/badge/sponsor-vcode--sh-ea4aaa?style=flat-square&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/vcode-sh)
 
-A cinematic, provider-agnostic React video player. MP4/WebM files, HLS and
-YouTube play behind one controller, with ready-made chrome for chat bubbles,
+A cinematic, provider-agnostic React video player. MP4/WebM files and HLS
+play behind one controller, with ready-made chrome for chat bubbles,
 feed cards, a full stage and modal viewers, plus a headless hook for your own
 controls. Your app keeps routing, auth, telemetry and storage.
 
@@ -52,8 +52,8 @@ export function Viewer() {
 ## Features
 
 - **Providers:** files through native video, adaptive HLS through injected
-  `hls.js` (native HLS where needed), the official YouTube iframe, and
-  renewable private URLs (`renewSource`).
+  `hls.js` (native HLS where needed), and renewable private URLs
+  (`renewSource`).
 - **Surfaces:** `VibePlayerCompact` (chat and feed, Glass Capsule or Ink Chips
   skin), `VibePlayerStage`, `VibePlayerInline`, `VibePlayerModal`, and
   `useVibePlayer` for headless UI.
@@ -81,7 +81,7 @@ export function Viewer() {
 ## Documentation
 
 - [Usage guide](./docs/usage.md): sources, seeking, compact skins, theming,
-  hosts, heatmap, headless UI, YouTube rules and bundle size.
+  hosts, heatmap, headless UI and bundle size.
 - [Integration guide](./docs/integration.md) and
   [media delivery](./docs/media-delivery.md).
 - Demo: `bun run demo:vite` serves the feature showcase; see

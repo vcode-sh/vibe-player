@@ -171,18 +171,3 @@
     );
   }
 }
-
-.vibe-player-compact[data-controls-presentation="outside"]
-  .vibe-player-chips__dock {
-  position: relative;
-  display: flex;
-  grid-row: 4;
-  justify-content: space-between;
-  height: 48px;
-}
-
-.vibe-player-compact[data-controls-presentation="outside"]
-  :is(.vibe-player-chips__primary, .vibe-player-chips__side) {
-  position: relative;
-  inset: auto;
-}

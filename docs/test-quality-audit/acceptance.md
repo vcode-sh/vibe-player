@@ -2,8 +2,7 @@
 
 All 16 original acceptance files and their fixtures/helpers were inspected.
 These lanes execute built package exports. Local media is committed synthetic
-MP4/HLS/VTT; the YouTube layout double establishes geometry only. Live YouTube
-uses the official SDK and real public samples without network interception.
+MP4/HLS/VTT.
 The separate native accessibility harness uses isolated Xvfb/D-Bus/Orca rather
 than the user's active desktop. No browser test was deleted or weakened.
 
@@ -24,11 +23,6 @@ Paths are relative to `test/`.
 | `browser/selection.browser.ts`           | KEEP     | Actual browser text selection and editing remain available for meaningful content while seek chrome resists drag selection.                                                              |
 | `browser/webkit-native.browser.ts`       | KEEP     | Real native HLS backend, absence of managed quality UI, keyboard containment and media disposal.                                                                                         |
 | `browser/webkit-presentation.browser.ts` | KEEP     | Real available platform APIs and explicit absent-control assertions for unsupported APIs.                                                                                                |
-| `browser/youtube-layout.browser.ts`      | KEEP     | Public adapter with a local iframe: surrounding controls, pointer reachability, keyboard traversal, shadow pixels and fullscreen geometry.                                               |
-| `browser/youtube-modal.browser.ts`       | KEEP     | Desktop/mobile viewport containment with a minimum readable iframe and external control bar.                                                                                             |
-| `youtube-live/youtube-autoplay.live.ts`  | KEEP     | Official SDK blocked-autoplay event under a verified no-user-activation precondition.                                                                                                    |
-| `youtube-live/youtube-playback.live.ts`  | KEEP     | Real provider progress, offered rates, same-frame remount without navigation, actual paused video and disposal.                                                                          |
-| `youtube-live/youtube-stage.live.ts`     | KEEP     | Custom controls operate the official SDK; native mode exposes provider captions/settings without duplicate package playback controls.                                                    |
 
 ## Added browser regression
 

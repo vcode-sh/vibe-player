@@ -5,7 +5,6 @@ import {
   useRef,
   type VideoHTMLAttributes,
 } from "react";
-import type { VibePlayerYouTubeSource } from "../core/vibe-player-source-types";
 import { useVibePlayer } from "../react/use-vibe-player";
 import { useVibePlayerStageObservers } from "./use-vibe-player-stage-observers";
 import { getVibePlayerFrameStyle } from "./vibe-player-frame-style";
@@ -25,7 +24,7 @@ export interface VibePlayerHeadlessVideoProps
 export interface VibePlayerHeadlessProps
   extends Omit<VibePlayerStageProps, "source" | "variant" | "renewSource"> {
   renewSource?: (() => Promise<VibePlayerHeadlessProps["source"]>) | undefined;
-  source: Exclude<VibePlayerStageProps["source"], VibePlayerYouTubeSource>;
+  source: VibePlayerStageProps["source"];
   videoProps?: VibePlayerHeadlessVideoProps | undefined;
 }
 

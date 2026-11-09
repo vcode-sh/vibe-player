@@ -6,7 +6,6 @@ import {
   muxSeekSprite,
   sintelSeekSprite,
 } from "./demo-seek-sprites";
-import { demoYouTubeSources } from "./demo-youtube-sources";
 
 export interface DemoSourceMeta {
   accent: string;
@@ -104,7 +103,6 @@ export const demoSources: DemoSourceItem[] = [
     },
   },
   bunnyDemoSource,
-  ...demoYouTubeSources,
 ];
 
 export function getDemoSource(sourceId: string): DemoSourceItem {

@@ -8,7 +8,7 @@ type StagePlayback = ReturnType<typeof useVibePlayerStagePlayback>;
 const ignore = () => undefined;
 
 /**
- * Full-stage picture gestures, following YouTube: a touch double tap on the
+ * Full-stage picture gestures: a touch double tap on the
  * left or right third seeks by the step, a mouse double click toggles full
  * screen, and a mouse click still toggles playback. Controls never count.
  */

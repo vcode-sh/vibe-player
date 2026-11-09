@@ -73,7 +73,6 @@ export type {
   VibePlayerSnapshot,
   VibePlayerSource,
   VibePlayerSourceMetadata,
-  VibePlayerYouTubeSource,
 } from "./vibe-player-types";
 export {
   clampVibePlayerVolume,
@@ -87,8 +86,3 @@ export type {
   VibePlayerWatchedRangesReason,
   VibePlayerWatchedRangesReport,
 } from "./vibe-player-watched-ranges";
-export {
-  createVibePlayerYouTubeWatchUrl,
-  getVibePlayerYouTubePresentation,
-  type VibePlayerYouTubeUrlInput,
-} from "./vibe-player-youtube";

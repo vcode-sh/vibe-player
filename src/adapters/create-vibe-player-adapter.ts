@@ -1,9 +1,7 @@
 import type { VibePlayerAdapter, VibePlayerSource } from "../core";
-import { getVibePlayerYouTubePresentation } from "../core";
 import { createFileAdapter } from "./file";
 import { createHlsAdapter } from "./hls";
 import type { HlsAdapterOptions } from "./hls/hls-runtime-types";
-import { createYouTubeAdapter, createYouTubeExternalAdapter } from "./youtube";
 
 export interface VibePlayerAdapterOptions extends HlsAdapterOptions {}
 
@@ -18,11 +16,6 @@ export function createVibePlayerAdapter(
       return createFileAdapter();
     case "hls":
       return createHlsAdapter(options);
-    case "youtube":
-      if (getVibePlayerYouTubePresentation(source) === "external") {
-        return createYouTubeExternalAdapter();
-      }
-      return createYouTubeAdapter();
     default:
       throw new Error("No adapter is available for this source.");
   }

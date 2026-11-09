@@ -101,7 +101,6 @@ What the lane covers (`test/browser/README.md:14-63`):
 - Fullscreen through the browser's own `document.exitFullscreen()`.
 - Geometry and pointer reach at 240–1100 px widths.
 - Seek-preview sprite crops.
-- YouTube iframe hit-testing and shadow-bleed pixel checks.
 - A credentialed HLS origin (cookie and CORS).
 
 **WebKit's distinct coverage.** These are the only automated test of the
@@ -122,9 +121,8 @@ Three settings make it work:
 
 **Track record.**
 - **One real catch.** CI run 39739818829 (push to `main`, 2026-10-22) failed on
-  `[chromium] › test/browser/youtube-layout.browser.ts:131:3 › custom controls stay outside the embed in a 320px container`
-  with "`.vibe-player-tooltip__bubble is clipped`" (assertion at
-  `youtube-layout.browser.ts:95`). The fix landed 14 minutes later in `ef573e0`:
+  a Chromium layout spec for custom controls in a 320px container
+  with "`.vibe-player-tooltip__bubble is clipped`". The fix landed 14 minutes later in `ef573e0`:
   a 1-line change in `src/ui/vibe-player-bottom-control-buttons.tsx`, "wider
   system fonts pushed the bubble past the stage edge at 320px". Vitest passed in
   that same run (479/479). This is a layout bug that only a real layout engine

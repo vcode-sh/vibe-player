@@ -16,7 +16,6 @@ export interface VibePlayerVolumePopoverProps {
   id: string;
   onCommitPercent: (percent: number) => void;
   onSliderKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
-  orientation?: "horizontal" | "vertical";
   percent: number;
   pointerActiveRef: MutableRefObject<boolean>;
   scheduleCommitDismiss: () => void;
@@ -30,18 +29,9 @@ interface VibePlayerVolumeSliderStyle extends CSSProperties {
 }
 
 function getPercentFromPointer(
-  event: PointerEvent<HTMLDivElement>,
-  orientation: "horizontal" | "vertical"
+  event: PointerEvent<HTMLDivElement>
 ): number | null {
   const rect = event.currentTarget.getBoundingClientRect();
-  if (orientation === "horizontal") {
-    if (rect.width <= 0) {
-      return null;
-    }
-    return clampVibePlayerVolumePercent(
-      ((event.clientX - rect.left) / rect.width) * 100
-    );
-  }
   if (rect.height <= 0) {
     return null;
   }
@@ -55,7 +45,6 @@ export function VibePlayerVolumePopover({
   id,
   onCommitPercent,
   onSliderKeyDown,
-  orientation = "vertical",
   percent,
   pointerActiveRef,
   scheduleCommitDismiss,
@@ -67,7 +56,7 @@ export function VibePlayerVolumePopover({
   const pointerIdRef = useRef<number | null>(null);
 
   function setVolumeFromPointer(event: PointerEvent<HTMLDivElement>): void {
-    const nextPercent = getPercentFromPointer(event, orientation);
+    const nextPercent = getPercentFromPointer(event);
     if (nextPercent !== null) {
       onCommitPercent(nextPercent);
     }
@@ -122,7 +111,7 @@ export function VibePlayerVolumePopover({
     >
       <div
         aria-label={labels.volume}
-        aria-orientation={orientation}
+        aria-orientation="vertical"
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={percent}
@@ -147,11 +136,7 @@ export function VibePlayerVolumePopover({
             <span
               className="vibe-player-volume-control__hash-mark"
               key={hashPercent}
-              style={
-                orientation === "horizontal"
-                  ? { left: `${hashPercent}%` }
-                  : { bottom: `${hashPercent}%` }
-              }
+              style={{ bottom: `${hashPercent}%` }}
             />
           ))}
         </span>

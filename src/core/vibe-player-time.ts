@@ -14,7 +14,6 @@ export function createIdleCapabilities(): VibePlayerCapabilities {
     canSeek: false,
     canSetPlaybackRate: false,
     canShowCaptions: false,
-    hasNativeCaptionsMenu: false,
     isLive: false,
     supportsDuration: false,
     supportsMute: false,

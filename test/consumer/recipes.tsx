@@ -1,7 +1,6 @@
 import { createElement, useState } from "react";
 import {
   createHlsAdapter,
-  createYouTubeAdapter,
   getNextVibePlayerPlaybackRate,
   type HlsAdapterRuntime,
   type UseVibePlayerOptions,
@@ -12,7 +11,6 @@ import {
   VibePlayerModal,
   type VibePlayerSource,
   VibePlayerStage,
-  type YouTubeAdapterRuntime,
 } from "vibe-player";
 
 export const source = {
@@ -130,11 +128,8 @@ export function CustomPlayer() {
   );
 }
 
-export function runtimeOverrides(
-  hls: HlsAdapterRuntime,
-  youtube: YouTubeAdapterRuntime
-) {
-  return [createHlsAdapter(hls), createYouTubeAdapter(youtube)];
+export function runtimeOverrides(hls: HlsAdapterRuntime) {
+  return [createHlsAdapter(hls)];
 }
 
 export const stage = createElement(VibePlayerStage, {

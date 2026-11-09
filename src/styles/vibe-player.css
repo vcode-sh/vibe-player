@@ -5,7 +5,6 @@
 @import "./vibe-player-controls.css";
 @import "./vibe-player-tooltip.css";
 @import "./vibe-player-volume-control.css";
-@import "./vibe-player-volume-horizontal.css";
 @import "./vibe-player-quality-control.css";
 @import "./vibe-player-stage-status.css";
 @import "./vibe-player-caption-overlay.css";
@@ -15,8 +14,6 @@
 @import "./vibe-player-scrub-frame.css";
 @import "./vibe-player-modal.css";
 @import "./vibe-player-preview.css";
-@import "./vibe-player-youtube-external.css";
-@import "./vibe-player-outside-controls.css";
 @import "./vibe-player-seek.css";
 
 /* Keep control gestures separate from selectable player and host content. */
@@ -81,9 +78,7 @@
 }
 
 .vibe-player-stage__media,
-.vibe-player-file-adapter-video,
-.vibe-player-youtube-adapter-frame,
-.vibe-player-youtube-adapter-mount {
+.vibe-player-file-adapter-video {
   width: 100%;
   height: 100%;
 }
@@ -104,15 +99,6 @@
 .vibe-player-stage[data-fit="cover"]:not(:fullscreen)
   .vibe-player-stage__poster {
   object-fit: cover;
-}
-
-.vibe-player-youtube-adapter-frame,
-.vibe-player-youtube-adapter-mount {
-  display: block;
-}
-
-.vibe-player-youtube-adapter-frame {
-  border: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

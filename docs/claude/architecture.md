@@ -12,7 +12,6 @@
 │   ├── adapters/
 │   │   ├── file/
 │   │   ├── hls/
-│   │   ├── youtube/
 │   │   ├── native/
 │   │   └── shared/
 │   ├── captions/
@@ -44,7 +43,7 @@ hooks rather than importing those application systems.
 
 ## Adapter modules
 
-`file`, `hls`, and `youtube` own their provider implementations and colocated
+`file` and `hls` own their provider implementations and colocated
 behavior tests. File and HLS share browser video operations through `native`.
 `shared` contains genuinely provider-neutral helpers such as target cleanup and
 listener contracts. Providers do not reach into sibling implementations.
@@ -56,8 +55,7 @@ second contract owner or a new public package entrypoint.
 Provider runtimes translate their APIs into package events, snapshots and
 capabilities. Shared rendering consumes those normalized contracts. HLS keeps
 managed playback, native fallback, live behavior, quality selection and pending
-load ownership inside its bridge. YouTube owns its iframe runtime, state
-translation, official autoplay-blocked events and time polling.
+load ownership inside its bridge.
 
 Use composition for shared browser operations. A common adapter superclass is
 not required merely because several providers implement the same methods.
@@ -123,8 +121,7 @@ built package exports and local MP4/HLS/VTT in Chromium and native-HLS WebKit; s
 installs a real archive outside the repository and checks documentation recipes,
 strict types, SSR, CSS, the installed CLI and a consumer build. The manual release
 workflow also checks exact minimum Node/React against the same built package.
-The opt-in `test:youtube` lane exercises the official SDK in installed Chrome
-without network stubs. Accessibility-tree assertions and isolated native
+Accessibility-tree assertions and isolated native
 keyboard/AT-SPI checks have explicit platform boundaries; see
 [accessibility-acceptance.md](../accessibility-acceptance.md).
 

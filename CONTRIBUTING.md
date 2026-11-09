@@ -55,13 +55,8 @@ The WebKit project selects the public native-HLS adapter path. On Linux it
 enables the engine's GStreamer HLS support; this is test environment
 configuration, not a package or consumer option.
 
-`bun run test:youtube` is a separate live smoke using ordinary installed Google
-Chrome and the official public sample. It checks the real SDK without mocks;
-provider/network failures fail the lane with diagnostic artifacts. It stays out
-of deterministic CI. `bun run test:youtube:check` validates that harness in CI.
-See [test/youtube-live/README.md](./test/youtube-live/README.md) and
-[accessibility-acceptance.md](./docs/accessibility-acceptance.md) for external
-provider and native accessibility acceptance boundaries.
+See [accessibility-acceptance.md](./docs/accessibility-acceptance.md) for native
+accessibility acceptance boundaries.
 
 Ultracite 8.0.1 needs the checked-in Bun patch to use Biome 2.6's renamed
 Tailwind rule and shared Tailwind settings. Bun applies it during installation.
@@ -87,8 +82,8 @@ internals, or app-specific shortcuts through `src/index.ts`.
 ## Media And Provider Changes
 
 Provider work needs regression tests for state, events, capabilities, and
-cleanup. YouTube support must use compliant iframe or external handoff modes;
-do not add hidden/raw-stream playback.
+cleanup. Providers translate their APIs into normalized events and
+capabilities; shared UI never branches on provider internals.
 
 ## Sponsorship
 

@@ -8,7 +8,6 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import {
   createHlsAdapter,
-  createYouTubeAdapter,
   useVibePlayer,
   VibePlayerInline,
   VibePlayerModal,
@@ -84,7 +83,6 @@ assert.equal(
 assert.equal(manifest.dependencies["hls.js"], undefined);
 assert.equal(manifest.peerDependencies["hls.js"], "^1.6.0");
 assert.equal(typeof createHlsAdapter, "function");
-assert.equal(typeof createYouTubeAdapter, "function");
 const cssPath = fileURLToPath(import.meta.resolve("vibe-player/styles.css"));
 assert.equal(dirname(cssPath), resolve(packageDirectory, "dist"));
 assert.match(await readFile(cssPath, "utf8"), /\.vibe-player-stage/);

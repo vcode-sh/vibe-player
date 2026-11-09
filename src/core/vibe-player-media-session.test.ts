@@ -195,19 +195,6 @@ describe("media session", () => {
     expect(page.actions).toEqual([]);
   });
 
-  it("never claims for YouTube sources", async () => {
-    const page = installFakeMediaSession();
-    const { session } = await createPlayer({
-      id: "yt",
-      title: "Embedded",
-      type: "youtube",
-      youtubeVideoId: "abc123def45",
-    });
-    session.claim();
-    expect(page.metadata).toBeNull();
-    expect(page.actions).toEqual([]);
-  });
-
   it("coalesces a fast-seek burst to its latest and final positions", async () => {
     const page = installFakeMediaSession();
     const { adapter, session } = await createPlayer();

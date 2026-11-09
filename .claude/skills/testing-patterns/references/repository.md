@@ -8,7 +8,7 @@ scripts/configuration when changing lanes; historical audit counts are not gates
 | Claim                                             | Owner and useful boundary                                                                                                                               |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Transitions, stale loads, commands, subscriptions | Real `src/core` controller; injected adapter controls completion/events. Assert state and relevant forbidden effects.                                   |
-| File/HLS/YouTube translation and disposal         | Real `src/adapters` implementation; substitute only media/SDK boundary. Emulated events do not establish decoding or live-provider behavior.            |
+| File/HLS translation and disposal                 | Real `src/adapters` implementation; substitute only media/SDK boundary. Emulated events do not establish decoding or live-provider behavior.            |
 | WebVTT parsing and cue selection                  | `src/captions/parse-webvtt.ts`, consumed by `src/react/use-vibe-player-captions.ts`. Literal cue fixtures and expected lines.                           |
 | Hook subscription, cancellation, source changes   | Real `src/react` hook/controller; controlled loader promises, rerenders and unmounts.                                                                   |
 | Controls, modal, keyboard, captions               | Real `src/ui` components and owner logic; roles, names, actions and visible results. Actual geometry, focus, playback and motion need the browser lane. |
@@ -96,13 +96,6 @@ own servers on loopback ports 5197/5198, one worker, and
 `reuseExistingServer: false`. Coordinate exclusive use before a run; a busy port
 is not permission to stop another session. These checks prove the exercised
 Chromium/WebKit behavior, not physical Safari/iOS or audible autoplay policy.
-The local YouTube iframe fixture proves layout, not the live SDK.
-
-The separate [live YouTube lane](../../../../test/youtube-live/README.md) uses
-installed Chrome, the official SDK and fresh contexts on port 5203. For explicitly
-selected provider acceptance, build, then run `bun run test:youtube:check` and
-`bun run test:youtube`. It accesses public provider media; no account sign-in or
-imported cookies. `bun run ci` typechecks this lane but does not run it.
 
 For target-platform accessibility acceptance, consult
 [accessibility requirements](../../../../docs/accessibility-acceptance.md).

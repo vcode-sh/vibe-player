@@ -38,7 +38,7 @@ function collectReferences(sourceFile) {
 
 const testFilePattern = /(?:\.test\.tsx?$|-test-helpers\.tsx?$)/;
 const javascriptExtensionPattern = /\.js$/;
-const providers = new Set(["file", "hls", "youtube"]);
+const providers = new Set(["file", "hls"]);
 
 const allowedLayers = {
   adapters: new Set(["adapters", "core"]),

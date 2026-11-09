@@ -9,8 +9,7 @@ Two pages over the real package:
   Picture-in-Picture, and headless controls. `?demo=adoption` opens the same
   page.
 - `?demo=workbench` — **Provider workbench.** One full stage switching between
-  remote file, HLS, Bunny Stream, YouTube iframe and YouTube handoff sources,
-  with live state and analytics.
+  remote file, HLS, and Bunny Stream sources, with live state and analytics.
 
 ## Generate the local media first
 
@@ -53,6 +52,3 @@ bun run demo:vite:verify     # type check, build and packaged build
   toolbar (Ctrl+Shift+M) or touch emulation, then double-tap the left or right
   third of a player in "Skip and double-tap seek". J / L and ← / → use the
   same step on a focused player.
-- **YouTube floating:** a YouTube iframe moves without reloading only where
-  `Element.moveBefore()` exists (Chromium); the showcase floats file/HLS
-  media only.

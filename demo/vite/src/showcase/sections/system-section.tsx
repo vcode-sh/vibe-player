@@ -64,10 +64,7 @@ export function SystemSection() {
             (the toolbar's music-note button) or your OS media controls, or
             press a hardware media key.
           </p>
-          <p>
-            Start PiP on the second clip and scroll away: it keeps playing.
-            YouTube sources never claim the session.
-          </p>
+          <p>Start PiP on the second clip and scroll away: it keeps playing.</p>
         </>
       }
     >

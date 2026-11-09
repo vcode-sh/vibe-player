@@ -228,12 +228,6 @@
   transform: translateX(calc(var(--vibe-player-progress, 0) * 100%));
 }
 
-/* Outside presentation: steering parts sit below the provider frame. */
-.vibe-player-compact[data-controls-presentation="outside"]
-  > .vibe-player-surface {
-  display: contents;
-}
-
 /* Reduced motion reaches the same states instantly. Spinners keep turning:
    loading is real, ongoing state. */
 @media (prefers-reduced-motion: reduce) {

@@ -54,7 +54,7 @@ async function defaultLoadCaptionText(
 function getPreferredCaptionTrack(
   source: VibePlayerSource | null
 ): VibePlayerCaptionTrack | null {
-  if (!(source && source.type !== "youtube")) {
+  if (!source) {
     return null;
   }
   const tracks = source.captions ?? [];

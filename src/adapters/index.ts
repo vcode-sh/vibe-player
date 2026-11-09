@@ -19,11 +19,3 @@ export type {
   ManagedHlsSession,
 } from "./hls";
 export { createHlsAdapter } from "./hls";
-export type {
-  YouTubeAdapterErrorPayload,
-  YouTubeAdapterRuntime,
-  YouTubePlayerHandle,
-  YouTubePlayerSession,
-  YouTubePlayerState,
-} from "./youtube";
-export { createYouTubeAdapter, createYouTubeExternalAdapter } from "./youtube";

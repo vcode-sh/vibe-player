@@ -28,7 +28,6 @@ playback/remount races. Both were corrected and challenged again.
 | WebVTT text                     | Decode HTML named and numeric references once within each original text span. Escaped tags remain literal text; unknown references remain readable; references cannot be manufactured by joining text across markup. Preserve decoded nonbreaking spaces. Seven literal fixtures cover these cases. |
 | Loaded caption ownership        | A new track never shows the previously loaded track's cues, including the render before its loading effect runs. The replacement request remains independently cancellable.                                                                                                                         |
 | HLS load ownership              | A late obsolete attachment cannot clear the current managed controller. Quality selection and cleanup still reach the active session.                                                                                                                                                               |
-| YouTube load ownership          | Obsolete creation success/failure and callbacks cannot resurrect, replace, or destroy current playback. Late obsolete handles are destroyed.                                                                                                                                                        |
 | Controller cleanup and commands | Detach old adapter ownership before awaiting cleanup. Late close, teardown, unmount, blocked-play, and pause completions cannot overwrite a replacement source. Remounting the same source remains mounted; the newest same-source play/pause intent wins.                                          |
 | Preview asset identity          | Changing video or poster URLs under the same public source id refreshes the preview. Existing readiness and old-layer retirement behavior remains intact.                                                                                                                                           |
 | Volume focus                    | Escape returns focus to the trigger and keeps the panel closed; a subsequent intentional focus can reopen it.                                                                                                                                                                                       |
@@ -47,8 +46,6 @@ The public package API and version remain unchanged at 0.2.0.
   token-boundary text output.
 - `src/core/vibe-player-controller-async-ownership.test.ts`: eight cleanup and
   command races, including same-source remount and command ordering.
-- `src/adapters/create-youtube-adapter-load-session.test.ts`: three obsolete
-  creation/callback cases, including success and failure after replacement.
 - `src/adapters/create-hls-adapter-load-session.test.ts`: current quality and
   destruction still work after an obsolete attachment resolves.
 - `src/react/use-vibe-player-captions-lifecycle.test.tsx`: completed old track
@@ -76,7 +73,7 @@ The public package API and version remain unchanged at 0.2.0.
   the actual volume slider, pressing Escape, and inspecting browser accessibility
   state confirmed the panel was collapsed and the trigger retained focus.
   Screenshot: `/tmp/vibe-player-test-audit/volume-escape.png`.
-- Browser evidence is limited to that file-player/focus flow. Live YouTube/HLS
+- Browser evidence is limited to that file-player/focus flow. Live HLS
   network playback, native PiP/fullscreen, and comprehensive visual motion
   acceptance were not rerun; controlled adapter tests cover the changed races.
 - No public API, version bump, publishing, staging, or commit was performed by
@@ -107,9 +104,8 @@ Codex. `CLAUDE.md` and the coding standards direct test work to it.
   mutation score. The overlay and disabled-caption fixtures were strengthened
   after an initial mutation survived.
 
-The two deleted files are the static skin-token mirrors and a YouTube
-state-change suite that mocked internal collaborators. Unique YouTube lifecycle
-protection moved to a real adapter test. Other shallow or duplicate cases were
+The two deleted files are the static skin-token mirrors and a provider
+state-change suite that mocked internal collaborators. Other shallow or duplicate cases were
 removed inside retained files. Case count increased mainly because unrelated
 conditions formerly bundled together now have independently discriminating rows.
 
@@ -169,7 +165,6 @@ criteria.
 | `src/core/vibe-player-shortcuts.test.ts`                | Rewrite                    | Tests all documented actions, unknown key, capability-specific refusal with unrelated playback still enabled, uppercase input, interactive HTML targets, editable content and each modifier. Catches wrongly broad capability gates and hijacked native typing/actions.                                                                                                                                                                             |
 | `src/core/vibe-player-time.test.ts`                     | Rewrite three, delete one  | Literal formatting edges 59.999/60 and long minutes catch rounding/wrapping; invalid duration fallback versus valid metadata, finite seek bounds and unknown-duration preservation catch default/branch errors. Deleted `createIdleSnapshot().readyState === idle` constant mirror; controller close behavior owns actual idle transition.                                                                                                          |
 | `src/core/vibe-player-volume.test.ts`                   | Keep and add               | Retained independent clamp/percent/ARIA results. New 0.0049/0.005 boundary catches a silent icon based only on mute or raw volume rather than rounded effective percent, without falsely setting muted state.                                                                                                                                                                                                                                       |
-| `src/core/vibe-player-youtube.test.ts`                  | Rewrite                    | Default iframe must preserve explicit external presentation; positive fractional offset floors, unusable offsets omit `t`. Catches always-iframe and invalid/rounded timestamp URL generation.                                                                                                                                                                                                                                                      |
 | `src/captions/parse-webvtt.test.ts`                     | Rewrite                    | Hand-authored hour/fraction/CRLF/settings/multiline fixture catches conversion or lost text; malformed/reversed/empty cues cannot drop later valid cue. Independent selector fixtures check inclusive starts, exclusive ends, overlap order and deduplication without using parser output as the oracle.                                                                                                                                            |
 
 #### New files
@@ -220,20 +215,14 @@ Applied `.claude/skills/testing-patterns/SKILL.md` to all 12 original adapter te
 
 #### File decisions
 
-| Original file                                          | Decision                                             | Contract and reason                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/adapters/create-file-adapter.test.ts`             | Rewrite four cases                                   | Real DOM source/caption setup, event translation, buffering policy and rejection tests remain. Command test now detects missing play/pause forwarding; deferred playback tests now use connected targets and observable paused state; fullscreen now proves delegation and capability reset. |
-| `src/adapters/create-hls-adapter-load-session.test.ts` | Strengthen both cases                                | Existing stale-success/unmount and stale-failure/new-source cases are important. Extend stale callbacks to quality/live/error and assert exact surviving loading state.                                                                                                                      |
-| `src/adapters/create-hls-adapter-quality.test.ts`      | Strengthen selection case                            | Retain managed/native preference, startup fallback and post-play callbacks. Selecting Auto must clear manual selection; unsupported IDs must not call through or emit change.                                                                                                                |
-| `src/adapters/create-hls-adapter.test.ts`              | Rewrite deferred pause case                          | Preserve native/managed selection, live/VOD transition, normalized errors, unavailable-runtime rejection, and default factory routing. Connected media prevents the disconnected guard from hiding cancellation defects.                                                                     |
-| `src/adapters/create-youtube-adapter.test.ts`          | Keep                                                 | Real adapter with provider-boundary fixture checks normalized state/output, time sampling, play-blocked discrimination, clamped protocol commands, teardown capability reset, unsupported inputs and startup timeout. Factory kind is a real runtime routing contract, not a type guarantee. |
-| `src/adapters/create-youtube-external-adapter.test.ts` | Strengthen two cases                                 | Replace production URL-helper oracle with literal watch URL; factory test now loads source and proves external link/absence of iframe instead of only inspecting static capabilities.                                                                                                        |
-| `src/adapters/hls-managed-runtime.test.ts`             | Strengthen oracle                                    | Preserve preexisting untracked regression against currentLevel buffer flushing. Expected projected level metadata is now literal rather than the same mutable provider fixture.                                                                                                              |
-| `src/adapters/native-picture-in-picture.test.ts`       | Keep four, add denial matrix                         | Native command dispatch and same-video exit are real browser protocol contracts. Add document-disabled and video-disabled states to reject always-enable behavior.                                                                                                                           |
-| `src/adapters/youtube-adapter-state-change.test.ts`    | Delete                                               | Three cases mocked every internal collaborator and pinned call order. Normalized event protection already lives in the real adapter suite; unique sampling/ended behavior moves to real adapter tests below.                                                                                 |
-| `src/adapters/youtube-iframe-runtime.test.ts`          | Strengthen callback case                             | Keep cached API, fallback polling, timeout and origin/referrer protocol protection. Concurrent loads must share one injected script and preserve the host callback.                                                                                                                          |
-| `src/adapters/youtube-playback-watchdog.test.ts`       | Rewrite stall case, retain progress, add three cases | Assert deadline/once-only semantics, no rescheduling after progress, replacement intent deadline, cancellation and disappeared provider.                                                                                                                                                     |
-| `src/adapters/youtube-time-updates.test.ts`            | Rewrite both cases                                   | Pin sampling edge behavior, repeated-start idempotence, silence after stop and fresh sampling after restart.                                                                                                                                                                                 |
+| Original file                                          | Decision                     | Contract and reason                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/adapters/create-file-adapter.test.ts`             | Rewrite four cases           | Real DOM source/caption setup, event translation, buffering policy and rejection tests remain. Command test now detects missing play/pause forwarding; deferred playback tests now use connected targets and observable paused state; fullscreen now proves delegation and capability reset. |
+| `src/adapters/create-hls-adapter-load-session.test.ts` | Strengthen both cases        | Existing stale-success/unmount and stale-failure/new-source cases are important. Extend stale callbacks to quality/live/error and assert exact surviving loading state.                                                                                                                      |
+| `src/adapters/create-hls-adapter-quality.test.ts`      | Strengthen selection case    | Retain managed/native preference, startup fallback and post-play callbacks. Selecting Auto must clear manual selection; unsupported IDs must not call through or emit change.                                                                                                                |
+| `src/adapters/create-hls-adapter.test.ts`              | Rewrite deferred pause case  | Preserve native/managed selection, live/VOD transition, normalized errors, unavailable-runtime rejection, and default factory routing. Connected media prevents the disconnected guard from hiding cancellation defects.                                                                     |
+| `src/adapters/hls-managed-runtime.test.ts`             | Strengthen oracle            | Preserve preexisting untracked regression against currentLevel buffer flushing. Expected projected level metadata is now literal rather than the same mutable provider fixture.                                                                                                              |
+| `src/adapters/native-picture-in-picture.test.ts`       | Keep four, add denial matrix | Native command dispatch and same-video exit are real browser protocol contracts. Add document-disabled and video-disabled states to reject always-enable behavior.                                                                                                                           |
 
 #### Added or rewritten cases and defects caught
 
@@ -246,18 +235,8 @@ All cases below ran in the Vitest `dom` project. Retained valid-path cases remai
 - HLS `does not apply stale native fallback after a newer HLS load`: catches old manifest fallback overriding the active managed source; exact `loading` output avoids accepting arbitrary non-error states.
 - HLS `exposes and sets managed HLS quality options`: catches Auto leaving a manual option selected and unsupported quality IDs emitting false changes.
 - HLS `stops a pending playback request after pause`: catches missing playback generation cancellation, now independently from node connectivity.
-- External YouTube `renders a compliant external handoff without an iframe`: catches wrong video/start URL even if production URL construction is wrong.
-- External YouTube `uses the external factory branch without loading an iframe`: catches wrong factory routing through real load behavior.
 - Managed HLS `switches manual and automatic quality without flushing playback`: catches switching through immediate currentLevel and corrupted projected level metadata.
 - PiP `refuses picture-in-picture when disabled by the document/video` (two cases): catches ignoring either independent capability veto, including forbidden request side effects.
-- YouTube events `stops time sampling for provider state ...` (four cases): catches continued timeupdate traffic after pause, cue, buffering or end, through the real adapter and timers; also checks paused/ready-state output.
-- YouTube events `does not mistake a completed short video for blocked playback`: catches ended playback leaving a pending watchdog that later emits playblocked.
-- Iframe `shares a script across concurrent loads and preserves the host callback`: catches duplicate API insertion, unresolved second caller, or lost host readiness callback.
-- Watchdog `reports a stalled intent once, only after its full grace period`: catches early timeout, postponed deadline from ensureScheduled, or repeated blocked notifications.
-- Watchdog `does not block playback after real time advancement`: also verifies ensureScheduled cannot resurrect a completed intent.
-- Watchdog `gives a new play intent a new deadline without firing the old one`: catches a stale timer firing against a fresh play request.
-- Watchdog `cancels a user-abandoned intent even when buffering tries to reschedule`: catches cancelled playback later producing false blockage.
-- Watchdog `does not report a playback failure after the provider disappears`: catches delayed events without an active provider.
 - Sampling `samples once per interval even when playback repeatedly reports playing`: catches duplicate intervals, immediate ticks and restarting the sampling clock on repeated starts.
 - Sampling `stops sampling and starts a fresh interval when playback resumes`: catches leaked stopped intervals or stop permanently disabling resume.
 
@@ -269,8 +248,7 @@ All cases below ran in the Vitest `dom` project. Retained valid-path cases remai
 - Every test file remains below 200 lines, within the 280-line hard limit.
 - Compared all adapter production files against the parent's pre-task SHA-256 inventory: unchanged.
 - Disposable-copy mutation probe removed only playback-generation inequality in `native-video-playback.ts`: both file/HLS pause-race cases failed on `paused` (false instead of true). Shared production files were never changed.
-- Disposable-copy mutation probe removed `stopTimeUpdates()` in the YouTube state-change owner: all four replacement lifecycle cases failed on extra emitted events. Logs: `/tmp/vibe-player-test-audit/adapter-probes/native-cancellation.log` and `youtube-sampling-stop.log`.
-- Provider/browser doubles prove package translation/lifecycle only. No claim about actual media decoding, native PiP/fullscreen, YouTube network behavior, or visual playback is made.
+- Provider/browser doubles prove package translation/lifecycle only. No claim about actual media decoding, native PiP/fullscreen, or visual playback is made.
 
 
 ### React hooks audit

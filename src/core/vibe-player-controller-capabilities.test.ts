@@ -11,7 +11,7 @@ describe("controller capabilities during source loading", () => {
     const load = vi.spyOn(adapter, "load").mockImplementation(() => {
       // Providers compute capabilities from the source, as fresh objects.
       Object.defineProperty(adapter, "capabilities", {
-        value: { ...adapter.capabilities, controlsPresentation: "outside" },
+        value: { ...adapter.capabilities, supportsQualitySelection: true },
       });
       return new Promise<void>((resolve) => {
         finishLoad = resolve;
@@ -24,8 +24,8 @@ describe("controller capabilities during source loading", () => {
     const loading = controller.load(fileSource);
     try {
       await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
-      expect(controller.getState().capabilities?.controlsPresentation).toBe(
-        "outside"
+      expect(controller.getState().capabilities?.supportsQualitySelection).toBe(
+        true
       );
       expect(controller.getState().lastEvent).toBeNull();
       finishLoad();

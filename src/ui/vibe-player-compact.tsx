@@ -55,8 +55,7 @@ function VibePlayerCompactContent({
     { ...props, load },
     skin
   );
-  const { activeSource, capabilities, controller, playerTitle, state } =
-    playback;
+  const { activeSource, controller, playerTitle, state } = playback;
   useVibePlayerStageObservers({
     captionStatus: emptyCaptionStatus,
     controller,
@@ -67,7 +66,6 @@ function VibePlayerCompactContent({
     state,
   });
   const view = surface.state;
-  const presentation = capabilities.controlsPresentation ?? "overlay";
   let status: string | null = null;
   if (view.busy) {
     status = view.phase === "loading" ? labels.loading : labels.buffering;
@@ -77,8 +75,6 @@ function VibePlayerCompactContent({
   let overlay: ReactNode = null;
   if (renderOverlay) {
     overlay = renderOverlay(surface);
-  } else if (presentation === "provider") {
-    overlay = null;
   } else if (skin === "chips") {
     overlay = (
       <Suspense fallback={null}>
@@ -109,7 +105,6 @@ function VibePlayerCompactContent({
       data-autoplay={view.autoplayMuted ? "muted" : undefined}
       data-busy={view.busy}
       data-controls={view.controlsVisible ? "visible" : "hidden"}
-      data-controls-presentation={presentation}
       data-fit={props.fit === "cover" ? "cover" : undefined}
       data-hold={view.hold ?? undefined}
       data-muted={view.muted}

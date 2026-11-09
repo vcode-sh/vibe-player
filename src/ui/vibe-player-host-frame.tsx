@@ -15,7 +15,7 @@ const useCommitEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
- * `moveBefore` keeps iframes (YouTube) and focus alive where browsers support
+ * `moveBefore` keeps embedded frames and focus alive where browsers support
  * it; `append` is the same synchronous move, which a playing `<video>` survives.
  */
 function moveFrame(frame: HTMLElement, host: HTMLElement): void {

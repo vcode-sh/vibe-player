@@ -112,9 +112,8 @@ Before publishing, the workflow also verifies the minimum Node/React runtime;
 it reuses the built package instead of installing and building it in another
 job.
 
-The live YouTube lane is intentionally separate from deterministic CI. Before
-claiming target-platform acceptance, record a successful `bun run test:youtube`
-and the applicable native keyboard/screen-reader checks from
+Before claiming target-platform acceptance, record the applicable native
+keyboard/screen-reader checks from
 [accessibility-acceptance.md](../accessibility-acceptance.md). Linux WebKit
 coverage does not establish physical Safari/iOS behavior.
 

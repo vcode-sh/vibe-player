@@ -58,17 +58,6 @@ The selector tests own exact-duration frame selection. Browser keyboard checks
 use Home and ArrowRight: during acceptance, Linux WebKit intermittently reported
 zero after an exact-end seek, even after initially reporting the requested end.
 
-A YouTube layout page drives the real package YouTube adapter through an
-injected runtime that mounts a local `srcdoc` iframe, so no YouTube network is
-used. In Chromium it checks custom and native control presentation at 960, 640
-and 320px container widths and in fullscreen: package header, playback bar,
-tooltips, seek previews, the horizontal volume slider and notices must stay
-outside the iframe rectangle and inside the stage, the iframe stays at least
-200 by 200 pixels and receives hit-testing and keyboard focus, and the iframe's
-edge pixels must not change while package popovers are open (shadow bleed).
-A modal page checks that the outside layout fits 1280x800 and 390x844 viewports.
-The live provider behavior is covered by `test/youtube-live`.
-
 Fullscreen coverage uses the package controls, the F shortcut and the browser's
 actual `document.exitFullscreen()` API to verify external state changes.
 Playwright's CDP Escape injection does not trigger Chromium's reserved
@@ -91,7 +80,7 @@ bun test/browser/generate-media.mjs
 The committed MP4/HLS/VTT assets let CI run without FFmpeg. These tests prove
 Chromium and Playwright WebKit decoding and package interactions. Playwright's
 Linux WebKit build is not physical Safari/iOS: OS fullscreen/PiP, VoiceOver and
-mobile hardware behavior still require those devices. Live YouTube, audible
+mobile hardware behavior still require those devices. Audible
 autoplay policy and physical assistive-technology behavior remain separate
 acceptance boundaries.
 

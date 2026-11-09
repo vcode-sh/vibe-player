@@ -39,7 +39,7 @@ production fixes. Public API signatures and exports are unchanged.
   raw request while persistence stayed clamped. The test now checks the exact
   dispatched target as well as persistence and analytics. A separate case protects the documented accepted
   target when a provider getter still reports the old position.
-- Expanded source equality beyond YouTube construction options to equivalent
+- Expanded source equality to equivalent
   fresh file/HLS values, changed delivery URLs, MIME types, caption removal or
   replacement, HLS delivery mode, source removal, and provider/source identity.
   These are literal cases; expected equality is not computed by the helper.
@@ -72,10 +72,8 @@ Paths below are relative to `src/core/`.
 | `vibe-player-resume-store.test.ts`                    | KEEP     | Real store implementations normalize values, persist across instances and isolate encoded keys/prefixes through a stateful storage fake; no claim about browser quota policy.                                  |
 | `vibe-player-resume.test.ts`                          | KEEP     | Independent near-end threshold and current/seekable/positive eligibility partitions; complements orchestration regressions and does not fake the owner.                                                        |
 | `vibe-player-shortcuts.test.ts`                       | KEEP     | Documented mappings, per-capability denial, native interactive targets and modifiers with a valid unrelated playback control detect overbroad shortcut interception.                                           |
-| `vibe-player-source-equality.test.ts`                 | REWRITE  | Preserve YouTube SDK-option baselines and extend literal equality/inequality cases to file/HLS delivery, captions and source identity consumed by the React hook.                                              |
 | `vibe-player-time.test.ts`                            | KEEP     | Literal time formatting, metadata fallback and seek boundaries cover shared adapter/UI helpers without duplicating expected calculations.                                                                      |
 | `vibe-player-volume.test.ts`                          | KEEP     | Independent clamping and rounding thresholds distinguish silent from muted; protects public headless helpers and their UI consumer.                                                                            |
-| `vibe-player-youtube.test.ts`                         | KEEP     | External-watch URL and presentation defaults use literal expected URLs and invalid offsets; does not claim official SDK behavior.                                                                              |
 
 Added `vibe-player-controller-load-observers.test.ts` owns the three synchronous
 load-observer replacement regressions. No original files were deleted or left
@@ -98,7 +96,7 @@ unresolved.
   current-source read. These are operation counts, not a throughput benchmark.
 - Core tests execute the real controller with a controllable adapter boundary.
   They do not prove decoding, physical fullscreen/PiP, real browser playback, or
-  official YouTube timing. Broad package/type/browser gates belong to the lead
+  provider-specific timing. Broad package/type/browser gates belong to the lead
   agent and remain required for the combined tree.
 
 ## Integration follow-up

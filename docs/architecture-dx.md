@@ -22,7 +22,7 @@ orchestration while consumers choose product integration and presentation.
 
 ## Decisions
 
-1. Give file, HLS and YouTube their own modules. Keep browser-native operations
+1. Give file and HLS their own modules. Keep browser-native operations
    shared between file/HLS and reserve generic helpers for genuinely shared
    concerns. Preserve root imports and provider policies.
 2. Simplify the redundant HLS command delegation without creating a universal

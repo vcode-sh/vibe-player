@@ -87,7 +87,7 @@ exited; owned probe copies and the evaluation directory were removed. Shared
 services were not stopped. No production files, repository tests, dependencies,
 CI settings, global skill installations, commits, or publications changed.
 
-Browser, live YouTube, native accessibility, package build/consumer, full CI and
+Browser, native accessibility, package build/consumer, full CI and
 release lanes were inspected as contracts, not executed for this instruction-only
 change. Windows/macOS checkout behavior, interactive client menus, negative
 trigger specificity, and other models were not evaluated. No without-skill

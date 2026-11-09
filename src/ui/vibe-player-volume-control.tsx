@@ -57,9 +57,6 @@ export function VibePlayerVolumeControl({
   const setVolume = onSetVolume;
   const canSetVolume = capabilities.supportsVolumeControl && setVolume;
   const canMute = capabilities.supportsMute;
-  // Outside presentation keeps the slider beside the trigger, out of the media.
-  const orientation =
-    capabilities.controlsPresentation === "outside" ? "horizontal" : "vertical";
 
   if (!canSetVolume) {
     if (!canMute) {
@@ -194,7 +191,6 @@ export function VibePlayerVolumeControl({
           id={popoverId}
           onCommitPercent={setVolumeFromPercent}
           onSliderKeyDown={handleSliderKeyDown}
-          orientation={orientation}
           percent={volumeState.percent}
           pointerActiveRef={popover.pointerActiveRef}
           scheduleCommitDismiss={popover.scheduleCommitDismiss}
