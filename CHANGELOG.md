@@ -56,7 +56,8 @@
   unsubscribe function.
 - Watched-range reports carry a `playbackId` and a 1-based `sequence`, so you
   can drop duplicates and add up each viewing. Loading a source or replaying
-  after the end starts a new playback; retry and renewal keep it.
+  after the end starts a new playback; retry and renewal keep it. Reports you
+  build yourself, such as test fixtures, need both fields now.
 - Errors carry a required `kind` (`VibePlayerErrorKind`): `"network"`,
   `"decode"`, `"source"` (could not be loaded or is not supported) or
   `"unknown"`, so you can show a friendly message without reading provider
