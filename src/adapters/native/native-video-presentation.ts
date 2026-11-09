@@ -1,10 +1,10 @@
 import type { VibePlayerEventName } from "../../core/vibe-player-types";
-import { createAdapterFullscreen } from "../shared/adapter-fullscreen";
 import {
   enterNativePictureInPicture,
   exitNativePictureInPicture,
   isNativePictureInPicture,
 } from "./native-picture-in-picture";
+import { NativeVideoFullscreen } from "./native-video-fullscreen";
 
 const pictureEvents = [
   "enterpictureinpicture",
@@ -23,7 +23,7 @@ export class NativeVideoPresentation {
 
   constructor(emit: (type: VibePlayerEventName) => void) {
     this.emit = emit;
-    this.fullscreen = createAdapterFullscreen(emit);
+    this.fullscreen = new NativeVideoFullscreen(emit);
   }
 
   getSnapshot() {
@@ -54,7 +54,7 @@ export class NativeVideoPresentation {
         this.releasePicture(previous).catch(() => undefined);
       }
     }
-    this.fullscreen.mount(target);
+    this.fullscreen.mount(video, target);
   }
 
   async enterPictureInPicture(): Promise<void> {
