@@ -66,7 +66,7 @@ describe("Media Session artwork per source", () => {
     await controller.teardown();
   });
 
-  it("falls back to the poster when the function has no artwork or fails", async () => {
+  it("falls back to the poster when the function has no artwork or fails, once per source", async () => {
     const page = installFakeMediaSession();
     const adapter = new TestAdapter();
     const { controller } = createControllerWithAdapter(adapter);
@@ -84,14 +84,18 @@ describe("Media Session artwork per source", () => {
     adapter.emit("timeupdate", { currentTime: 2 });
     expect(resolve).toHaveBeenCalledTimes(1);
 
-    connection.update({
-      metadata: {
-        artwork: () => {
-          throw new Error("Signing failed.");
-        },
-      },
+    const failing = vi.fn(() => {
+      throw new Error("Signing failed.");
     });
-    expect(page.metadata?.artwork).toEqual(poster);
+    connection.update({ metadata: { artwork: failing } });
+    // A new function alone does not re-run; the next source does.
+    expect(failing).not.toHaveBeenCalled();
+    await controller.load(signed("next"));
+    adapter.emit("playing", audible);
+    expect(failing).toHaveBeenCalledTimes(1);
+    expect(page.metadata?.artwork).toEqual([
+      { src: "https://cdn.example.com/poster.jpg?token=next" },
+    ]);
     connection.disconnect();
     await controller.teardown();
   });

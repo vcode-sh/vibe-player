@@ -17,8 +17,9 @@ export interface VibePlayerMediaSessionMetadata {
   artist?: string | undefined;
   /**
    * Defaults to the source poster. A function receives the current source
-   * and runs again whenever it changes, including a renewal, so signed
-   * artwork can renew with the source. Returning `undefined` (or throwing)
+   * and runs once per source: again when the source changes, including a
+   * renewal, so signed artwork renews with it, but not because a new
+   * function was passed on a re-render. Returning `undefined` (or throwing)
    * falls back to the poster.
    */
   artwork?:

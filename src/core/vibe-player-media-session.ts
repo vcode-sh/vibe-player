@@ -1,8 +1,8 @@
 import type { VibePlayerController } from "./vibe-player-controller";
 import { createVibePlayerMediaSessionHandlers } from "./vibe-player-media-session-handlers";
+import { VibePlayerMediaSessionMetadataState } from "./vibe-player-media-session-metadata";
 import {
   clearMediaSessionPosition,
-  createMediaSessionMetadataInit,
   getPageMediaSession,
   type MediaSessionPositionMark,
   type PageMediaSession,
@@ -42,34 +42,97 @@ function releasePage(session: PageMediaSession, positioned: boolean): void {
   }
 }
 
-/**
- * Connects a controller to `navigator.mediaSession` while it owns the page
- * session. Without the API every call is a no-op.
- */
-export function createVibePlayerMediaSession(
-  controller: VibePlayerController,
-  initialOptions: VibePlayerMediaSessionOptions = {}
-): VibePlayerMediaSession {
-  const token = Symbol("vibe-player-media-session");
-  let options = initialOptions;
-  let unsubscribe: (() => void) | null = null;
-  let actionsKey = "";
-  let metadataKey = "";
-  /** Metadata depends only on the options and the source object. */
-  let metadataFrom: readonly [unknown, unknown] = [null, null];
-  let mark: MediaSessionPositionMark | null = null;
-  const handlers = createVibePlayerMediaSessionHandlers(
-    controller,
-    () => options
-  );
+/** One player's claim on the page session, kept in sync while it owns it. */
+class VibePlayerMediaSessionClaim implements VibePlayerMediaSession {
+  private readonly controller: VibePlayerController;
+  private readonly token = Symbol("vibe-player-media-session");
+  private readonly handlers: ReturnType<
+    typeof createVibePlayerMediaSessionHandlers
+  >;
+  private readonly metadata = new VibePlayerMediaSessionMetadataState();
+  private options: VibePlayerMediaSessionOptions;
+  private unsubscribe: (() => void) | null = null;
+  private actionsKey = "";
+  private mark: MediaSessionPositionMark | null = null;
 
-  const syncActions = (
+  constructor(
+    controller: VibePlayerController,
+    options: VibePlayerMediaSessionOptions
+  ) {
+    this.controller = controller;
+    this.options = options;
+    this.handlers = createVibePlayerMediaSessionHandlers(
+      controller,
+      () => this.options
+    );
+  }
+
+  claim(): void {
+    const state = this.controller.getState();
+    if (page.owner === this.token || !getPageMediaSession()) {
+      return;
+    }
+    this.stop();
+    page.owner = this.token;
+    this.unsubscribe = this.controller.subscribe((next) => this.sync(next));
+    this.sync(state);
+  }
+
+  release(): void {
+    const session = getPageMediaSession();
+    const positioned = this.mark !== null;
+    this.stop();
+    if (session && page.owner === this.token) {
+      releasePage(session, positioned);
+    }
+  }
+
+  setOptions(next: VibePlayerMediaSessionOptions): void {
+    this.options = next;
+    if (this.unsubscribe) {
+      this.sync(this.controller.getState());
+    }
+  }
+
+  private sync(state: VibePlayerControllerState): void {
+    const session = getPageMediaSession();
+    if (!(session && page.owner === this.token)) {
+      this.stop();
+      return;
+    }
+    this.syncMetadata(session, state);
+    this.syncActions(session, state);
+    session.playbackState = state.snapshot.paused ? "paused" : "playing";
+    this.mark = syncMediaSessionPosition(
+      session,
+      state.snapshot,
+      state.capabilities,
+      this.mark,
+      Date.now()
+    );
+  }
+
+  private syncMetadata(
+    session: PageMediaSession,
+    state: VibePlayerControllerState
+  ): void {
+    const init = this.metadata.next(
+      this.options.metadata ?? {},
+      state.currentSource
+    );
+    if (init && typeof MediaMetadata === "function") {
+      page.metadata = new MediaMetadata(init);
+      session.metadata = page.metadata;
+    }
+  }
+
+  private syncActions(
     session: PageMediaSession,
     { capabilities }: VibePlayerControllerState
-  ) => {
-    const wanted = handlers.select(capabilities);
+  ): void {
+    const wanted = this.handlers.select(capabilities);
     const key = [...wanted.keys()].join();
-    if (key === actionsKey) {
+    if (key === this.actionsKey) {
       return;
     }
     for (const action of page.actions) {
@@ -81,81 +144,25 @@ export function createVibePlayerMediaSession(
       setMediaSessionAction(session, action, handler);
     }
     page.actions = new Set(wanted.keys());
-    actionsKey = key;
-  };
+    this.actionsKey = key;
+  }
 
-  const syncMetadata = (
-    session: PageMediaSession,
-    state: VibePlayerControllerState
-  ) => {
-    const [lastOptions, lastSource] = metadataFrom;
-    if (lastOptions === options && lastSource === state.currentSource) {
-      return;
-    }
-    metadataFrom = [options, state.currentSource];
-    const init = createMediaSessionMetadataInit(options, state.currentSource);
-    const key = JSON.stringify(init);
-    if (key === metadataKey || typeof MediaMetadata !== "function") {
-      return;
-    }
-    page.metadata = new MediaMetadata(init);
-    session.metadata = page.metadata;
-    metadataKey = key;
-  };
+  private stop(): void {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    this.actionsKey = "";
+    this.metadata.forget();
+    this.mark = null;
+  }
+}
 
-  const sync = (state: VibePlayerControllerState) => {
-    const session = getPageMediaSession();
-    if (!(session && page.owner === token)) {
-      stop();
-      return;
-    }
-    syncMetadata(session, state);
-    syncActions(session, state);
-    session.playbackState = state.snapshot.paused ? "paused" : "playing";
-    mark = syncMediaSessionPosition(
-      session,
-      state.snapshot,
-      state.capabilities,
-      mark,
-      Date.now()
-    );
-  };
-
-  const stop = () => {
-    unsubscribe?.();
-    unsubscribe = null;
-    actionsKey = "";
-    metadataKey = "";
-    metadataFrom = [null, null];
-    mark = null;
-  };
-
-  const release = () => {
-    const session = getPageMediaSession();
-    const positioned = mark !== null;
-    stop();
-    if (session && page.owner === token) {
-      releasePage(session, positioned);
-    }
-  };
-
-  return {
-    claim() {
-      const state = controller.getState();
-      if (page.owner === token || !getPageMediaSession()) {
-        return;
-      }
-      stop();
-      page.owner = token;
-      unsubscribe = controller.subscribe(sync);
-      sync(state);
-    },
-    release,
-    setOptions(next) {
-      options = next;
-      if (unsubscribe) {
-        sync(controller.getState());
-      }
-    },
-  };
+/**
+ * Connects a controller to `navigator.mediaSession` while it owns the page
+ * session. Without the API every call is a no-op.
+ */
+export function createVibePlayerMediaSession(
+  controller: VibePlayerController,
+  options: VibePlayerMediaSessionOptions = {}
+): VibePlayerMediaSession {
+  return new VibePlayerMediaSessionClaim(controller, options);
 }

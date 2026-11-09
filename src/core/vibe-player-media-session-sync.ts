@@ -1,12 +1,6 @@
 import type {
-  VibePlayerMediaSessionArtwork,
-  VibePlayerMediaSessionMetadata,
-  VibePlayerMediaSessionOptions,
-} from "./vibe-player-media-session-types";
-import type {
   VibePlayerCapabilities,
   VibePlayerSnapshot,
-  VibePlayerSource,
 } from "./vibe-player-types";
 
 /** Actions the package registers; the DOM library lacks the PiP action. */
@@ -63,44 +57,6 @@ export function setMediaSessionAction(
     session.setActionHandler(action, handler);
   } catch {
     // The browser does not know this action.
-  }
-}
-
-export function createMediaSessionMetadataInit(
-  options: VibePlayerMediaSessionOptions,
-  source: VibePlayerSource | null
-): MediaMetadataInit {
-  const { album, artist, artwork, title } = options.metadata ?? {};
-  const poster = source?.posterUrl;
-  const images =
-    resolveArtwork(artwork, source) ?? (poster ? [{ src: poster }] : []);
-  return {
-    album: album ?? "",
-    artist: artist ?? "",
-    artwork: images.map(({ sizes, src, type }) => ({
-      src,
-      ...(sizes ? { sizes } : {}),
-      ...(type ? { type } : {}),
-    })),
-    title: title ?? source?.title ?? "",
-  };
-}
-
-/** A function is asked for the current source; a failure means no artwork. */
-function resolveArtwork(
-  artwork: VibePlayerMediaSessionMetadata["artwork"],
-  source: VibePlayerSource | null
-): readonly VibePlayerMediaSessionArtwork[] | undefined {
-  if (typeof artwork !== "function") {
-    return artwork;
-  }
-  if (!source) {
-    return;
-  }
-  try {
-    return artwork(source);
-  } catch {
-    // Host artwork failed; the poster stands in.
   }
 }
 
