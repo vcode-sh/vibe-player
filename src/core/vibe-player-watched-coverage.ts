@@ -1,6 +1,6 @@
 import type { VibePlayerWatchedRange } from "./vibe-player-watched-ranges";
 
-/** Separate spans one playback keeps; more merge the closest neighbors. */
+/** Separate spans one playback counts. */
 const COVERAGE_RANGE_LIMIT = 256;
 
 /**
@@ -30,8 +30,8 @@ export function insertVibePlayerWatchedRange(
 
 /**
  * The media one playback watched, counted once however often it replays.
- * Memory stays bounded: past the range limit, the two closest spans merge,
- * which can count their small gap as watched.
+ * Memory stays bounded: past the range limit, a new separate span is not
+ * counted, so coverage never overstates what played.
  */
 export class VibePlayerWatchedCoverage {
   private ranges: VibePlayerWatchedRange[] = [];
@@ -44,10 +44,12 @@ export class VibePlayerWatchedCoverage {
 
   add(start: number, end: number): void {
     const next = insertVibePlayerWatchedRange(this.ranges, start, end);
-    this.ranges =
-      next.length > COVERAGE_RANGE_LIMIT ? mergeClosestRanges(next) : next;
+    if (next.length > COVERAGE_RANGE_LIMIT) {
+      return;
+    }
+    this.ranges = next;
     this.total = 0;
-    for (const range of this.ranges) {
+    for (const range of next) {
       this.total += range.end - range.start;
     }
   }
@@ -56,34 +58,4 @@ export class VibePlayerWatchedCoverage {
     this.ranges = [];
     this.total = 0;
   }
-}
-
-function mergeClosestRanges(
-  ranges: readonly VibePlayerWatchedRange[]
-): VibePlayerWatchedRange[] {
-  let closest = 0;
-  for (let index = 1; index < ranges.length - 1; index += 1) {
-    if (gapAfter(ranges, index) < gapAfter(ranges, closest)) {
-      closest = index;
-    }
-  }
-  const first = ranges[closest];
-  const second = ranges[closest + 1];
-  if (!(first && second)) {
-    return [...ranges];
-  }
-  return [
-    ...ranges.slice(0, closest),
-    { end: second.end, start: first.start },
-    ...ranges.slice(closest + 2),
-  ];
-}
-
-function gapAfter(
-  ranges: readonly VibePlayerWatchedRange[],
-  index: number
-): number {
-  const range = ranges[index];
-  const next = ranges[index + 1];
-  return range && next ? next.start - range.end : Number.POSITIVE_INFINITY;
 }

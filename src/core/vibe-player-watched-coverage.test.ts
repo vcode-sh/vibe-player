@@ -13,16 +13,17 @@ describe("VibePlayerWatchedCoverage", () => {
     expect(coverage.seconds).toBe(0);
   });
 
-  it("bounds memory by merging the two closest spans", () => {
+  it("bounds memory without overstating coverage", () => {
     const coverage = new VibePlayerWatchedCoverage();
-    // 256 one-second spans, 9 seconds apart: the limit, nothing merged.
+    // 256 one-second spans, 9 seconds apart: the limit.
     for (let index = 0; index < 256; index += 1) {
       coverage.add(index * 10, index * 10 + 1);
     }
     expect(coverage.seconds).toBe(256);
-    // A 257th span 4 seconds before its right neighbor and 4.5 after its
-    // left one: only the 4-second gap becomes watched.
+    // A 257th separate span is not counted; growing a kept one still is.
     coverage.add(5.5, 6);
-    expect(coverage.seconds).toBe(260.5);
+    expect(coverage.seconds).toBe(256);
+    coverage.add(1, 1.5);
+    expect(coverage.seconds).toBe(256.5);
   });
 });
