@@ -94,12 +94,12 @@ use **Re-run failed jobs**. Do not dispatch Release again: the version is
 already on npm, so a new run stops at step 3.
 
 The release-state guard enforces these permissions and the checkout setting,
-keeps steps 1-4 before `bun run ci`, keeps the browser gate between
-`bun run ci` and publishing, keeps tagging in a separate `tag` job that needs
-the release job, checks for an empty tag, uses `pipefail` for piped commands
-and pushes only `refs/tags/` without a forcing `+` refspec, and rejects an `if:` condition,
-`continue-on-error` or a swallowed tag-check failure on these steps; see
-[the timing rationale](../research/playwright-release-gate.md).
+keeps steps 1-4 before `bun run ci`, keeps the browser gate between `bun run
+ci` and publishing, keeps tagging in a separate `tag` job that needs the
+release job, checks for an empty tag, uses `pipefail` for piped commands and
+pushes only `refs/tags/` without a forcing `+` refspec, and rejects an `if:`
+condition, `continue-on-error` or a swallowed tag-check failure on these
+steps; see [the timing rationale](../research/playwright-release-gate.md).
 `release:publish` calls `changeset publish`, so keep `.changeset/config.json`
 (public access, no commits); no changeset files or version PRs are used.
 

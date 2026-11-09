@@ -288,12 +288,14 @@ event, and one removed meanwhile receives nothing more. Listeners that keep
 changing the player during notification are cut off after a bounded number of
 updates per delivery, counted across the whole cascade so nesting cannot
 multiply it. Every delivery that was cut off is reported once
-(`operation` `"state-listener"`, `"event"` or `"provider-events"`). Provider
-events have a higher limit of their own, and source releases and playback
-starts always reach the controller's own trackers, even during a runaway. Afterwards every state subscriber that does not change the state when
-it receives it ends on the latest state; a subscriber that changes it again is
-not called again and stays one state behind. Rejected
-asynchronous observer/write callbacks are contained too. Failure of `onError`
+(`operation` `"state-listener"`, `"event"` or `"provider-events"`), and the
+report of the one that reached its limit first carries `details.first: true`.
+Provider events have a higher limit of their own, and source releases and
+playback starts always reach the controller's own trackers, even during a
+runaway. Afterwards every state subscriber that does not change the state
+when it receives it ends on the latest state; a subscriber that changes it
+again is not called again and stays one state behind. Rejected asynchronous
+observer/write callbacks are contained too. Failure of `onError`
 itself is contained without recursively reporting another error. A failed
 resume read skips restoration; a provider's failed position-restore command
 still reports in the `load` phase. The `state.error` is reserved for terminal
@@ -311,12 +313,12 @@ also keep the watched batch and save no resume position. A custom
 `isInternalSeek(time)`. A custom adapter should report the new position as
 soon as its `seekTo()` resolves: two progress events at the old position
 after that count as "playback moved on", and a later echo of the seek is then
-reported as a `media` seek. A `seekTo()` the media echoes as `seeking`/`seeked` is reported
-once, and restoring a resume, recovery or replay position is not a seek. Pending pause
-intent suppresses stale active events until a provider pause acknowledgment;
-a later provider-initiated play can then update normalized state. That intent
-shapes `state.lastEvent`; `onEvent`, `controller.on()` and watched ranges see
-provider events as reported.
+reported as a `media` seek. A `seekTo()` the media echoes as `seeking`/`seeked`
+is reported once, and restoring a resume, recovery or replay position is not a
+seek. Pending pause intent suppresses stale active events until a provider
+pause acknowledgment; a later provider-initiated play can then update
+normalized state. That intent shapes `state.lastEvent`; `onEvent`,
+`controller.on()` and watched ranges see provider events as reported.
 
 For custom/headless surfaces, use `useVibePlayer`. It owns mounting, source
 loading, autoplay, closing, and cleanup. See the complete example in
