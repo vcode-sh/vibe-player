@@ -420,7 +420,11 @@ Picture-in-Picture, the browser). `from` is the position the seek left and
 `currentTime` the position it went to. Restoring a resume or recovery position
 and rewinding to replay are not seeks. Each native `seeking` counts, so a scrub
 on native controls can report several seeks in a row; coalesce events that
-arrive close together if you want one per gesture.
+arrive close together if you want one per gesture. The browser and hls.js
+also seek on their own, for example to skip a small gap or catch up to the
+live edge. Those count as `media` seeks too: they send a `seek` event, start a
+fresh watched batch and can save a resume position. Filter on `initiator` if
+you only care about viewer-driven seeks.
 
 Analytics follow one session per source. `opened` and `closed` bracket it:
 retry, renewal, stop, offscreen release and remounting the same source keep

@@ -44,12 +44,16 @@
 - `timeupdate` also fires on the media's `progress`, `resize` and `stalled`
   events, so the buffered amount and video size stay current; the time may
   not have moved. Compare `currentTime` if you treat it as elapsed time.
+  `onProgress` can therefore run while the video is paused (still throttled).
 - The published JavaScript is readable, unminified ESM with stable chunk names
   (`dist/chunks/player.js` and friends), so you can read, debug and patch it.
   Your bundler still minifies it; imports are unchanged.
 
 ### Added
 
+- `vibe-player/hook` exports the `VibePlayerResumeStore` and
+  `VibePlayerResumeContext` types next to the resume store factories, so a
+  custom store needs no second import path.
 - `controller.on(type, listener)` listens to one event type, or every event
   with `"*"`, from the same stream as `onEvent`. Listeners are fully typed
   (`VibePlayerEventType`, `VibePlayerEventOfType`) and `on()` returns an
