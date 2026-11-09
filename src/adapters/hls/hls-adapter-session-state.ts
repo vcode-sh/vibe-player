@@ -14,6 +14,8 @@ export interface HlsAdapterSessionState {
   readonly mounted: boolean;
   readonly playbackGeneration: number;
   setLive: (isLive: boolean) => void;
+  /** Native playback: live if the source says so or the media reports it. */
+  setNativeLive: (isLive: boolean) => void;
   readonly source: VibePlayerHlsSource | null;
 }
 
@@ -90,5 +92,9 @@ class MutableHlsAdapterSessionState implements HlsAdapterSessionState {
 
   setLive(isLive: boolean): void {
     this.liveState = isLive;
+  }
+
+  setNativeLive(isLive: boolean): void {
+    this.liveState = Boolean(this.currentSource?.live) || isLive;
   }
 }

@@ -1,6 +1,7 @@
 import { createIdleCapabilities } from "../../core/vibe-player-time";
 import type {
   VibePlayerCapabilities,
+  VibePlayerEventName,
   VibePlayerHlsSource,
   VibePlayerSnapshot,
 } from "../../core/vibe-player-types";
@@ -24,6 +25,28 @@ const nativeHlsVideos = new WeakSet<HTMLVideoElement>();
 
 export function isNativeHlsVideo(video: HTMLVideoElement): boolean {
   return nativeHlsVideos.has(video);
+}
+
+/**
+ * Native HLS (Safari) reports a live stream as an infinite duration, or an
+ * unknown one with a seekable window; a finite duration is on demand. Returns
+ * `null` for managed playback and events that carry no duration news.
+ */
+export function readNativeHlsLive(
+  video: HTMLVideoElement,
+  event: VibePlayerEventName
+): boolean | null {
+  if (
+    !nativeHlsVideos.has(video) ||
+    (event !== "durationchange" && event !== "ready")
+  ) {
+    return null;
+  }
+  const { duration } = video;
+  return (
+    duration === Number.POSITIVE_INFINITY ||
+    (Number.isNaN(duration) && video.seekable.length > 0)
+  );
 }
 
 export function getHlsManifestUrl(source: VibePlayerHlsSource): string {

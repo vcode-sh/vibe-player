@@ -25,6 +25,7 @@ import {
   getHlsVideoCapabilities,
   getHlsVideoSnapshot,
   isNativeHlsVideo,
+  readNativeHlsLive,
 } from "./hls-adapter-dom";
 import { loadCurrentHlsAdapterSource } from "./hls-adapter-load-session";
 import { createHlsAdapterQualityState } from "./hls-adapter-quality-state";
@@ -228,6 +229,10 @@ class HlsVibePlayerAdapter implements VibePlayerAdapter {
     this.ownsVideo = !externalVideo;
     const video = createNativeVideo((event, payload) => {
       if (this.video === video) {
+        const nativeLive = readNativeHlsLive(video, event);
+        if (nativeLive !== null) {
+          this.session.setNativeLive(nativeLive);
+        }
         this.emit(
           event,
           event === "error"
