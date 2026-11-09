@@ -155,7 +155,7 @@ export function useVibePlayerSurface(
       controlsVisible,
       duration,
       error: state.error,
-      fullscreen: snapshot.isFullscreen ?? false,
+      fullscreen: props.onExpand ? null : (snapshot.isFullscreen ?? false),
       hold,
       muted: snapshot.muted,
       phase,

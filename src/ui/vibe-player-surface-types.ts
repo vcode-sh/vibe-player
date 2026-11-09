@@ -27,8 +27,12 @@ export interface VibePlayerSurfaceState {
   /** Falls back to the source's `durationSeconds` before metadata loads. */
   duration: number;
   error: VibePlayerError | null;
-  /** The player is presented in fullscreen. */
-  fullscreen: boolean;
+  /**
+   * The player is presented in fullscreen: a toggle's `aria-pressed`. `null`
+   * while `onExpand` replaces fullscreen, because that button opens your own
+   * view and has no pressed state.
+   */
+  fullscreen: boolean | null;
   /**
    * Why controls are held open: phase, scrub, or keyboard or
    * assistive-technology focus on a control (`"keyboard-focus"`).

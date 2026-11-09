@@ -5,7 +5,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { VibePlayerCompact } from "./vibe-player-compact";
 import { VibePlayerStage } from "./vibe-player-stage";
 import {
@@ -16,20 +16,22 @@ import {
 
 afterEach(cleanup);
 
+/**
+ * A two-state toggle keeps one name and changes only its pressed state
+ * (WAI-ARIA APG button pattern), so speech never contradicts the state.
+ */
 async function expectFullscreenToggle(adapterCalls: () => string[]) {
-  const enter = await screen.findByRole("button", {
-    name: "Full screen",
-  });
-  expect(enter).toHaveAttribute("aria-pressed", "false");
+  const toggle = await screen.findByRole("button", { name: "Full screen" });
+  expect(toggle).toHaveAttribute("aria-pressed", "false");
   await act(async () => {
-    fireEvent.click(enter);
+    fireEvent.click(toggle);
   });
   expect(adapterCalls()).toContain("fullscreen");
-  const exit = screen.getByRole("button", { name: "Exit full screen" });
-  expect(exit).toHaveAttribute("aria-pressed", "true");
-  expect(screen.queryByRole("button", { name: "Full screen" })).toBeNull();
+  const pressed = screen.getByRole("button", { name: "Full screen" });
+  expect(pressed).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("button", { name: "Exit full screen" })).toBeNull();
   await act(async () => {
-    fireEvent.click(exit);
+    fireEvent.click(pressed);
   });
   expect(adapterCalls()).toContain("exit-fullscreen");
   expect(screen.getByRole("button", { name: "Full screen" })).toHaveAttribute(
@@ -38,32 +40,41 @@ async function expectFullscreenToggle(adapterCalls: () => string[]) {
   );
 }
 
+async function renderPausedCompact(
+  skin: "chips" | "glass",
+  onExpand?: () => void
+) {
+  const harness = createStageAdapterFactory();
+  render(
+    <VibePlayerCompact
+      adapterFactory={harness.adapterFactory}
+      onExpand={onExpand}
+      skin={skin}
+      source={stageFileSource}
+    />
+  );
+  await act(() => import("./vibe-player-chips-skin"));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+  });
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
+  });
+  return harness;
+}
+
 describe("fullscreen toggle state", () => {
   it.each(["glass", "chips"] as const)(
-    "exposes the pressed state and exit label in the %s skin",
+    "keeps one name and exposes the pressed state in the %s skin",
     async (skin) => {
-      const harness = createStageAdapterFactory();
-      render(
-        <VibePlayerCompact
-          adapterFactory={harness.adapterFactory}
-          skin={skin}
-          source={stageFileSource}
-        />
-      );
-      await act(() => import("./vibe-player-chips-skin"));
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Play" }));
-      });
-      await act(async () => {
-        fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
-      });
+      const harness = await renderPausedCompact(skin);
       await expectFullscreenToggle(
         () => getStageAdapter(harness.adapters).calls
       );
     }
   );
 
-  it("exposes the pressed state and exit label in the full stage", async () => {
+  it("keeps one name and exposes the pressed state in the full stage", async () => {
     const harness = createStageAdapterFactory();
     render(
       <VibePlayerStage
@@ -76,4 +87,16 @@ describe("fullscreen toggle state", () => {
     });
     await expectFullscreenToggle(() => getStageAdapter(harness.adapters).calls);
   });
+
+  it.each(["glass", "chips"] as const)(
+    "gives the %s expand button no pressed state when onExpand opens a host view",
+    async (skin) => {
+      const onExpand = vi.fn();
+      await renderPausedCompact(skin, onExpand);
+      const expand = screen.getByRole("button", { name: "Full screen" });
+      expect(expand).not.toHaveAttribute("aria-pressed");
+      fireEvent.click(expand);
+      expect(onExpand).toHaveBeenCalledOnce();
+    }
+  );
 });

@@ -23,7 +23,7 @@ function createActions() {
 }
 
 describe("normalized presentation controls", () => {
-  it("offers exit actions for active fullscreen and picture-in-picture", () => {
+  it("marks active fullscreen pressed and offers the picture-in-picture exit", () => {
     const actions = createActions();
     render(
       <VibePlayerControls
@@ -37,13 +37,17 @@ describe("normalized presentation controls", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Exit full screen" }));
+    const fullscreen = screen.getByRole("button", { name: "Full screen" });
+    expect(fullscreen).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(fullscreen);
     fireEvent.click(
       screen.getByRole("button", { name: "Exit picture in picture" })
     );
     expect(actions.onToggleFullscreen).toHaveBeenCalledOnce();
     expect(actions.onTogglePictureInPicture).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("button", { name: "Full screen" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Exit full screen" })
+    ).toBeNull();
   });
 
   it("cycles through normalized provider rates instead of unsupported defaults", () => {

@@ -123,36 +123,34 @@ test("caption failure is a polite live status with a reachable successful retry"
   });
 });
 
-test("fullscreen exposes its exit action and restores accessible entry semantics", async ({
+test("fullscreen toggle keeps its name and exposes its pressed state", async ({
   page,
 }) => {
   const dialog = await openPlayer(page);
-  await dialog
-    .getByRole("button", { exact: true, name: "Full screen" })
-    .click();
-  const exit = dialog.getByRole("button", { name: "Exit full screen" });
-  await expect(exit).toBeVisible();
-  await expect(exit).toHaveAttribute("aria-pressed", "true");
+  const toggle = dialog.getByRole("button", {
+    exact: true,
+    name: "Full screen",
+  });
+  await toggle.click();
+  await expect
+    .poll(() => page.evaluate(() => Boolean(document.fullscreenElement)))
+    .toBe(true);
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
   const fullscreenTree = await readAccessibilityTree(page);
   expect(fullscreenTree).toContainEqual(
     expect.objectContaining({
-      name: "Exit full screen",
+      name: "Full screen",
       properties: expect.objectContaining({ pressed: "true" }),
       role: "button",
     })
   );
-  expect(fullscreenTree.some((node) => node.name === "Full screen")).toBe(
+  expect(fullscreenTree.some((node) => node.name === "Exit full screen")).toBe(
     false
   );
 
   await page.evaluate(() => document.exitFullscreen());
 
-  await expect(
-    dialog.getByRole("button", { exact: true, name: "Full screen" })
-  ).toHaveAttribute("aria-pressed", "false");
-  await expect(
-    dialog.getByRole("button", { name: "Exit full screen" })
-  ).toHaveCount(0);
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await dialog.getByRole("button", { exact: true, name: "Close" }).focus();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);

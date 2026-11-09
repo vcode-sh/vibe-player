@@ -189,7 +189,8 @@ export function VibePlayerFullscreenControl({
   return (
     <VibePlayerToggleButton
       active={isFullscreen}
-      label={isFullscreen ? labels.exitFullscreen : labels.fullscreen}
+      // One name; aria-pressed carries the state (APG toggle button).
+      label={labels.fullscreen}
       onClick={onToggleFullscreen}
       pressed={isFullscreen}
       shortcut={labels.fullscreenShortcut}

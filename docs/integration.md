@@ -167,8 +167,10 @@ live region unless you pass `live={false}`.
 
 Hidden controls are `inert` while media plays. Focus entering the player,
 including its own region, reveals them, so a screen reader moving focus can
-reach them without a key press. Fullscreen toggles in every skin expose
-`aria-pressed` and switch to `labels.exitFullscreen` while fullscreen.
+reach them without a key press. Fullscreen toggles in every skin keep the
+name `labels.fullscreen` and expose the state with `aria-pressed`, as the
+WAI-ARIA toggle button pattern recommends; an `onExpand` button has no pressed
+state. `labels.exitFullscreen` is reserved for your own controls.
 
 ### Media Session ownership
 

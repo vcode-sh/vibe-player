@@ -9,13 +9,13 @@ accessibility tree.
 
 ## Evidence and limits
 
-| Lane                                       | Verified behavior                                                                                                                                                                                                                   | Boundary                                                                                                                                    |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chromium automation                        | Actual browser AX tree exposes named native modal, background inertness, quality listbox/selection, volume slider, polite atomic caption status and fullscreen exit names. Keyboard caption retry succeeds and retains modal focus. | CDP/browser-generated keys and browser semantics; no screen-reader speech claim.                                                            |
-| Linux native input                         | XTest Enter/Escape opens the player, retries captions, exits actual fullscreen while retaining the modal, closes nested popovers before the modal and restores its opener.                                                          | OS-synthetic X11 input under Xvfb; no physical keyboard device.                                                                             |
-| Linux AT-SPI                               | A real accessibility bus exposes the dialog with modal state, hides the background action and exposes controls.                                                                                                                     | Actual platform accessibility objects in an isolated session; no macOS/Windows equivalence.                                                 |
-| Orca                                       | Real Orca produces caption-error text, retry-button, fullscreen entry/exit, quality listbox and volume vertical-slider utterances.                                                                                                  | Speech Dispatcher uses its dummy module. Generated speech is captured; speaker output, intelligibility and human listening are not tested.  |
-| Physical hardware and other screen readers | Manual protocol below is ready.                                                                                                                                                                                                     | No physical keyboard, Safari/macOS/iOS VoiceOver, Windows NVDA or braille device was available to this run. These checks remain unverified. |
+| Lane                                       | Verified behavior                                                                                                                                                                                                                                   | Boundary                                                                                                                                    |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chromium automation                        | Actual browser AX tree exposes named native modal, background inertness, quality listbox/selection, volume slider, polite atomic caption status and the fullscreen toggle's pressed state. Keyboard caption retry succeeds and retains modal focus. | CDP/browser-generated keys and browser semantics; no screen-reader speech claim.                                                            |
+| Linux native input                         | XTest Enter/Escape opens the player, retries captions, exits actual fullscreen while retaining the modal, closes nested popovers before the modal and restores its opener.                                                                          | OS-synthetic X11 input under Xvfb; no physical keyboard device.                                                                             |
+| Linux AT-SPI                               | A real accessibility bus exposes the dialog with modal state, hides the background action and exposes controls.                                                                                                                                     | Actual platform accessibility objects in an isolated session; no macOS/Windows equivalence.                                                 |
+| Orca                                       | Real Orca produces caption-error text, retry-button, fullscreen entry/exit, quality listbox and volume vertical-slider utterances.                                                                                                                  | Speech Dispatcher uses its dummy module. Generated speech is captured; speaker output, intelligibility and human listening are not tested.  |
+| Physical hardware and other screen readers | Manual protocol below is ready.                                                                                                                                                                                                                     | No physical keyboard, Safari/macOS/iOS VoiceOver, Windows NVDA or braille device was available to this run. These checks remain unverified. |
 
 The Linux checkpoint used Google Chrome **156.0.8078.47**, Orca **50.2** and
 AT-SPI2 **2.60.4**. This is a tested environment, not a new minimum-support policy.
@@ -39,6 +39,10 @@ vertical slider
 Volume 100%
 100 percent.
 ```
+
+That transcript predates 0.8.0, when the full stage toggle still switched to
+"Exit full screen"; it now keeps "Full screen" and reports its pressed state.
+The native probe waits for that pressed state, but was not re-run for 0.8.0.
 
 Caption failure was included in Orca's initial content utterance. This alone
 does not prove the timing or uniqueness of a later live-region announcement.
@@ -64,8 +68,9 @@ Orca probes above were not re-run for them.
   player, without key events (the way assistive technology moves focus),
   reveals the Stage and compact controls. Pointer presses keep their own
   policy, and focus the player moves back to its region does not reveal.
-- Fullscreen toggles in Glass, Chips and the full stage expose
-  `aria-pressed` and the "Exit full screen" name while fullscreen.
+- Fullscreen toggles in Glass, Chips and the full stage keep the name
+  "Full screen" and expose `aria-pressed` (WAI-ARIA APG toggle button). An
+  `onExpand` button, which opens a host view, has no pressed state.
 
 Whether a screen reader moves DOM focus at all depends on the product and its
 settings (for example NVDA browse mode or VoiceOver swipe navigation), so the
@@ -152,8 +157,8 @@ for each step; retain a recording or transcript when feasible.
    playback. Reach **Retry captions**, activate it and confirm captions recover,
    focus remains in the player and its controls remain usable. Note whether the
    error is announced automatically, on content entry or only during reading.
-5. Enter fullscreen using the package control. Verify the exit name is announced
-   and controls/captions remain available. Press physical Escape: it should exit
+5. Enter fullscreen using the package control. Verify its pressed state is
+   announced and controls/captions remain available. Press physical Escape: it should exit
    browser fullscreen first while retaining the modal. A subsequent Escape may
    close the modal. Repeat entry/exit using the package button and F.
 6. Close during playback, confirm audio/video stops, reopen and check there is

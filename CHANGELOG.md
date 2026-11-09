@@ -52,6 +52,15 @@
 - The published JavaScript is readable, unminified ESM with stable chunk names
   (`dist/chunks/player.js` and friends), so you can read, debug and patch it.
   Your bundler still minifies it; imports are unchanged.
+- The full stage fullscreen button keeps the name "Full screen" and reports
+  the state with `aria-pressed`, instead of switching to "Exit full screen".
+  Tests that looked for "Exit full screen" can query
+  `{ name: "Full screen", pressed: true }`. `labels.exitFullscreen` stays
+  available for your own controls.
+- `VibePlayerSurfaceState` has a new `fullscreen` field: `true`/`false` for
+  the fullscreen toggle's pressed state, `null` while `onExpand` replaces
+  fullscreen. `renderOverlay` code compiles unchanged, but a hand-built
+  `VibePlayerSurface` (for example in tests) needs the new field.
 
 ### Added
 
@@ -62,6 +71,8 @@
   with `"*"`, from the same stream as `onEvent`. Listeners are fully typed
   (`VibePlayerEventType`, `VibePlayerEventOfType`) and `on()` returns an
   unsubscribe function.
+- `VibePlayerStageStatus` accepts `live={false}` for custom UIs that announce
+  status through their own live region; by default it stays a polite status.
 - Watched-range reports carry a `playbackId` and a 1-based `sequence`, so you
   can drop duplicates and add up each viewing. Loading a source or replaying
   after the end starts a new playback; retry and renewal keep it. Reports you
@@ -169,8 +180,7 @@
   player now reveals them, not only a key press, and focus resting on a
   control keeps them open. Returning to the browser tab no longer flashes them.
 - Fullscreen toggles in the Glass, Chips and full stage chrome expose
-  `aria-pressed` and the "Exit full screen" label; overlays read
-  `surface.state.fullscreen`.
+  `aria-pressed`, so screen readers hear whether the player is fullscreen.
 
 ## [0.7.1] - 2026-11-09
 

@@ -45,6 +45,10 @@ export interface VibePlayerLabels {
   captionsShortcut: string;
   captionsUnavailable: string;
   close: string;
+  /**
+   * Reserved for custom controls. Package fullscreen toggles keep
+   * `fullscreen` as their name and expose the state with `aria-pressed`.
+   */
   exitFullscreen: string;
   exitPictureInPicture: string;
   fixedQuality: string;

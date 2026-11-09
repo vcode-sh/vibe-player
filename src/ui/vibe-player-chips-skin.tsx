@@ -1,32 +1,20 @@
-import {
-  EnterFullscreenIcon,
-  ExitFullscreenIcon,
-  MuteIcon,
-  PictureInPictureIcon,
-  UnavailableIcon,
-  VolumeIcon,
-} from "./vibe-player-icons";
+import { chip, VibePlayerChipsSide } from "./vibe-player-chips-side";
+import { UnavailableIcon } from "./vibe-player-icons";
 import { VibePlayerScrubber } from "./vibe-player-scrubber";
 import {
   getVibePlayerPrimaryLabel,
   renderVibePlayerSlot,
   type VibePlayerSkinProps,
 } from "./vibe-player-skin-props";
-import { VibePlayerSkipGlyph } from "./vibe-player-skip-glyph";
 import {
   playbackSwapItems,
   revealProps,
   VibePlayerSwap,
 } from "./vibe-player-surface-parts";
 import { isVibePlayerSurfacePlaying } from "./vibe-player-surface-phase";
-import type {
-  VibePlayerSurface,
-  VibePlayerSurfaceState,
-} from "./vibe-player-surface-types";
+import type { VibePlayerSurfaceState } from "./vibe-player-surface-types";
 import { useVibePlayerUI, vibePlayerClassName } from "./vibe-player-ui-context";
 import type { VibePlayerLabels } from "./vibe-player-ui-types";
-
-const chip = "vibe-player-chips__chip";
 
 function chipText(
   state: VibePlayerSurfaceState,
@@ -139,109 +127,5 @@ export default function VibePlayerChipsSkin(props: VibePlayerSkinProps) {
       {end.node}
       {error.node}
     </div>
-  );
-}
-
-/** Corner controls: skips, Picture-in-Picture, fullscreen and mute. */
-function VibePlayerChipsSide({ surface }: { surface: VibePlayerSurface }) {
-  const { classNames, labels } = useVibePlayerUI();
-  const { actions, controls, state } = surface;
-  const { controlsVisible, seekStep } = state;
-  const hidden = isVibePlayerSurfacePlaying(state.phase) && !controlsVisible;
-  const skip = (side: -1 | 1) =>
-    controls.skip ? (
-      <button
-        {...revealProps(
-          controlsVisible,
-          "vibe-player-chips__round vibe-player-chips__skip",
-          side < 0 ? "skip-backward" : "skip-forward",
-          classNames.button
-        )}
-        aria-label={
-          side < 0
-            ? labels.seekBackward(seekStep)
-            : labels.seekForward(seekStep)
-        }
-        onClick={() => actions.seekBy(side * seekStep)}
-        type="button"
-      >
-        <span className={`vibe-player-chips__dot ${chip}`}>
-          <VibePlayerSkipGlyph side={side} step={seekStep} />
-        </span>
-      </button>
-    ) : null;
-  return (
-    <span className="vibe-player-chips__side">
-      {skip(-1)}
-      {skip(1)}
-      {controls.pictureInPicture ? (
-        <button
-          {...revealProps(
-            controlsVisible,
-            "vibe-player-chips__round",
-            "picture-in-picture",
-            classNames.button
-          )}
-          aria-label={
-            state.pictureInPicture
-              ? labels.exitPictureInPicture
-              : labels.pictureInPicture
-          }
-          aria-pressed={state.pictureInPicture}
-          onClick={actions.togglePictureInPicture}
-          type="button"
-        >
-          <span className={`vibe-player-chips__dot ${chip}`}>
-            <PictureInPictureIcon />
-          </span>
-        </button>
-      ) : null}
-      {controls.fullscreen ? (
-        <button
-          {...revealProps(
-            controlsVisible,
-            "vibe-player-chips__round vibe-player-chips__expand",
-            "fullscreen",
-            classNames.button
-          )}
-          aria-label={
-            state.fullscreen ? labels.exitFullscreen : labels.fullscreen
-          }
-          aria-pressed={state.fullscreen}
-          onClick={actions.toggleFullscreen}
-          type="button"
-        >
-          <span className={`vibe-player-chips__dot ${chip}`}>
-            {state.fullscreen ? (
-              <ExitFullscreenIcon />
-            ) : (
-              <EnterFullscreenIcon />
-            )}
-          </span>
-        </button>
-      ) : null}
-      {controls.mute ? (
-        <button
-          {...revealProps(
-            controlsVisible || (hidden && state.autoplayMuted),
-            "vibe-player-chips__round",
-            state.controlsVisible ? "mute" : "unmute",
-            state.controlsVisible ? classNames.button : classNames.unmute
-          )}
-          aria-label={state.muted ? labels.unmute : labels.mute}
-          onClick={actions.toggleMute}
-          type="button"
-        >
-          <span className={`vibe-player-chips__dot ${chip}`}>
-            <VibePlayerSwap
-              items={[
-                { icon: <VolumeIcon />, key: "on", visible: !state.muted },
-                { icon: <MuteIcon />, key: "off", visible: state.muted },
-              ]}
-            />
-          </span>
-        </button>
-      ) : null}
-    </span>
   );
 }

@@ -13,7 +13,11 @@ test("F toggles fullscreen and external browser exit updates package controls", 
   await page.locator(".vibe-player-stage").focus();
   await page.keyboard.press("f");
   await expect(
-    page.getByRole("button", { exact: true, name: "Exit full screen" })
+    page.getByRole("button", {
+      exact: true,
+      name: "Full screen",
+      pressed: true,
+    })
   ).toBeVisible();
 
   await page.keyboard.press("f");

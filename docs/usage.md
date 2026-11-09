@@ -659,7 +659,7 @@ Options:
   media, poster, timing, keyboard, autoplay and audio focus; the overlay gets
   `surface.state`, `surface.actions` and `surface.controls`. A custom
   fullscreen toggle reads `surface.state.fullscreen` for its `aria-pressed`
-  and label.
+  (`null` while `onExpand` replaces fullscreen: omit it then).
 - `icons` (add `unavailable` for the error glyph, `seekBackward` /
   `seekForward` for skips), `labels`, `formatTime` and
   `classNames` (`playButton`, `duration`, `controls`, `progress`, `time`,

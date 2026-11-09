@@ -37,14 +37,16 @@ function readSpeech() {
 }
 
 async function waitForSpeech(text) {
+  await waitForSpeechLine((line) => line.includes(text));
+}
+
+async function waitForSpeechLine(matches) {
   await expect
     .poll(
       () =>
         readSpeech()
           .split("\n")
-          .some(
-            (line) => line.includes("SPEECH OUTPUT") && line.includes(text)
-          ),
+          .some((line) => line.includes("SPEECH OUTPUT") && matches(line)),
       { timeout: 5000 }
     )
     .toBe(true);
@@ -91,9 +93,12 @@ async function verifyFullscreen(page, dialog) {
     .poll(() => page.evaluate(() => Boolean(document.fullscreenElement)))
     .toBe(true);
   await expect(
-    dialog.getByRole("button", { name: "Exit full screen" })
+    dialog.getByRole("button", { name: "Full screen", pressed: true })
   ).toBeVisible();
-  await waitForSpeech("Exit full screen");
+  // The toggle keeps its name; the screen reader reports the pressed state.
+  await waitForSpeechLine(
+    (line) => line.includes("pressed") && !line.includes("not pressed")
+  );
   pressNativeKey("Escape");
   await expect
     .poll(() => page.evaluate(() => Boolean(document.fullscreenElement)))

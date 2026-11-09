@@ -1,12 +1,8 @@
 import {
-  EnterFullscreenIcon,
-  ExitFullscreenIcon,
-  MuteIcon,
-  PictureInPictureIcon,
-  VolumeIcon,
-} from "./vibe-player-icons";
+  VibePlayerGlassEndButtons,
+  VibePlayerGlassSkip,
+} from "./vibe-player-glass-bar-buttons";
 import { VibePlayerScrubber } from "./vibe-player-scrubber";
-import { VibePlayerSkipGlyph } from "./vibe-player-skip-glyph";
 import {
   playbackSwapItems,
   revealProps,
@@ -32,22 +28,6 @@ export function VibePlayerGlassBar({
     classNames.button
   );
   const time = formatTime(state.time);
-  const skip = (side: -1 | 1) =>
-    controls.skip ? (
-      <button
-        aria-label={
-          side < 0
-            ? labels.seekBackward(state.seekStep)
-            : labels.seekForward(state.seekStep)
-        }
-        className={`${button} vibe-player-glass__skip`}
-        data-part={side < 0 ? "skip-backward" : "skip-forward"}
-        onClick={() => actions.seekBy(side * state.seekStep)}
-        type="button"
-      >
-        <VibePlayerSkipGlyph side={side} step={state.seekStep} />
-      </button>
-    ) : null;
   return (
     <div
       {...revealProps(
@@ -57,7 +37,7 @@ export function VibePlayerGlassBar({
         classNames.controls
       )}
     >
-      {skip(-1)}
+      <VibePlayerGlassSkip button={button} side={-1} surface={surface} />
       <button
         aria-label={playing ? labels.pause : labels.play}
         className={button}
@@ -69,24 +49,8 @@ export function VibePlayerGlassBar({
           items={playbackSwapItems({ busy: false, ended: false, playing })}
         />
       </button>
-      {skip(1)}
-      {controls.seek ? (
-        <VibePlayerScrubber
-          bubble={
-            <span
-              className="vibe-player-glass__bubble vibe-player-glass__tint"
-              data-part="scrub-bubble"
-              data-visible={state.scrubbing}
-            >
-              {time}
-            </span>
-          }
-          className="vibe-player-glass__track"
-          surface={surface}
-        />
-      ) : (
-        <span className="vibe-player-glass__spacer" />
-      )}
+      <VibePlayerGlassSkip button={button} side={1} surface={surface} />
+      <VibePlayerGlassTrack surface={surface} time={time} />
       {controls.time ? (
         <span
           className={vibePlayerClassName(
@@ -98,52 +62,35 @@ export function VibePlayerGlassBar({
           {time}
         </span>
       ) : null}
-      {controls.pictureInPicture ? (
-        <button
-          aria-label={
-            state.pictureInPicture
-              ? labels.exitPictureInPicture
-              : labels.pictureInPicture
-          }
-          aria-pressed={state.pictureInPicture}
-          className={button}
-          data-part="picture-in-picture"
-          onClick={actions.togglePictureInPicture}
-          type="button"
-        >
-          <PictureInPictureIcon />
-        </button>
-      ) : null}
-      {controls.fullscreen ? (
-        <button
-          aria-label={
-            state.fullscreen ? labels.exitFullscreen : labels.fullscreen
-          }
-          aria-pressed={state.fullscreen}
-          className={`${button} vibe-player-glass__expand`}
-          data-part="fullscreen"
-          onClick={actions.toggleFullscreen}
-          type="button"
-        >
-          {state.fullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
-        </button>
-      ) : null}
-      {controls.mute ? (
-        <button
-          aria-label={state.muted ? labels.unmute : labels.mute}
-          className={button}
-          data-part="mute"
-          onClick={actions.toggleMute}
-          type="button"
-        >
-          <VibePlayerSwap
-            items={[
-              { icon: <VolumeIcon />, key: "on", visible: !state.muted },
-              { icon: <MuteIcon />, key: "off", visible: state.muted },
-            ]}
-          />
-        </button>
-      ) : null}
+      <VibePlayerGlassEndButtons button={button} surface={surface} />
     </div>
+  );
+}
+
+/** The short scrubber with its time bubble, or a spacer without seeking. */
+function VibePlayerGlassTrack({
+  surface,
+  time,
+}: {
+  surface: VibePlayerSurface;
+  time: string;
+}) {
+  if (!surface.controls.seek) {
+    return <span className="vibe-player-glass__spacer" />;
+  }
+  return (
+    <VibePlayerScrubber
+      bubble={
+        <span
+          className="vibe-player-glass__bubble vibe-player-glass__tint"
+          data-part="scrub-bubble"
+          data-visible={surface.state.scrubbing}
+        >
+          {time}
+        </span>
+      }
+      className="vibe-player-glass__track"
+      surface={surface}
+    />
   );
 }

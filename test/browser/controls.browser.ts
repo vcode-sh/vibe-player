@@ -82,7 +82,7 @@ test("fullscreen keeps package controls and toggles back to inline presentation"
     )
   ).toBe(true);
   await page
-    .getByRole("button", { exact: true, name: "Exit full screen" })
+    .getByRole("button", { exact: true, name: "Full screen", pressed: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => document.fullscreenElement === null))
