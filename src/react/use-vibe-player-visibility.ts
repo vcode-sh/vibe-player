@@ -93,6 +93,10 @@ function observeVisibility(
   };
 }
 
+function isInPictureInPicture(controller: VibePlayerController): boolean {
+  return controller.getState().snapshot.isPictureInPicture === true;
+}
+
 function getVisibilityThreshold(value: number): number {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0.25;
 }
@@ -183,9 +187,15 @@ export function useVibePlayerVisibility({
       }
     });
     // Leaving Picture-in-Picture while offscreen applies the deferred release.
+    // Other changes never do: an explicit Play on a mostly hidden player
+    // keeps playing until its next offscreen entry. A parked frame
+    // (visible === null) is never offscreen.
+    let inPicture = isInPictureInPicture(controller);
     const unsubscribe = stopWhenOffscreen
       ? controller.subscribe(() => {
-          if (current && visible === false) {
+          const wasInPicture = inPicture;
+          inPicture = isInPictureInPicture(controller);
+          if (current && visible === false && wasInPicture && !inPicture) {
             releaseActivePlayer(controller);
           }
         })
