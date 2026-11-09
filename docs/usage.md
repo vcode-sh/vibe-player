@@ -818,6 +818,8 @@ export function FeedClip({ source }: { source: VibePlayerMp4Source }) {
   once empty. A parked player is neither visible nor offscreen:
   `stopWhenOffscreen` does not stop it while it waits, and decides again
   once a host shows it.
+- A parked player keeps playing until a host shows it or you unmount or
+  pause it. When its host is gone for good, unmount the player or pause it.
 - The player renders nothing on the server and appears after the first client
   commit, inside a `display: contents` wrapper appended to the host. Size the
   host; the player fills it like any other frame.

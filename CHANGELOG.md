@@ -271,8 +271,8 @@
 
 - `VibePlayerCompact` accepts `seekThumbnails`; glass and chips show the frame
   in the heatmap preview.
-- `createVibePlayerSeekThumbnails({ url, columns, count, width, height,
-interval })` maps a storyboard sprite sheet to seek thumbnails, and
+- `createVibePlayerSeekThumbnails({ url, columns, count, width, height, interval })`
+  maps a storyboard sprite sheet to seek thumbnails, and
   `parseVibePlayerSeekThumbnailsVtt(text, trackUrl)` reads a WebVTT thumbnail
   track (`sheet.jpg#xywh=x,y,w,h`).
 - The `timelineBackground` context adds `seekThumbnails` and `preview`

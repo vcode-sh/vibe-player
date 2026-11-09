@@ -93,8 +93,8 @@ behavior such as idle timing; CSS variables control the styles that use them.
 
 Direct file sources are for MP4/WebM assets that can start quickly and support
 browser range requests. Long progressive MP4 files should be encoded with the
-metadata atom at the beginning of the file, for example via `ffmpeg -movflags
-+faststart`.
+metadata atom at the beginning of the file, for example via
+`ffmpeg -movflags +faststart`.
 
 Before rollout, audit large direct-file assets:
 
@@ -282,8 +282,9 @@ metadata and playback for otherwise valid same-path media URLs.
 
 When a host enables `crossOrigin`, verify:
 - the media response includes `Access-Control-Allow-Origin` for the app origin;
-- `use-credentials` sources also include `Access-Control-Allow-Credentials:
-  true` and do not use wildcard `Access-Control-Allow-Origin`;
+- `use-credentials` sources also include
+  `Access-Control-Allow-Credentials: true` and do not use wildcard
+  `Access-Control-Allow-Origin`;
 - range requests still work;
 - captions are accessible from the same browser context;
 - local, staging, and production origins behave the same way.
