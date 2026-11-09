@@ -13,6 +13,22 @@ export const maxAverageCodeLineLength = 120;
 const minAverageSampleLength = 200;
 
 /**
+ * Reads the code-splitting group names from the tsdown config, so the chunk
+ * name audit follows a renamed group instead of a hardcoded copy.
+ * @param {object | object[]} config The default export of tsdown.config.ts.
+ * @returns {string[]}
+ */
+export function readCodeSplittingGroupNames(config) {
+  const configs = Array.isArray(config) ? config : [config];
+  return configs.flatMap((entry) => {
+    const groups = entry?.outputOptions?.codeSplitting?.groups ?? [];
+    return groups.flatMap((group) =>
+      typeof group?.name === "string" ? [group.name] : []
+    );
+  });
+}
+
+/**
  * Chunk files must be named after the source module or code-splitting group
  * they come from, so names stay stable across builds and carry no hash.
  * @param {string[]} paths Built file paths relative to `dist`.

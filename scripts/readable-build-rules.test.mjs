@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import tsdownConfig from "../tsdown.config.ts";
 import {
   collectChunkNameIssues,
   collectDirectiveIssues,
   collectMinifiedIssues,
   collectReadableBuildIssues,
+  readCodeSplittingGroupNames,
 } from "./readable-build-rules.mjs";
 
 const knownNames = new Set(["player", "vibe-player-compact", "tap-seek"]);
@@ -103,5 +105,35 @@ describe("collectReadableBuildIssues", () => {
       'chunks/player-0a1b2c3d.js: chunk name "player-0a1b2c3d" matches no source module or code-splitting group (hashed or unstable name).',
       'chunks/player-0a1b2c3d.js: expected exactly one "use client" directive on the first line, found 0.',
     ]);
+  });
+});
+
+describe("readCodeSplittingGroupNames", () => {
+  it("reads the group names of the real tsdown config", () => {
+    const names = readCodeSplittingGroupNames(tsdownConfig);
+
+    expect(names.length).toBeGreaterThan(0);
+    expect(names).toEqual(
+      tsdownConfig.outputOptions.codeSplitting.groups.map(({ name }) => name)
+    );
+  });
+
+  it("follows a renamed group and accepts its chunk", () => {
+    const config = {
+      outputOptions: {
+        codeSplitting: { groups: [{ name: "runtime", test: () => true }] },
+      },
+    };
+    const names = new Set(readCodeSplittingGroupNames(config));
+
+    expect(collectChunkNameIssues(["chunks/runtime.js"], names)).toEqual([]);
+    expect(collectChunkNameIssues(["chunks/player.js"], names)).toHaveLength(1);
+  });
+
+  it.each([
+    ["no code splitting", {}],
+    ["an array of configs", [{}, { outputOptions: {} }]],
+  ])("reads no names from %s", (_case, config) => {
+    expect(readCodeSplittingGroupNames(config)).toEqual([]);
   });
 });

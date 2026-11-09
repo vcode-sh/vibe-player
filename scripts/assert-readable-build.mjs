@@ -1,11 +1,17 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, resolve, sep } from "node:path";
-import { collectReadableBuildIssues } from "./readable-build-rules.mjs";
+import tsdownConfig from "../tsdown.config.ts";
+import {
+  collectReadableBuildIssues,
+  readCodeSplittingGroupNames,
+} from "./readable-build-rules.mjs";
 
 const rootPath = resolve(import.meta.dirname, "..");
 const distPath = resolve(rootPath, "dist");
-// Mirrors the codeSplitting group names in tsdown.config.ts.
-const codeSplittingGroupNames = ["player"];
+const codeSplittingGroupNames = readCodeSplittingGroupNames(tsdownConfig);
+if (codeSplittingGroupNames.length === 0) {
+  throw new Error("tsdown.config.ts declares no code-splitting groups.");
+}
 
 async function readBuiltFiles() {
   const paths = await readdir(distPath, { recursive: true });
