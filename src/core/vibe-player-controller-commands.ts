@@ -103,6 +103,8 @@ export interface HandleVibePlayerControllerSeekInput {
   announce: (snapshot: VibePlayerSnapshot, target: number) => void;
   currentSource: VibePlayerSource | null;
   emitAnalytics: (event: VibePlayerAnalyticsEvent) => void;
+  /** Runs when the adapter rejected the announced seek. */
+  failed: (target: number) => void;
   isCurrent: () => boolean;
   /** Saves the settled position. */
   resume: VibePlayerResumeWriter | null;
@@ -115,6 +117,7 @@ export async function handleVibePlayerControllerSeek({
   announce,
   currentSource,
   emitAnalytics,
+  failed,
   isCurrent,
   resume,
   seconds,
@@ -131,7 +134,14 @@ export async function handleVibePlayerControllerSeek({
   if (!isCurrent()) {
     return;
   }
-  await adapter.seekTo(acceptedTime);
+  try {
+    await adapter.seekTo(acceptedTime);
+  } catch (error) {
+    if (isCurrent()) {
+      failed(acceptedTime);
+    }
+    throw error;
+  }
   if (!isCurrent()) {
     return;
   }

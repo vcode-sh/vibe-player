@@ -118,6 +118,12 @@ function createActions(
       },
       emitAnalytics: observers.emitAnalytics,
       emitEvent: (event) => observers.emitEvent(event),
+      failSeek: (target) => {
+        const source = observers.state.currentSource;
+        if (source) {
+          feed.seekFailed(target, source);
+        }
+      },
       generation: () => runtime.operationGeneration,
       state: () => observers.state,
       sync: () => runtime.syncFromAdapter(),

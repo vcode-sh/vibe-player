@@ -49,6 +49,13 @@ export interface VibePlayerRawSeekEntry {
   target: number;
 }
 
+/** The adapter rejected an announced seek, so it never went to `target`. */
+export interface VibePlayerRawSeekFailedEntry {
+  kind: "seekfailed";
+  source: VibePlayerSource;
+  target: number;
+}
+
 /** A new playback began; entries after it belong to `playback`. */
 export interface VibePlayerRawPlaybackEntry {
   kind: "playback";
@@ -66,7 +73,8 @@ export type VibePlayerRawFeedEntry =
   | VibePlayerRawEventEntry
   | VibePlayerRawPlaybackEntry
   | VibePlayerRawReleaseEntry
-  | VibePlayerRawSeekEntry;
+  | VibePlayerRawSeekEntry
+  | VibePlayerRawSeekFailedEntry;
 
 type RawFeedConsumer = (entry: VibePlayerRawFeedEntry) => void;
 
@@ -81,8 +89,8 @@ export function getVibePlayerReleaseReason(
 /**
  * Internal, ordered feed of provider activity for controller-owned trackers.
  * Consumers see every adapter event of the current adapter, acknowledged
- * commands, announced seeks, playback starts and every release, in order,
- * before controller state applies pending command intent.
+ * commands, announced and failed seeks, playback starts and every release,
+ * in order, before controller state applies pending command intent.
  */
 export class VibePlayerRawFeed {
   private readonly consumers = new Set<RawFeedConsumer>();
@@ -120,5 +128,9 @@ export class VibePlayerRawFeed {
 
   seek(seek: Omit<VibePlayerRawSeekEntry, "kind">): void {
     this.delivery.publish({ ...seek, kind: "seek" });
+  }
+
+  seekFailed(target: number, source: VibePlayerSource): void {
+    this.delivery.publish({ kind: "seekfailed", source, target });
   }
 }

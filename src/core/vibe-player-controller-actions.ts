@@ -27,6 +27,8 @@ interface ControllerActionsHost {
   ): void;
   emitAnalytics(event: VibePlayerAnalyticsEvent): void;
   emitEvent(event: VibePlayerEvent): void;
+  /** The adapter rejected an announced seek to `target`. */
+  failSeek(target: number): void;
   generation(): number;
   state(): VibePlayerControllerState;
   sync(): void;
@@ -77,7 +79,12 @@ export class VibePlayerControllerActions {
       if (!isCurrent()) {
         return;
       }
-      await adapter.seekTo(snapshot.currentTime);
+      await adapter.seekTo(snapshot.currentTime).catch((error: unknown) => {
+        if (isCurrent()) {
+          this.host.failSeek(snapshot.currentTime);
+        }
+        throw error;
+      });
     }
     if (isCurrent()) {
       this.host.sync();
@@ -139,6 +146,7 @@ export class VibePlayerControllerActions {
           this.host.announceSeek("controller", snapshot, target),
         currentSource: this.host.state().currentSource,
         emitAnalytics: this.host.emitAnalytics,
+        failed: (target) => this.host.failSeek(target),
         isCurrent: () =>
           generation === this.host.generation() &&
           adapter === this.host.adapter(),

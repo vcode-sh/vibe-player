@@ -74,7 +74,7 @@ export class VibePlayerResumeWriter {
       this.mark = { reason: null, seconds: target, sourceId: source.id };
     } else if (entry.kind === "release") {
       this.release(entry.reason);
-    } else if (entry.playback.cause === "load") {
+    } else if (entry.kind === "playback" && entry.playback.cause === "load") {
       // The host loaded a source, even the same one: what played closes.
       this.release("close");
     }

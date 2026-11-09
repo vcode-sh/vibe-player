@@ -15,6 +15,8 @@ const announcedLimit = 8;
 interface Announcement {
   /** The media reported this position, so moving away settles it. */
   reached: boolean;
+  /** Where playback progressed elsewhere since, before it reached this. */
+  stray: number | null;
   target: number;
 }
 
@@ -26,7 +28,11 @@ interface Announcement {
  * the media echoes an announced seek as `seeking`/`seeked`, nothing is
  * reported twice. An announcement settles on its own `seeked`, or once the
  * media reached its target and moved on, so a late event of an earlier seek
- * never unsettles a newer one.
+ * never unsettles a newer one. One the media never reaches is dropped when
+ * the adapter rejects it, when a `seeked` finishes elsewhere (a newer
+ * announcement's or one nobody announced), or when playback progresses
+ * forward elsewhere twice, so a single late report of the old position is
+ * still tolerated.
  */
 export class VibePlayerSeekAnalytics {
   private announced: Announcement[] = [];
@@ -42,10 +48,12 @@ export class VibePlayerSeekAnalytics {
     if (entry.kind === "seek") {
       this.announced = [
         ...this.announced.slice(1 - announcedLimit),
-        { reached: false, target: entry.target },
+        { reached: false, stray: null, target: entry.target },
       ];
       this.position = entry.target;
       this.ended = false;
+    } else if (entry.kind === "seekfailed") {
+      this.forget(entry.target);
     } else if (entry.kind === "release") {
       this.announced = [];
       this.ended = false;
@@ -56,30 +64,63 @@ export class VibePlayerSeekAnalytics {
 
   private observeEvent(
     source: VibePlayerSource,
-    { snapshot, type }: VibePlayerAdapterEvent
+    event: VibePlayerAdapterEvent
   ): void {
+    const { snapshot, type } = event;
     const from = this.position;
     this.position = snapshot.currentTime;
     if (type === "seeking") {
       this.observeSeeking(source, snapshot, from);
+    } else if (type === "seeked") {
+      this.settleSeeked(snapshot.currentTime);
     } else {
       this.ended ||= type === "ended";
-      this.settle(snapshot.currentTime, type === "seeked");
+      this.settle(snapshot.currentTime, isPlaybackProgress(event));
+    }
+  }
+
+  /** The newest unreached announcement of `target` was rejected. */
+  private forget(target: number): void {
+    const index = findLastAnnouncement(
+      this.announced,
+      (announcement) => !announcement.reached && announcement.target === target
+    );
+    if (index !== -1) {
+      this.announced = this.announced.filter((_, item) => item !== index);
     }
   }
 
   /**
-   * Marks announcements at `time` as reached (or settled, on `seeked`) and
-   * drops reached ones the media has since moved away from.
+   * A seek finished at `time`: it settles the newest announcement there and
+   * supersedes every older one; with none there, the media is elsewhere.
    */
-  private settle(time: number, seeked: boolean): void {
+  private settleSeeked(time: number): void {
+    const settled = findLastAnnouncement(this.announced, ({ target }) =>
+      isNear(target, time)
+    );
+    this.announced = this.announced.filter(
+      ({ reached, target }, index) =>
+        settled !== -1 && index > settled && !(reached || isNear(target, time))
+    );
+  }
+
+  /**
+   * Marks announcements at `time` as reached and drops reached ones the
+   * media has since moved away from. Forward `progress` elsewhere twice
+   * drops an unreached one: the media plays somewhere else.
+   */
+  private settle(time: number, progress: boolean): void {
     const pending: Announcement[] = [];
-    for (const { reached, target } of this.announced) {
-      const near = isNear(target, time);
-      if (near && !seeked) {
-        pending.push({ reached: true, target });
-      } else if (!(near || reached)) {
-        pending.push({ reached, target });
+    for (const announcement of this.announced) {
+      const { reached, stray, target } = announcement;
+      if (isNear(target, time)) {
+        pending.push({ ...announcement, reached: true });
+      } else if (reached) {
+        // Reached and moved on: settled.
+      } else if (!progress) {
+        pending.push(announcement);
+      } else if (stray === null || time <= stray) {
+        pending.push({ ...announcement, stray: time });
       }
     }
     this.announced = pending;
@@ -112,6 +153,29 @@ export class VibePlayerSeekAnalytics {
   }
 }
 
+/** `Array.prototype.findLastIndex` is ES2023; the package targets ES2022. */
+function findLastAnnouncement(
+  announced: readonly Announcement[],
+  matches: (announcement: Announcement) => boolean
+): number {
+  for (let index = announced.length - 1; index >= 0; index -= 1) {
+    const announcement = announced[index];
+    if (announcement && matches(announcement)) {
+      return index;
+    }
+  }
+  return -1;
+}
+
 function isNear(target: number, time: number): boolean {
   return Math.abs(target - time) <= echoToleranceSeconds;
+}
+
+/** The media is playing and reports where. */
+function isPlaybackProgress({ snapshot, type }: VibePlayerAdapterEvent) {
+  return (
+    (type === "timeupdate" || type === "playing") &&
+    !snapshot.paused &&
+    snapshot.readyState === "playing"
+  );
 }
