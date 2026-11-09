@@ -214,11 +214,25 @@ When a host enables `crossOrigin`, verify:
 ## Host-Owned Hooks
 
 Resume persistence is opt-in through `VibePlayerResumeStore`. The package never
-enables localStorage by default.
+enables localStorage by default. `set(sourceId, seconds, context)` receives a
+`VibePlayerResumeContext` (`duration` and `reason`), so a store can apply its
+own policy. Progress saves at most once per 2 seconds of movement; a settled
+seek, pause or stop, page hide and close always save. Restored positions are
+not saved, the end clears the position and live sources never save. The
+built-in stores take `minPositionSeconds` and `minDurationSeconds`, below
+which a save clears the entry. Stores are last-writer-wins: players and tabs
+sharing a source id overwrite each other, so a host that needs one owner per
+source coordinates that itself.
 
 Analytics is opt-in through `onAnalyticsEvent`. Consumers should map normalized
 package events into their own telemetry pipeline and ignore package events that
-duplicate host-owned lifecycle events.
+duplicate host-owned lifecycle events. A session (`opened` to `closed`)
+survives retry, renewal, stop and remounting of the same source id; a host
+load or another source id starts a new one. `started`, the progress milestones
+and `completed` fire once per playback (a replay after `ended` is a new
+playback). Milestones use the playback's watched coverage, unique watched
+seconds over the duration, never the position; an unknown duration reports
+none.
 
 Watched ranges are opt-in through `onWatchedRanges`: merged media ranges that
 played since the last report, delivered on pause, end, close, page hide, at 64

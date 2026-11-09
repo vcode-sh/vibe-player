@@ -411,6 +411,61 @@ and rewinding to replay are not seeks. Each native `seeking` counts, so a scrub
 on native controls can report several seeks in a row; coalesce events that
 arrive close together if you want one per gesture.
 
+Analytics follow one session per source. `opened` and `closed` bracket it:
+retry, renewal, stop, offscreen release and remounting the same source keep
+it, while loading a source (even the same one again), a renewal that returns
+another source id, `closeSource()` and teardown close it. `closed` only
+follows an `opened`. Each playback reports `started`, `progress_25`,
+`progress_50`, `progress_75` and `completed` once; playing again after
+`ended` starts a new playback, so they fire again. Milestones measure watched
+coverage: the unique seconds the current playback actually played, divided by
+the duration. Jumping ahead, scrubbing and rewatching do not count, and media
+with an unknown duration (such as a live stream) reports no milestones.
+
+The resume store hears `set(sourceId, seconds, context)` with
+`context.duration` and `context.reason`. While media plays, the controller
+saves at most once per 2 seconds of movement (`progress`). It always saves
+once a seek settled (`seek`), on pause or stop (`pause`), when the page is
+hidden (`hidden`) and when the source closes, changes or unmounts (`close`).
+The React bindings report a hidden page themselves; with a manual controller,
+call `controller.flushWatchedRanges("hidden")`. Positions the controller
+restores are not saved again, `ended` clears the position, and live sources
+never touch the store. The built-in stores accept `minPositionSeconds` and
+`minDurationSeconds`: saving an earlier position, or a shorter source, clears
+the entry instead, so it starts over next time. Players do not coordinate:
+players or tabs that share a source id overwrite each other's position, and
+the last write wins.
+
+```ts
+import {
+  createLocalStorageVibePlayerResumeStore,
+  type VibePlayerResumeStore,
+} from "vibe-player";
+
+export const localResume = createLocalStorageVibePlayerResumeStore({
+  minDurationSeconds: 120,
+  minPositionSeconds: 10,
+});
+
+/** Your API; `null` forgets the position. */
+declare function savePosition(sourceId: string, seconds: number | null): void;
+
+/** Saves every position locally and sends only the boundaries to your API. */
+export const syncedResume: VibePlayerResumeStore = {
+  clear: (sourceId) => {
+    localResume.clear(sourceId);
+    savePosition(sourceId, null);
+  },
+  get: (sourceId) => localResume.get(sourceId),
+  set: (sourceId, seconds, context) => {
+    localResume.set(sourceId, seconds, context);
+    if (context?.reason !== "progress") {
+      savePosition(sourceId, localResume.get(sourceId));
+    }
+  },
+};
+```
+
 `onWatchedRanges` (opt-in) reports which parts of the media actually played,
 for "most replayed" data or completion that ignores skipping. Each report holds
 the merged, sorted ranges (seconds) since the previous one and why it was

@@ -22,6 +22,15 @@
   `"flush"`, and `"reload"` where you handled `"pause"` for recovery.
 - `controller.seekTo()` delivers the pending watched ranges before it seeks,
   for every provider, so a rewatched stretch is reported on its own.
+- Progress milestones measure watched coverage (unique watched seconds over
+  the duration) instead of the position, so skipping ahead no longer reports
+  them. For position-based milestones, derive them from `onProgress` state.
+- A replay after the end is a new playback that reports `started`, the
+  milestones and `completed` again. To count one completion per session,
+  count `completed` once between `opened` and `closed`.
+- Resume saves are throttled to one per 2 seconds of playback; seeks, pause,
+  stop, page hide and close always save, and live sources never save. For a
+  save per `timeupdate`, write from `onProgress` instead.
 
 ### Added
 
@@ -34,6 +43,10 @@
 - The analytics `seek` event now fires once for every seek, including native
   controls and Picture-in-Picture, with `from` (where it left) and
   `initiator` (`"controller"` or `"media"`).
+- The resume store's `set()` receives a `VibePlayerResumeContext` with the
+  `duration` and the `reason` for the save, as an optional third argument.
+- The built-in resume stores accept `minDurationSeconds` and
+  `minPositionSeconds`; a save below them clears the entry.
 
 ### Fixed
 
@@ -42,6 +55,9 @@
   a direct `controller.unmount()` now reports `close`, as documented.
 - State subscribers and event listeners never miss an update: when one of them
   changes the player, every listener still receives every state, in order.
+- Retry, renewal, stop and remounting the same source no longer repeat the
+  `closed`, `opened`, `started` and progress analytics, and `closed` is only
+  reported after an `opened`.
 
 ## [0.7.1] - 2026-11-09
 

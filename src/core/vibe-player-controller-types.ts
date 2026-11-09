@@ -107,6 +107,11 @@ export interface VibePlayerControllerOptions {
   adapterFactory: (
     source: VibePlayerSource
   ) => VibePlayerAdapter | Promise<VibePlayerAdapter>;
+  /**
+   * Normalized analytics. `opened`/`closed` bracket a source's session, kept
+   * across retry and renewal; `started`, milestones (by watched coverage)
+   * and `completed` fire once per playback.
+   */
   onAnalyticsEvent?: (event: VibePlayerAnalyticsEvent) => void;
   onEnded?: (state: VibePlayerControllerState) => void;
   onError?: (error: VibePlayerError) => void;
@@ -125,5 +130,6 @@ export interface VibePlayerControllerOptions {
    */
   onWatchedRanges?: (report: VibePlayerWatchedRangesReport) => void;
   renewSource?: (() => Promise<VibePlayerSource>) | undefined;
+  /** Opt-in resume persistence; see `VibePlayerResumeContext` for when it saves. */
   resumeStore?: VibePlayerResumeStore;
 }
