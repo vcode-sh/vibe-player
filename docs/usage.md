@@ -1064,13 +1064,13 @@ dependency of the package.
 ## Bundle Size
 
 `bun run package:size` measures built output and enforces an initial combined
-compact + hook budget of **27,700 B gzip**, excluding React, React DOM and
+compact + hook budget of **31,500 B gzip**, excluding React, React DOM and
 `hls.js`. Provider bridges and the Ink Chips skin are separate chunks loaded on
 first use; the report also includes their deferred bytes and the complete
 consumer bundle. Measurements use a minified Vite application, include
 non-peer dependencies, exclude React/React DOM/hls.js, and sum each emitted
 chunk's gzip size. The package ships readable, unminified ESM, so all package
-ESM files keep separate limits of 343 KiB raw and 85 KiB gzip.
+ESM files keep separate limits of 398 KiB raw and 101 KiB gzip.
 
 ## Media Audit
 

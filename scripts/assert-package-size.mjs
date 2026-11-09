@@ -76,7 +76,9 @@ rows.push(
       // headroom after native seek boundaries.
       // 2026-11-09: 24,600 -> 27,700 B (measured 24,074 B + 15 %); 2.1 %
       // headroom tripped the new 5 % warning on every run.
-      limit: 27_700,
+      // 2026-11-09: 27,700 -> 31,500 B (measured 28,629 B) for 0.8.0 platform,
+      // host primitives and accessibility announcements (~+4,560 B).
+      limit: 31_500,
       mode: "gzip",
     },
     initial.map((chunk) => chunk.code)

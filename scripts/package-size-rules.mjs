@@ -11,7 +11,9 @@ export const packageSizeBudgets = [
     // 2026-11-09: 170 -> 184 KiB (measured 159,163 B) to restore ~15 % headroom.
     // 2026-11-09: 184 -> 343 KiB (measured 304,651 B, was 154,405 B minified)
     // for readable, unminified ESM; consumer bundlers minify it.
-    limit: 343 * kib,
+    // 2026-11-09: 343 -> 398 KiB (measured 370,582 B) for 0.8.0 platform, host
+    // primitives and accessibility announcements (~+65,900 B).
+    limit: 398 * kib,
     mode: "raw",
   },
   {
@@ -25,7 +27,9 @@ export const packageSizeBudgets = [
     // and observed-progress buffering; 0.7.0 had left only 16 B of headroom.
     // 2026-11-09: 55 -> 85 KiB (measured 75,260 B, was 47,729 B minified) for
     // readable, unminified ESM.
-    limit: 85 * kib,
+    // 2026-11-09: 85 -> 101 KiB (measured 93,953 B) for 0.8.0 platform, host
+    // primitives and accessibility announcements (~+18,700 B).
+    limit: 101 * kib,
     mode: "gzip",
   },
   {
