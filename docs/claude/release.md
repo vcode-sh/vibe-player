@@ -66,18 +66,22 @@ Release runs only through `workflow_dispatch` on `main` (timeout 40 minutes:
 `bun run ci` 20, browser engines 5, browser lane 5, Node 22 check 5, setup,
 checks and publish 5). Its `release` job has `contents: read` and
 `id-token: write`, and checks out with `persist-credentials: false`:
-1. Extract the `## [<version>] - <date>` section of `CHANGELOG.md` as release
+1. Fail when the version is a prerelease (contains `-`) but
+   `.changeset/pre.json` is missing or not in `pre` mode
+   (`scripts/assert-prerelease-mode.mjs`), because `changeset publish` would
+   move npm `latest` to it.
+2. Extract the `## [<version>] - <date>` section of `CHANGELOG.md` as release
    notes (`scripts/write-release-notes.mjs`) and keep it as an artifact; fail
    when it is missing or empty.
-2. Fail when `vibe-player@<version>` is already on npm
+3. Fail when `vibe-player@<version>` is already on npm
    (`scripts/assert-unpublished-version.mjs`; a registry error also fails),
    because `changeset publish` would skip it and exit 0.
-3. Fail when tag `v<version>` already exists on `origin` (the repository must
+4. Fail when tag `v<version>` already exists on `origin` (the repository must
    be public; a failed query also fails).
-4. `bun run ci`, then `bun run test:browser` on Chromium and WebKit (uploading
+5. `bun run ci`, then `bun run test:browser` on Chromium and WebKit (uploading
    `test-results/` on failure or cancellation), then the exact Node 22.0.0 /
    React 19.2.7 consumer check.
-5. `bun run release:publish --no-git-tag` publishes the committed version.
+6. `bun run release:publish --no-git-tag` publishes the committed version.
 
 The `tag` job (`needs: release`, the only job with `contents: write`, no
 dependency code) checks out the released commit, pushes an annotated
@@ -85,10 +89,10 @@ dependency code) checks out the released commit, pushes an annotated
 
 If publishing succeeded but the `tag` job failed, open that workflow run and
 use **Re-run failed jobs**. Do not dispatch Release again: the version is
-already on npm, so a new run stops at step 2.
+already on npm, so a new run stops at step 3.
 
 The release-state guard enforces these permissions and the checkout setting,
-keeps steps 1-3 before `bun run ci`, keeps the browser gate between
+keeps steps 1-4 before `bun run ci`, keeps the browser gate between
 `bun run ci` and publishing, keeps tagging in a separate `tag` job that needs
 the release job and pushes only `refs/tags/`, and rejects an `if:` condition,
 `continue-on-error` or a swallowed tag-check failure on these steps; see
@@ -117,7 +121,8 @@ no long-lived `NPM_TOKEN`. Keep `id-token: write` and
 
 `changeset publish` uses the `latest` dist tag unless Changesets pre mode is
 active (`bunx changeset pre enter <tag>` writes `.changeset/pre.json`); enter it
-before releasing a prerelease. Prerelease versions get a GitHub prerelease.
+before releasing a prerelease, or step 1 stops the release. Prerelease versions
+get a GitHub prerelease.
 
 ## Manual checks
 

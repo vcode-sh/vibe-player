@@ -48,6 +48,9 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      - name: Refuse a prerelease outside Changesets pre mode
+        run: node scripts/assert-prerelease-mode.mjs
+
       - name: Prepare release notes from CHANGELOG
         id: release
         run: node scripts/write-release-notes.mjs --output "$RUNNER_TEMP/release-notes.md"

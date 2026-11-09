@@ -11,7 +11,13 @@ const GATES_COMMAND = "bun run ci";
 const NOTES_COMMAND = "node scripts/write-release-notes.mjs";
 const NPM_CHECK_COMMAND = "node scripts/assert-unpublished-version.mjs";
 const TAG_CHECK_COMMAND = "git ls-remote --exit-code --tags origin";
-const EARLY_COMMANDS = [NOTES_COMMAND, NPM_CHECK_COMMAND, TAG_CHECK_COMMAND];
+const PRERELEASE_CHECK_COMMAND = "node scripts/assert-prerelease-mode.mjs";
+const EARLY_COMMANDS = [
+  PRERELEASE_CHECK_COMMAND,
+  NOTES_COMMAND,
+  NPM_CHECK_COMMAND,
+  TAG_CHECK_COMMAND,
+];
 const WRITE_COMMANDS = ["git tag", "git push", "gh release"];
 const SWALLOWED_FAILURE = /\|\|\s*(?:true|:|exit\s+0)\s*$|^set\s+\+e\b/;
 
@@ -54,7 +60,7 @@ function collectEarlyStepIssues(job) {
       gates === -1 || index < gates
         ? []
         : [
-            `Release job must run "${command}" before "${GATES_COMMAND}", so a missing changelog section, a published version or an existing tag stops the release before npm.`,
+            `Release job must run "${command}" before "${GATES_COMMAND}", so a prerelease outside pre mode, a missing changelog section, a published version or an existing tag stops the release before npm.`,
           ];
     return [...order, ...collectStepBypassIssues(command, job.steps[index])];
   });

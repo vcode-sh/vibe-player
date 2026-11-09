@@ -8,6 +8,7 @@ import {
   gatesStep,
   notesStep,
   npmCheckStep,
+  prereleaseStep,
   publishStep,
   releaseJob,
   tagCheckStep,
@@ -80,6 +81,7 @@ describe("collectReleaseJobIssues", () => {
       const issues = issuesFor(
         withSteps([
           checkout,
+          prereleaseStep,
           notesStep,
           npmCheckStep,
           tagCheckStep,
@@ -94,6 +96,7 @@ describe("collectReleaseJobIssues", () => {
   );
 
   it.each([
+    ["prerelease mode check", prereleaseStep, "assert-prerelease-mode"],
     ["changelog notes", notesStep, "write-release-notes"],
     ["npm version check", npmCheckStep, "assert-unpublished-version"],
     ["tag check", tagCheckStep, "git ls-remote"],
@@ -111,6 +114,7 @@ describe("collectReleaseJobIssues", () => {
       withSteps([
         checkoutStep,
         gatesStep,
+        prereleaseStep,
         notesStep,
         npmCheckStep,
         tagCheckStep,
@@ -118,7 +122,7 @@ describe("collectReleaseJobIssues", () => {
       ])
     );
 
-    expect(issues).toHaveLength(3);
+    expect(issues).toHaveLength(4);
     expect(issues.every((issue) => issue.includes('before "bun run ci"'))).toBe(
       true
     );
@@ -131,6 +135,7 @@ describe("collectReleaseJobIssues", () => {
     const issues = issuesFor(
       withSteps([
         checkoutStep,
+        prereleaseStep,
         notesStep,
         [...npmCheckStep, guard],
         tagCheckStep,
@@ -159,6 +164,7 @@ describe("collectReleaseJobIssues", () => {
     const issues = issuesFor(
       withSteps([
         checkoutStep,
+        prereleaseStep,
         notesStep,
         npmCheckStep,
         swallowing,

@@ -32,6 +32,7 @@ export const checkoutStep = [
   "  persist-credentials: false",
 ];
 
+export const prereleaseStep = ["run: node scripts/assert-prerelease-mode.mjs"];
 export const notesStep = [
   'run: node scripts/write-release-notes.mjs --output "$RUNNER_TEMP/notes.md"',
 ];
@@ -67,6 +68,7 @@ export function releaseJob(patch = {}) {
     name: "release",
     steps: [
       checkoutStep,
+      prereleaseStep,
       notesStep,
       npmCheckStep,
       tagCheckStep,
