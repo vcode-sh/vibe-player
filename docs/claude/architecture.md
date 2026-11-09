@@ -62,7 +62,8 @@ not required merely because several providers implement the same methods.
 
 ## Public integration levels
 
-- Ready-made UI: `VibePlayerStage`, `VibePlayerInline`, `VibePlayerModal`.
+- Ready-made UI: `VibePlayerCompact`, `VibePlayerStage`, `VibePlayerInline`,
+  `VibePlayerModal`.
 - Custom UI: `useVibePlayer` owns media/source lifecycle and exposes normalized
   state, commands and a target binding.
 - Manual lifecycle: `useVibePlayerController` binds a controller to React;
@@ -79,6 +80,11 @@ The media mount and optional presentation container have separate ownership;
 changing fullscreen chrome does not restart playback. Presentation state and
 provider rate choices are optional normalized adapter snapshot fields.
 
+Watched ranges, analytics and resume saves read the controller's raw adapter
+feed (provider events as reported, pause acknowledgments, seeks, playback
+starts and adapter releases), never the intent-shaped controller state. State
+subscribers and event listeners receive every update in order through a
+bounded queue.
 Host persistence, analytics and controller listeners are isolated at the core
 observer boundary. Their failures remain observable as nonfatal integration
 errors. Caption request status/retry belongs to the React caption binding and

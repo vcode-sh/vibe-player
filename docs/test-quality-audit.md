@@ -1,7 +1,9 @@
 # Test-quality audit and implementation repair
 
-Audit date: 2026-11-04. Scope: every repository test file, its behavior owner,
-relevant callers and required verification lanes. The current repository-local
+Audit date: 2026-11-04. This is a historical record: file counts and lanes
+describe that tree, which still included YouTube support. Scope: every
+repository test file, its behavior owner, relevant callers and required
+verification lanes. The current repository-local
 `testing-patterns` skill governed the audit. The pre-existing skill changes were
 preserved; no commit, push, release or production operation is part of this work.
 

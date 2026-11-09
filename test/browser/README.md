@@ -54,6 +54,13 @@ The media session page (Chromium) records what the real
 the audible file player, every registered action including
 `enterpictureinpicture`, system seek and pause driving the media, a second
 (HLS) player taking the session over, and stop releasing it.
+The host frame page (Chromium and WebKit) moves a playing compact player
+between hosts without reloading its media, and checks watched ranges, seek
+analytics and resume saves on real media: a native seek reports one `media`
+seek and a `seek` batch that keeps its `playbackId`; controller seeks the
+media echoes report and save once each; milestones follow watched coverage;
+and a replay after `ended` starts a new playback without counting its rewind
+as a seek.
 The native media page (Chromium and WebKit) drives a headless controller on
 the file adapter. A local route answers 404 for missing media and 403 for an
 expired signed URL. It checks that a file whose every `<source>` fails

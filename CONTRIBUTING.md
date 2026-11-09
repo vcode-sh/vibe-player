@@ -14,7 +14,8 @@ without archaeology.
 4. If you changed package output, run `npm pack --dry-run --json`.
 5. If you changed media delivery logic, add or update focused Vitest coverage.
 6. If you changed public APIs, update [usage](docs/usage.md),
-   [integration](docs/integration.md), and public-surface guards.
+   [integration](docs/integration.md), the public-surface guards and the API
+   report (`bun run package:api:update`).
 
 ## Development Rules
 
@@ -36,17 +37,19 @@ include a short testing note and screenshots or browser evidence for UI work.
 
 ## Toolchain
 
-Use Node 24 for repository development and build tooling.
-`package.json#packageManager` pins Bun for local work and CI workflows.
-The package supports Node 22 independently of the development toolchain; CI
-checks an isolated tarball consumer on Node 22.0.0 with React 19.2.7 and on
-Node 24 with the development React version.
+Use Node 26 for repository development and build tooling, as the workflows
+do. `package.json#packageManager` pins Bun for local work and CI workflows.
+The package supports Node 22 independently of the development toolchain;
+`bun run ci` checks an isolated tarball consumer on the current Node (26 in
+CI) with the development React version, and Release also checks it on Node
+22.0.0 with React 19.2.7.
 
-`bun run ci` checks the package, both demo builds and an isolated packed
-consumer, and type-checks the browser specs without running them.
-Chromium/WebKit acceptance (`bun run test:browser`) is excluded from local
-`bun run ci` but gates every Release. On Linux, `playwright install
---with-deps` also installs the required system libraries.
+`bun run ci` checks the package, its API report and readable output, both demo
+builds and an isolated packed consumer, and type-checks the browser specs
+without running them. Chromium/WebKit acceptance (`bun run test:browser`) is
+excluded from local `bun run ci`; the CI workflow runs it on pushes to `main`
+and on pull requests, and it gates every Release. On Linux, `playwright
+install --with-deps` also installs the required system libraries.
 `bun run demo:vite:verify`, `bun run package:consumer`, and
 `bun run test:browser` expect the package to have been built first.
 Vitest runs CLI tests in Node and component tests in Happy DOM. Playwright owns
@@ -76,7 +79,8 @@ The root Biome config keeps three intentional exceptions to the new preset:
 ## Public API Changes
 
 Public exports are guarded. If you add, rename, or remove an export, update the
-surface tests and explain the migration. Do not leak test helpers, source-only
+surface tests and the API report (`bun run package:api:update`), and explain
+the migration in the CHANGELOG. Do not leak test helpers, source-only
 internals, or app-specific shortcuts through `src/index.ts`.
 
 ## Media And Provider Changes
