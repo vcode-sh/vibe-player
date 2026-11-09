@@ -19,7 +19,7 @@
   (instead of `"flush"`, which now only means `flushWatchedRanges()`) and
   `"reload"` when retry or renewal reattaches the source (instead of
   `"pause"`). If you filter by reason, handle `"seek"` where you handled
-  `"flush"`.
+  `"flush"`, and `"reload"` where you handled `"pause"` for recovery.
 - `controller.seekTo()` delivers the pending watched ranges before it seeks,
   for every provider, so a rewatched stretch is reported on its own.
 

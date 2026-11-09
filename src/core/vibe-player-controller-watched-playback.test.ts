@@ -105,6 +105,29 @@ describe("VibePlayerController watched-range playback identity", () => {
     }
   );
 
+  it("starts a new playback when a renewal returns another source id", async () => {
+    const player = await createWatchedPlayer({
+      renewSource: () => Promise.resolve({ ...fileSource, id: "video-2" }),
+    });
+    player.play(0, 3);
+    await player.controller.retry();
+    player.play(3, 5);
+    player.pause();
+    const [reloaded, renewed] = player.reports;
+    expect(reloaded).toMatchObject({
+      reason: "reload",
+      sequence: 1,
+      sourceId: "video-1",
+    });
+    expect(renewed).toMatchObject({
+      reason: "pause",
+      sequence: 1,
+      sourceId: "video-2",
+    });
+    expect(renewed?.playbackId).not.toBe(reloaded?.playbackId);
+    await player.controller.teardown();
+  });
+
   it("keeps the playback when media plays on before its end", async () => {
     const player = await createWatchedPlayer();
     player.play(0, 2);

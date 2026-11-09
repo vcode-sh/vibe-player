@@ -407,7 +407,9 @@ Every seek sends one `seek` event, whoever started it. `initiator` is
 your code) and `media` for a seek the media made itself (native controls,
 Picture-in-Picture, the browser). `from` is the position the seek left and
 `currentTime` the position it went to. Restoring a resume or recovery position
-and rewinding to replay are not seeks.
+and rewinding to replay are not seeks. Each native `seeking` counts, so a scrub
+on native controls can report several seeks in a row; coalesce events that
+arrive close together if you want one per gesture.
 
 `onWatchedRanges` (opt-in) reports which parts of the media actually played,
 for "most replayed" data or completion that ignores skipping. Each report holds
@@ -433,18 +435,20 @@ import { VibePlayerCompact } from "vibe-player/compact";
 />;
 ```
 
-Each report names its playback. `playbackId` is unique within the page: a new
+Each report names its playback. `playbackId` is guaranteed unique within the
+page, and its random part makes a repeat across pages very unlikely: a new
 playback starts when a source loads (even the same one again) and when media
 plays again after it ended, while pause, seek, stop, retry and renewal keep
 it. `sequence` numbers a playback's reports from 1. Together they identify a
-report, so store it under `playbackId` + `sequence` (a unique key makes a
-retried delivery harmless), add up one viewing per `playbackId`, and combine
-playbacks per `sourceId` for "most replayed":
+report, so store it under your own session or user plus `playbackId` and
+`sequence` (a unique key makes a retried delivery harmless), add up one
+viewing per `playbackId`, and combine playbacks per `sourceId` for "most
+replayed". This recipe counts one source's reports:
 
 ```ts
 import type { VibePlayerWatchedRangesReport } from "vibe-player";
 
-/** Unique seconds the reports cover; a duplicate delivery counts once. */
+/** Unique seconds of one source the reports cover; duplicates count once. */
 export function getWatchedSeconds(
   reports: readonly VibePlayerWatchedRangesReport[]
 ): number {

@@ -8,6 +8,15 @@ import type { VibePlayerSource } from "./vibe-player-source-types";
 
 /** A `seeking` this close to an announced target is that seek's echo. */
 const echoToleranceSeconds = 0.5;
+/** Unsettled announcements kept; older ones are forgotten. */
+const announcedLimit = 8;
+
+/** A controller seek the media has not settled yet. */
+interface Announcement {
+  /** The media reported this position, so moving away settles it. */
+  reached: boolean;
+  target: number;
+}
 
 /**
  * Reports a `seek` for every seek the media starts itself (native controls,
@@ -15,10 +24,12 @@ const echoToleranceSeconds = 0.5;
  * on the raw feed before it makes them: `seekTo()` reports for itself, and a
  * restored resume, recovery or replay position is not a seek at all. When
  * the media echoes an announced seek as `seeking`/`seeked`, nothing is
- * reported twice.
+ * reported twice. An announcement settles on its own `seeked`, or once the
+ * media reached its target and moved on, so a late event of an earlier seek
+ * never unsettles a newer one.
  */
 export class VibePlayerSeekAnalytics {
-  private announced: number[] = [];
+  private announced: Announcement[] = [];
   private ended = false;
   private position = 0;
   private readonly emit: (event: VibePlayerAnalyticsEvent) => void;
@@ -29,7 +40,10 @@ export class VibePlayerSeekAnalytics {
 
   observe(entry: VibePlayerRawFeedEntry): void {
     if (entry.kind === "seek") {
-      this.announced.push(entry.target);
+      this.announced = [
+        ...this.announced.slice(1 - announcedLimit),
+        { reached: false, target: entry.target },
+      ];
       this.position = entry.target;
       this.ended = false;
     } else if (entry.kind === "release") {
@@ -48,16 +62,27 @@ export class VibePlayerSeekAnalytics {
     this.position = snapshot.currentTime;
     if (type === "seeking") {
       this.observeSeeking(source, snapshot, from);
-    } else if (type === "ended") {
-      this.ended = true;
-    } else if (type === "seeked") {
-      this.announced = [];
     } else {
-      // Media that moved on settled every announced seek without an echo.
-      this.announced = this.announced.filter((target) =>
-        isNear(target, snapshot.currentTime)
-      );
+      this.ended ||= type === "ended";
+      this.settle(snapshot.currentTime, type === "seeked");
     }
+  }
+
+  /**
+   * Marks announcements at `time` as reached (or settled, on `seeked`) and
+   * drops reached ones the media has since moved away from.
+   */
+  private settle(time: number, seeked: boolean): void {
+    const pending: Announcement[] = [];
+    for (const { reached, target } of this.announced) {
+      const near = isNear(target, time);
+      if (near && !seeked) {
+        pending.push({ reached: true, target });
+      } else if (!(near || reached)) {
+        pending.push({ reached, target });
+      }
+    }
+    this.announced = pending;
   }
 
   private observeSeeking(
@@ -65,16 +90,16 @@ export class VibePlayerSeekAnalytics {
     snapshot: VibePlayerSnapshot,
     from: number
   ): void {
-    const echo = this.announced.some((target) =>
+    const echo = this.announced.some(({ target }) =>
       isNear(target, snapshot.currentTime)
     );
     // Ended media is paused; unpaused, it rewinds because it plays again.
     const replay = this.ended && !snapshot.paused;
     this.ended = false;
+    this.settle(snapshot.currentTime, false);
     if (echo || replay) {
       return;
     }
-    this.announced = [];
     this.emit({
       currentTime: snapshot.currentTime,
       duration: snapshot.duration,

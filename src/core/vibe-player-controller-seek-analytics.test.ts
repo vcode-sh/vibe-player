@@ -96,6 +96,45 @@ describe("controller seek analytics", () => {
     await controller.teardown();
   });
 
+  it("reports a media seek near a controller seek that already settled", async () => {
+    const { adapter, controller, seeks } = await createSeekPlayer();
+    await controller.seekTo(30);
+    adapter.emit("seeking", { currentTime: 30, readyState: "buffering" });
+    adapter.emit("seeked", { currentTime: 30, readyState: "ready" });
+    // Paused media reports nothing until the viewer nudges it natively.
+    adapter.emit("seeking", { currentTime: 30.2, readyState: "buffering" });
+    expect(seeks().map(({ initiator }) => initiator)).toEqual([
+      "controller",
+      "media",
+    ]);
+    await controller.teardown();
+  });
+
+  it.each(["seeked", "timeupdate"] as const)(
+    "keeps a newer controller seek when a late %s reports the previous one",
+    async (late) => {
+      const { adapter, controller, playAt, seeks } = await createSeekPlayer();
+      playAt(12);
+      await controller.seekTo(20);
+      adapter.emit("seeking", { currentTime: 20, readyState: "buffering" });
+      await controller.seekTo(60);
+      // Queued before the second seek, so it still reports 20 s.
+      adapter.emit(late, { currentTime: 20, readyState: "playing" });
+      adapter.emit("seeking", { currentTime: 60, readyState: "buffering" });
+      adapter.emit("seeked", { currentTime: 60, readyState: "playing" });
+      expect(
+        seeks().map(({ currentTime, initiator }) => ({
+          currentTime,
+          initiator,
+        }))
+      ).toEqual([
+        { currentTime: 20, initiator: "controller" },
+        { currentTime: 60, initiator: "controller" },
+      ]);
+      await controller.teardown();
+    }
+  );
+
   it.each<[string, (player: SeekPlayer) => Promise<unknown> | undefined]>([
     [
       "a retry",

@@ -39,7 +39,8 @@ export interface VibePlayerWatchedRangesReport {
   /** Media duration in seconds when known, else 0. */
   duration: number;
   /**
-   * Identifies one playback, unique within the page. Loading a source (even
+   * Identifies one playback: unique within the page, with a random part
+   * that makes repeats across pages unlikely. Loading a source (even
    * the same one again) and playing again after `ended` start a new
    * playback; pause, seek, stop, retry and renewal keep it.
    */
