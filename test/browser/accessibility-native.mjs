@@ -1,5 +1,6 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { releaseNativeSession } from "./accessibility-native-cleanup.mjs";
@@ -41,6 +42,13 @@ const work = mkdtempSync(join(results, "vibe-player-native-a11y-"));
 for (const entry of ["config", "cache", "data", "runtime", "speech"]) {
   mkdirSync(join(work, entry), { mode: 0o700 });
 }
+// Unix socket paths are limited to 108 bytes, which a deep checkout's
+// test-results path can exceed, so the socket lives in a short private
+// directory in the user's runtime directory instead.
+const socketDirectory = mkdtempSync(
+  join(process.env.XDG_RUNTIME_DIR || tmpdir(), "vibe-player-a11y-")
+);
+const speechSocket = join(socketDirectory, "speech.sock");
 mkdirSync(join(work, "data/orca"));
 writeFileSync(
   join(work, "data/orca/orca-customizations.py"),
@@ -54,7 +62,8 @@ const environment = {
   ...process.env,
   AT_SPI_BUS_ADDRESS: undefined,
   DBUS_SESSION_BUS_ADDRESS: undefined,
-  SPEECHD_ADDRESS: `unix_socket:${work}/speech.sock`,
+  SPEECHD_ADDRESS: `unix_socket:${speechSocket}`,
+  VIBE_PLAYER_SPEECH_SOCKET: speechSocket,
   WAYLAND_DISPLAY: undefined,
   XDG_CACHE_HOME: join(work, "cache"),
   XDG_CONFIG_HOME: join(work, "config"),
@@ -95,7 +104,7 @@ const deadline = setTimeout(stopOwnedSession, 45_000);
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.once(signal, () => {
     stopOwnedSession();
-    releaseNativeSession(work);
+    releaseNativeSession(work, socketDirectory);
     process.exit(1);
   });
 }
@@ -112,5 +121,5 @@ try {
 } finally {
   clearTimeout(deadline);
   stopOwnedSession();
-  releaseNativeSession(work);
+  releaseNativeSession(work, socketDirectory);
 }

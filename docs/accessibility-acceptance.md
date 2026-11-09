@@ -154,7 +154,9 @@ launcher owns a bounded process group and kills only that group on failure,
 timeout or interruption. It then detaches the FUSE mounts that the private
 D-Bus session's document portal and GVfs daemons left in its runtime
 directory, and deletes the session state (runtime, config, cache, data,
-speech), keeping only the result files. The runner closes its browser and terminates its own
+speech), keeping only the result files. Its speech socket lives in a short
+private directory under `$XDG_RUNTIME_DIR`, because a deep checkout path
+can exceed the 108-byte Unix socket limit; that directory is removed too. The runner closes its browser and terminates its own
 Orca and Speech Dispatcher children. Private portal/FUSE/PipeWire warnings can
 occur without audio devices; assertions determine the result.
 

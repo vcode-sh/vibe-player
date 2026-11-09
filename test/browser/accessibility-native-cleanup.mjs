@@ -36,9 +36,10 @@ function findMountsUnder(directory) {
  * The isolated D-Bus session starts FUSE daemons (document portal, GVfs)
  * that mount inside the probe's XDG_RUNTIME_DIR. Killing the session leaves
  * those mounts behind, so detach them lazily, then delete the session state.
- * Only paths inside `work` are touched. Safe to call more than once.
+ * Only paths inside `work` and the probe's own socket directory are touched.
+ * Safe to call more than once.
  */
-export function releaseNativeSession(work) {
+export function releaseNativeSession(work, socketDirectory) {
   for (const target of findMountsUnder(work)) {
     const result = spawnSync("fusermount3", ["-u", "-z", target]);
     if (result.status !== 0) {
@@ -52,5 +53,8 @@ export function releaseNativeSession(work) {
   }
   for (const entry of sessionEntries) {
     rmSync(join(work, entry), { force: true, recursive: true });
+  }
+  if (socketDirectory) {
+    rmSync(socketDirectory, { force: true, recursive: true });
   }
 }

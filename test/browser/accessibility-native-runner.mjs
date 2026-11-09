@@ -16,7 +16,7 @@ const speech = spawn(
   [
     "--run-single",
     "--socket-path",
-    `${work}/speech.sock`,
+    process.env.VIBE_PLAYER_SPEECH_SOCKET ?? `${work}/speech.sock`,
     "--config-dir",
     `${work}/speech`,
     "--pid-file",
