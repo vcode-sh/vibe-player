@@ -884,7 +884,8 @@ viewer hovers or scrubs the timeline (pointer, touch or keyboard):
 - `variant="glide"` (default): one thin smooth line reveals left to right over
   the rail (400 ms, retracting in 240 ms from wherever it got to), with a soft
   gradient under it and a dot riding the line at the pointer.
-- `variant="curve"`: a filled curve rises over the rail.
+- `variant="curve"`: a filled curve rises over the rail, with the same dot
+  on its line at the pointer.
 
 Above it, a preview shows the seek frame (when the player has
 `seekThumbnails`), the time, and a label: `labels.mostReplayed` near a peak,

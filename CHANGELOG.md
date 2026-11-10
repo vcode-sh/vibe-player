@@ -2,10 +2,17 @@
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-10
+
 ### Changed
 
 - Node 24 is now the minimum supported version (was 22). Upgrade to Node 24
   or later.
+
+### Fixed
+
+- `VibePlayerHeatmap` with `variant="curve"` now shows the dot that marks
+  the pointed moment on the graph, as `glide` already did.
 
 ## [0.8.0] - 2026-11-09
 

@@ -1,6 +1,7 @@
 /* "Most replayed" (VibePlayerHeatmap): nothing at rest. While the timeline is
    hovered or scrubbed, glide draws a line left to right and curve raises a
-   filled curve; a preview of the moment floats above. Entry 400 ms, exit
+   filled curve, each with a dot at the pointed moment; a preview of the
+   moment floats above. Entry 400 ms, exit
    240 ms; transitions reverse from wherever they are. */
 .vibe-player-heatmap {
   --_vp-heat-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -132,10 +133,6 @@
 
 .vibe-player-heatmap[data-variant="curve"] .vibe-player-heatmap__line {
   stroke-opacity: 0.75;
-}
-
-.vibe-player-heatmap[data-variant="curve"] .vibe-player-heatmap__rider {
-  display: none;
 }
 
 .vibe-player-heatmap[data-variant="glide"] .vibe-player-heatmap__graph {

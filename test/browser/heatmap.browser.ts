@@ -190,6 +190,7 @@ test("chips and the full stage show the same preview instead of their readouts",
   );
   await expect(page.locator(heatmap)).toHaveAttribute("data-active", "");
   await expect(page.locator(heatmap)).toContainText("Most replayed");
+  await expect(page.locator(`${heatmap}__dot`)).toBeVisible();
   await expect(page.locator(`${heatmap}__frame`)).toBeVisible();
   await expect(page.locator(".vibe-player-timeline__tooltip")).toBeHidden();
 

@@ -33,8 +33,8 @@ export interface VibePlayerHeatmapProps {
   values: readonly number[];
   /**
    * Hidden at rest; shown while the timeline is hovered or scrubbed.
-   * `glide` (default) draws a line left to right with a dot under the
-   * pointer; `curve` raises a filled curve.
+   * `glide` (default) draws a line left to right; `curve` raises a filled
+   * curve. Both mark the pointed moment with a dot on the graph.
    */
   variant?: "curve" | "glide" | undefined;
 }
