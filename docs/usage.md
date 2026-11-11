@@ -1062,6 +1062,82 @@ The default UI intentionally stays dependency-light. Base UI is a good host
 layer for custom sliders, menus, and popovers, but it is not a required runtime
 dependency of the package.
 
+## Frame Picker
+
+`VibePlayerFramePicker` (from `vibe-player/compact` or `vibe-player`) lets
+someone choose a moment of a video, such as its cover frame. It shows a
+paused, muted frame of a file or HLS source at `value` (seconds) above a
+slider. It loads at once, never plays, has no audio and draws no looping
+motion. Store the time it reports; turning it into an image is up to your
+application.
+
+```tsx
+import { useState } from "react";
+import {
+  createVibePlayerSeekThumbnails,
+  VibePlayerFramePicker,
+} from "vibe-player/compact";
+
+const storyboard = createVibePlayerSeekThumbnails({
+  columns: 10,
+  count: 24,
+  duration: 118.2,
+  height: 90,
+  interval: 5,
+  url: "https://media.example.com/v/42/storyboard.jpg",
+  width: 160,
+});
+
+export function CoverPicker() {
+  const [cover, setCover] = useState(0);
+  return (
+    <VibePlayerFramePicker
+      labels={{
+        slider: "Cover frame",
+        valueText: (seconds) => `${seconds.toFixed(1)} seconds`,
+      }}
+      onChange={setCover}
+      seekThumbnails={storyboard}
+      source={source}
+      value={cover}
+    />
+  );
+}
+```
+
+The picker is controlled: `onChange` reports each time the user picks, and you
+render it back as `value`. It fires on pointer down, on every move while
+dragging and on every key press; release adds nothing, so the latest call is
+the pick. Picked times stay within the media duration, rounded to
+milliseconds. Until the duration is known (and for live or failed media) the
+slider is disabled; when it becomes known and `value` lies outside it,
+`onChange` fires once with the clamped time.
+
+The slider is an ARIA `slider` named by `labels.slider` (default
+`"Cover frame"`) with `aria-valuetext` from `labels.valueText(seconds,
+duration)` (default `0:07.3 of 1:05`). Arrow keys move 0.1 s, Page Up and
+Page Down 1 s, Home and End jump to the ends; pressing the rail picks the
+time under the pointer and dragging follows it.
+
+`seekThumbnails` takes the same storyboard tiles as the player. They draw a
+filmstrip behind the rail, and while the frame seeks (an HLS seek loads a
+segment first) the tile at `value` covers the frame, so dragging answers at
+once; the real frame replaces it when the seek settles. Seeks run one at a
+time and skip to the latest wanted time, so a fast drag never queues stale
+segment loads.
+
+Style the parts with `className`, `classNames` (`root`, `frame`, `media`,
+`tile`, `rail`, `strip`, `thumb`) and the `data-part` attributes (`frame`,
+`tile`, `rail`, `strip`, `thumb`); the rail carries `data-dragging` while
+held. The frame follows the video's ratio within 9:16–16:9 and `fit`
+(`contain` or `cover`). Defaults follow the surrounding `color`:
+`--vibe-player-frame-picker-radius` (8 px), `-rail-height` (48 px; never
+below 44 px), `-track` and `-thumb`, plus `--vibe-player-stage-background`
+behind the frame and `--vibe-player-focus-color`. The handle grows slightly
+while held (120 ms ease-out, instant under reduced motion); there are no
+hover effects. Pass `adapterFactory` or `hlsConfig`/`loadHls` as for the
+other players.
+
 ## Bundle Size
 
 `bun run package:size` measures built output and enforces an initial combined

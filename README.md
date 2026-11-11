@@ -63,6 +63,8 @@ export function Viewer() {
 - **Timeline:** seek thumbnails from sprites or WebVTT
   (`seekThumbnails`, `createVibePlayerSeekThumbnails`) and a "most replayed"
   `VibePlayerHeatmap` in `glide` or `curve` variants (`timelineBackground`).
+- **Frame picker:** `VibePlayerFramePicker` shows a paused frame with a
+  slider and storyboard filmstrip, for choosing a cover frame.
 - **System media controls:** opt-in `mediaSession` for lock screen and media
   keys.
 - **Detached hosts:** `host` (or `VibePlayerHostFrame`) moves one playing

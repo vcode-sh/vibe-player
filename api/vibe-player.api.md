@@ -75,6 +75,10 @@ type VibePlayerEventName
 type VibePlayerEventOfType
 type VibePlayerEventType
 type VibePlayerFileSource
+value VibePlayerFramePicker
+type VibePlayerFramePickerClassNames
+type VibePlayerFramePickerLabels
+type VibePlayerFramePickerProps
 type VibePlayerGestures
 value VibePlayerHeadless
 type VibePlayerHeadlessProps
@@ -219,6 +223,10 @@ type VibePlayerErrorKind
 type VibePlayerEvent
 type VibePlayerEventOfType
 type VibePlayerEventType
+value VibePlayerFramePicker
+type VibePlayerFramePickerClassNames
+type VibePlayerFramePickerLabels
+type VibePlayerFramePickerProps
 type VibePlayerGestures
 value VibePlayerHeadless
 type VibePlayerHeadlessProps
@@ -886,6 +894,36 @@ interface VibePlayerFileSource extends VibePlayerSourceMetadata {
   sources: readonly VibePlayerMediaSource[];
   title?: string;
   type: "file";
+}
+
+declare function VibePlayerFramePicker({ className, classNames, fit, labels, onChange, seekThumbnails, source, value, ...options }: VibePlayerFramePickerProps): import("react").JSX.Element;
+
+interface VibePlayerFramePickerClassNames {
+  frame?: string | undefined;
+  media?: string | undefined;
+  rail?: string | undefined;
+  root?: string | undefined;
+  strip?: string | undefined;
+  thumb?: string | undefined;
+  tile?: string | undefined;
+}
+
+interface VibePlayerFramePickerLabels {
+  slider?: string | undefined;
+  valueText?: ((seconds: number, duration: number) => string) | undefined;
+}
+
+interface VibePlayerFramePickerProps extends VibePlayerAdapterOptions {
+  adapterFactory?: VibePlayerControllerOptions["adapterFactory"] | undefined;
+  className?: string | undefined;
+  classNames?: VibePlayerFramePickerClassNames | undefined;
+  fit?: "contain" | "cover" | undefined;
+  labels?: VibePlayerFramePickerLabels | undefined;
+  onChange: (seconds: number) => void;
+  onError?: ((error: VibePlayerError) => void) | undefined;
+  seekThumbnails?: readonly VibePlayerSeekThumbnail[] | undefined;
+  source: VibePlayerSource;
+  value: number;
 }
 
 interface VibePlayerGestures {

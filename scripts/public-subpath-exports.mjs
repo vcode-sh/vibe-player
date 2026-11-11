@@ -32,6 +32,10 @@ export const publicSubpathExports = {
       "VibePlayerCompactProps",
       "VibePlayerCompactSkin",
       "VibePlayerCompactSlots",
+      "VibePlayerFramePicker",
+      "VibePlayerFramePickerClassNames",
+      "VibePlayerFramePickerLabels",
+      "VibePlayerFramePickerProps",
       "VibePlayerGestures",
       "VibePlayerScrubber",
       "VibePlayerScrubberProps",
@@ -58,6 +62,7 @@ export const publicSubpathExports = {
     ],
     runtime: [
       "VibePlayerCompact",
+      "VibePlayerFramePicker",
       "VibePlayerHeadless",
       "VibePlayerHeatmap",
       "VibePlayerHostFrame",

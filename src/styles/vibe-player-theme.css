@@ -3,6 +3,7 @@
 .vibe-player-modal,
 .vibe-player-ambient-preview,
 .vibe-player-background-preview,
+.vibe-player-frame-picker,
 .vibe-player-headless {
   --_vibe-fg: var(--vibe-player-text, #fff);
   --_vibe-bg: var(--vibe-player-stage-background, #000);

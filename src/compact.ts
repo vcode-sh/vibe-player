@@ -20,6 +20,12 @@ export {
   VibePlayerCompact,
   type VibePlayerCompactProps,
 } from "./ui/vibe-player-compact";
+export { VibePlayerFramePicker } from "./ui/vibe-player-frame-picker";
+export type {
+  VibePlayerFramePickerClassNames,
+  VibePlayerFramePickerLabels,
+  VibePlayerFramePickerProps,
+} from "./ui/vibe-player-frame-picker-types";
 export {
   VibePlayerHeadless,
   type VibePlayerHeadlessProps,

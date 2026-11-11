@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-11
+
+### Added
+
+- `VibePlayerFramePicker` (from `vibe-player/compact` and `vibe-player`)
+  picks a moment of a video, such as its cover frame: a paused, muted frame
+  of a file or HLS source at `value` seconds above an ARIA slider. Arrow keys
+  move 0.1 s, Page Up/Down 1 s, Home/End jump to the ends, and pressing or
+  dragging the rail picks the time under the pointer. `onChange(seconds)`
+  fires on press, during the drag and on each key; the time stays within the
+  duration, and the slider is disabled until the duration is known. With
+  `seekThumbnails`, a storyboard filmstrip draws behind the rail and the tile
+  at the picked time covers the frame while an HLS seek is in flight. Style it
+  with `classNames`, `fit` and `--vibe-player-frame-picker-*` variables; text
+  comes from `labels`. New types: `VibePlayerFramePickerProps`,
+  `VibePlayerFramePickerLabels` and `VibePlayerFramePickerClassNames`.
+
 ## [0.8.1] - 2026-11-10
 
 ### Changed

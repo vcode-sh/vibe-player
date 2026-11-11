@@ -1,0 +1,164 @@
+/* Frame picker: a paused frame above a slider rail. Unstyled-but-usable
+   defaults that follow the host's `color`; restyle with the classes, the
+   `classNames` parts or these variables:
+   --vibe-player-frame-picker-radius        frame and rail corners (8px)
+   --vibe-player-frame-picker-rail-height   rail and filmstrip height (48px)
+   --vibe-player-frame-picker-track         track and empty filmstrip colour
+   --vibe-player-frame-picker-thumb         handle colour (currentColor) */
+.vibe-player-frame-picker {
+  --_vp-picker-radius: var(--vibe-player-frame-picker-radius, 8px);
+  --_vp-picker-track: var(
+    --vibe-player-frame-picker-track,
+    color-mix(in srgb, currentColor 14%, transparent)
+  );
+  --_vp-picker-thumb: var(--vibe-player-frame-picker-thumb, currentColor);
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.vibe-player-frame-picker__frame {
+  position: relative;
+  aspect-ratio: var(--vibe-player-aspect-ratio, 16 / 9);
+  overflow: hidden;
+  background: var(--_vibe-bg);
+  border-radius: var(--_vp-picker-radius);
+}
+
+.vibe-player-frame-picker .vibe-player-frame-picker__media {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+  object-fit: contain;
+}
+
+.vibe-player-frame-picker[data-fit="cover"] .vibe-player-frame-picker__media {
+  object-fit: cover;
+}
+
+/* The storyboard tile at the picked time while the real frame seeks. */
+.vibe-player-frame-picker__tile {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.vibe-player-frame-picker__tile-image,
+.vibe-player-frame-picker__strip-tile {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vibe-player-frame-picker__tile-image[hidden],
+.vibe-player-frame-picker__strip-tile[hidden] {
+  display: none;
+}
+
+.vibe-player-frame-picker__tile img,
+.vibe-player-frame-picker__strip img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+.vibe-player-frame-picker__rail {
+  position: relative;
+  height: var(--vibe-player-frame-picker-rail-height, 48px);
+  min-height: 44px;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  border-radius: var(--_vp-picker-radius);
+}
+
+.vibe-player-frame-picker__rail:focus-visible {
+  outline: 2px solid var(--vibe-player-focus-color, currentColor);
+  outline-offset: 2px;
+}
+
+.vibe-player-frame-picker__rail[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.vibe-player-frame-picker__strip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  background: var(--_vp-picker-track);
+  border-radius: inherit;
+}
+
+.vibe-player-frame-picker__strip-slot {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Without a filmstrip the rail draws a thin track. */
+.vibe-player-frame-picker__track {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: var(--_vp-picker-track);
+  border-radius: 2px;
+  transform: translateY(-50%);
+}
+
+.vibe-player-frame-picker__rail:has(.vibe-player-frame-picker__strip)
+  .vibe-player-frame-picker__track {
+  display: none;
+}
+
+.vibe-player-frame-picker__thumb-track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateX(
+    calc(var(--vibe-player-frame-picker-progress, 0) * 100%)
+  );
+}
+
+/* The handle: a bar over the picked moment. It grows a little while held,
+   120 ms ease-out, and settles back the same way. */
+.vibe-player-frame-picker__thumb {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: 0;
+  width: 4px;
+  background: var(--_vp-picker-thumb);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
+  transform: translateX(-50%);
+  transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vibe-player-frame-picker__rail[data-dragging]
+  .vibe-player-frame-picker__thumb {
+  transform: translateX(-50%) scale(1.5, 1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-player-frame-picker__thumb {
+    transition-duration: 0s;
+  }
+}

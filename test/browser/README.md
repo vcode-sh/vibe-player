@@ -51,6 +51,9 @@ at 320/390/768px viewports and 240/280px embedded widths in a wider viewport.
 Seek preview acceptance covers decoded sprite crops and standalone frames,
 hover without seeking, pointer/keyboard seeking, image failure fallback, and
 preview bounds in Chromium and WebKit at 240/320/390/1100px player widths.
+The frame picker page (Chromium and WebKit) loads a file and an HLS source
+eagerly into a paused, muted frame, and checks that keys and a rail click
+move the decoded frame to the picked time, the 44 px rail and the filmstrip.
 The chrome size page (Chromium) measures glass and chips geometry without
 sizing variables (the 0.6.0 sizes), scaled by container units in a 200 px
 frame, and with variables below the 24 px hit-area floor.

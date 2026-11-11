@@ -10,6 +10,11 @@ interface ImageSize {
 }
 
 interface VibePlayerSeekThumbnailImageProps {
+  /**
+   * Replaces the tooltip class and its height-based width, so the caller's
+   * CSS sizes the box; the box keeps the frame's aspect ratio.
+   */
+  className?: string | undefined;
   thumbnail: VibePlayerSeekThumbnail;
 }
 
@@ -30,6 +35,7 @@ function getThumbnailImageStyle(
 // The parent keys this image by URL so late load/error events cannot reveal a
 // previous image while a different URL is loading.
 export function VibePlayerSeekThumbnailImage({
+  className,
   thumbnail,
 }: VibePlayerSeekThumbnailImageProps) {
   const [size, setSize] = useState<ImageSize | null>(null);
@@ -49,14 +55,16 @@ export function VibePlayerSeekThumbnailImage({
   return (
     <span
       aria-hidden
-      className="vibe-player-seek-thumbnail"
+      className={className ?? "vibe-player-seek-thumbnail"}
       hidden={!visible}
       style={{
         aspectRatio: `${width} / ${height}`,
-        width:
-          height > 0
-            ? `min(100%, calc(var(--vibe-player-seek-thumbnail-height, 90px) * ${width / height}))`
-            : 0,
+        ...(className === undefined && {
+          width:
+            height > 0
+              ? `min(100%, calc(var(--vibe-player-seek-thumbnail-height, 90px) * ${width / height}))`
+              : 0,
+        }),
       }}
     >
       {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: load/error only observe image availability. */}

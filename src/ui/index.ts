@@ -10,6 +10,12 @@ export {
   VibePlayerControls,
   type VibePlayerControlsProps,
 } from "./vibe-player-controls";
+export { VibePlayerFramePicker } from "./vibe-player-frame-picker";
+export type {
+  VibePlayerFramePickerClassNames,
+  VibePlayerFramePickerLabels,
+  VibePlayerFramePickerProps,
+} from "./vibe-player-frame-picker-types";
 export {
   VibePlayerHeadless,
   type VibePlayerHeadlessProps,
